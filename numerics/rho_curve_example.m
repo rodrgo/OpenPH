@@ -26,7 +26,7 @@ for i = 1:length(complexes)
   fprintf('Working on %s...\t', complexes{i});
   [stream, title_str] = example_factory(complex_name, max_dimension, max_filtration_value, num_divisions);
 
-  D = BoundaryMatrix(stream);
+  D = BoundaryMatrix(stream, 'full');
 
   rho_curves{end + 1} = D.rho;
 
@@ -69,4 +69,5 @@ hold off;
 file_name = strcat(figure_tag, '.eps');
 file_path = strcat(figure_dir, file_name);
 print('-depsc', file_path);
+eps_to_pdf(file_path);
 

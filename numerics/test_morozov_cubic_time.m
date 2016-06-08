@@ -22,9 +22,8 @@ for i = 1:length(orders)
     stream_sizes(i) = stream.getSize();
     D = BoundaryMatrix(stream);
     
-    time_sparse = tic;
-    [~, ~] = D.do_classical_reduction_optimised();
-    reduce_times_sparse(i) = toc(time_sparse);
+    [~, t] = D.standard_reduction_sparse();
+    reduce_times_sparse(i) = t;
     
     %time_dense = tic;
     %[~, ~] = D.do_classical_reduction_optimised_dense();
@@ -51,6 +50,7 @@ hold off;
 legend([h_sparse, h_ref], 'Classic reduction algorithm', 't = C*N^3');
 
 fileName = strcat(figure_dir, 'morozov_cubic_time');
-print('-depsc', strcat(fileName, '.eps'));
-
+file_path = strcat(fileName, '.eps');
+print('-depsc', file_path);
+eps_to_pdf(file_path);
 

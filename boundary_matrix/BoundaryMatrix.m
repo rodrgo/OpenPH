@@ -1,6 +1,8 @@
 classdef BoundaryMatrix
     properties
         m;
+        complex_dimension;
+	dimensions;
         matrix;
         low;
         low_star;
@@ -18,10 +20,22 @@ classdef BoundaryMatrix
 
     methods
         function obj = BoundaryMatrix(stream, mode)
+            if nargin == 1
+                mode = 'plain';
+            end
             if nargin > 0
-                % Create sparse boundary matrix
+
+                % Query stream from Javaplex
                 import edu.stanford.math.plex4.*;
-                ccs = streams.utility.StreamUtility.getCompressedBoundaryMatrix(stream);
+		if strcmp(mode, 'reduced')
+			ccs = streams.utility.StreamUtility.getCompressedBoundaryMatrixRedHom(stream);
+                	obj.m = stream.getSize() + 1; % Add dummy simplex
+		else
+			ccs = streams.utility.StreamUtility.getCompressedBoundaryMatrix(stream);
+                	obj.m = stream.getSize();
+		end
+
+		% Create sparse boundary matrix
                 array = ccs.get(0).toArray();
                 rows = zeros(size(array));
                 for i = 1:array.length
@@ -32,9 +46,12 @@ classdef BoundaryMatrix
                 for i = 1:array.length
                     cols(i) = double(array(i));
                 end
-                obj.m = stream.getSize() + 1; % Include a dummy simplex
                 obj.matrix = sparse(rows, cols, ones(size(rows)), obj.m, obj.m);
                 assert(istriu(obj.matrix));
+
+                % Get dimension of the complex
+		obj.dimensions = sum(obj.matrix);
+                obj.complex_dimension = max(obj.dimensions);
 
                 if ~strcmp(mode, 'plain')
                   % Upper and lower bounds
@@ -102,13 +119,13 @@ classdef BoundaryMatrix
 
         function obj = create_rho(obj)
             obj.rho = zeros(obj.m, 1);
-						obj.rho(1) = 0 + (obj.beta(1) > 0);
+	    obj.rho(1) = 0 + (obj.beta(1) > 0);
             for j = 2:obj.m
-								if obj.beta(j) > 0
-									obj.rho(j) = obj.rho(j-1) + 1;
-								else
-									obj.rho(j) = obj.rho(j-1) - 1;
-								end
+                if obj.beta(j) > 0
+                        obj.rho(j) = obj.rho(j-1) + 1;
+                else
+                        obj.rho(j) = obj.rho(j-1) - 1;
+                end
             end
         end
 
@@ -134,7 +151,44 @@ classdef BoundaryMatrix
             end
         end
 
-        function [lows, t] = standard_reduction(obj)
+        function [lows, t] = twist_reduction_sparse(obj)
+            tic;
+            R = obj.matrix;
+            obj = obj.create_low();
+            lows = obj.low;
+            complex_dim = obj.complex_dimension;
+            simplex_dim = obj.dimensions;
+            L = zeros(obj.m, 1);
+            for d = complex_dim:-1:1
+                for j = 1:obj.m
+                    if sum(simplex_dim(j)) == d
+						% lows(j) == 0 iff j \in \positive
+						%
+						% L(lows(j)) == 0 iff \nexists j0 < j
+						% s.t. low(j0) = low(j). i.e.
+						% iff lows(j) = low_star(j)
+                        while (lows(j) > 0) && (L(lows(j)) ~= 0)
+                            j0 = L(lows(j));
+                            R(:, j) = mod(R(:,j) + R(:,j0), 2);
+                            % Update lows
+                            if any(R(:, j))
+                                lows(j) = find(R(:,j), 1, 'last');
+                            else
+                                lows(j) = 0;
+                            end
+                        end
+                        if lows(j) > 0
+                            i = lows(j);
+                            L(i) = j;
+                            R(:, i) = 0;
+                        end
+                    end
+                end
+            end
+            t = toc;
+        end
+
+        function [lows, t] = standard_reduction_sparse(obj)
             tic;
             R = obj.matrix;
             obj = obj.create_low();
@@ -161,31 +215,24 @@ classdef BoundaryMatrix
             R = obj.matrix;
             obj = obj.create_low();
             lows = obj.low;
-            arglows = zeros(size(lows));
+            L = zeros(size(lows)); % lowstar(i) == L(i)
             for j = 1:obj.m
-                done = 0;
                 R_j = R(:, j);
-                while (lows(j) > 0 && ~done)
-                    j0 = arglows(lows(j));
-                    if j0 > 0
-                        R_j = mod(R_j + R(:, j0), 2);
-                        if any(R_j)
-                            lows(j) = find(R_j, 1, 'last');
-                        else
-                            lows(j) = 0;
-                        end
-                    else
-                        done = 1;
-                    end
+                while (lows(j) > 0 && (L(lows(j)) ~= 0))
+                    j0 = L(lows(j));
+					R_j = mod(R_j + R(:, j0), 2);
+					if any(R_j)
+						lows(j) = find(R_j, 1, 'last');
+					else
+						lows(j) = 0;
+					end
                 end
                 R(:, j) = R_j;
                 if lows(j) > 0
-                    arglows(lows(j)) = j;
+                    L(lows(j)) = j;
                 end
             end
             t = toc;
-            %idx = find(lows);
-            %low_mask = sparse(lows(idx), idx, ones(size(idx)), obj.m, obj.m);
         end
 
         function [lows, t] = standard_reduction_dense_opt(obj)
@@ -193,29 +240,22 @@ classdef BoundaryMatrix
             R = full(obj.matrix);
             obj = obj.create_low();
             lows = obj.low;
-            arglows = zeros(size(lows));
+            L = zeros(size(lows));
             for j = 1:obj.m
-                done = 0;
-                while (lows(j) > 0 && ~done)
-                    j0 = arglows(lows(j));
-                    if j0 > 0
-                        R(:, j) = mod(R(:, j) + R(:, j0), 2);
-                        if any(R(:, j))
-                            lows(j) = find(R(:, j), 1, 'last');
-                        else
-                            lows(j) = 0;
-                        end
-                    else
-                        done = 1;
-                    end
+                while (lows(j) > 0 && (L(lows(j)) ~= 0))
+                    j0 = L(lows(j));
+					R(:, j) = mod(R(:, j) + R(:, j0), 2);
+					if any(R(:, j))
+						lows(j) = find(R(:, j), 1, 'last');
+					else
+						lows(j) = 0;
+					end
                 end
                 if lows(j) > 0
-                    arglows(lows(j)) = j;
+                    L(lows(j)) = j;
                 end
             end
             t = toc;
-            %idx = find(lows);
-            %low_mask = sparse(lows(idx), idx, ones(size(idx)), obj.m, obj.m);
         end
 
         %% Masks

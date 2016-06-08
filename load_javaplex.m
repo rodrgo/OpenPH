@@ -3,13 +3,13 @@
 clc; clear all; close all;
 clear import;
 
-matlab_javaplex_dir = '../javaplex/src/matlab/for_distribution';
+MATLAB_JAVAPLEX_DIR = ['/home/mendozasmith/src/javaplex/src/matlab/for_distribution'];
 
-javaaddpath([matlab_javaplex_dir '/lib/javaplex.jar']);
+javaaddpath([MATLAB_JAVAPLEX_DIR '/lib/javaplex.jar']);
 import edu.stanford.math.plex4.*;
 
-javaaddpath([matlab_javaplex_dir '/lib/plex-viewer.jar']);
+javaaddpath([MATLAB_JAVAPLEX_DIR '/lib/plex-viewer.jar']);
 import edu.stanford.math.plex_viewer.*;
 
-addpath([matlab_javaplex_dir '/utility']);
+addpath([MATLAB_JAVAPLEX_DIR '/utility']);
 

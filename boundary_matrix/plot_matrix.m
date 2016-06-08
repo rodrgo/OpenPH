@@ -1,6 +1,6 @@
-function plot_matrix(matrix, title_str, file_path, masks)
+function h = plot_matrix(matrix, title_str, file_path, masks)
 
-  spy(matrix);
+  h = spy_tda(matrix);
   set(gcf, 'color', [1 1 1]);
   set(gca, 'xtick', [], 'ytick', [], 'XTickLabel', '', 'YTickLabel', '');
   xlabel('');

@@ -1,7 +1,6 @@
 % explore_ensemble_complexity.m
 init;
 
-
 figure_dir = './figures/';
 figure_tag = 'speed_standard_reduction';
 
@@ -18,9 +17,9 @@ end
 
 vr_markers = '+o*.xsd^v><ph';
 
-max_dimension_list = [1, 3, 10];
-max_filtration_value_list = [1, 10, 20];
-num_divisions_list = [10, 20, 30];
+max_dimension_list = [3, 5, 7];
+max_filtration_value_list = [1, 3, 5];
+num_divisions_list = [5, 10, 15];
 
 data_time = [];
 data_dimension = [];
@@ -28,7 +27,7 @@ data_sparsity = [];
 
 for i = 1:length(vr_complexes)
   complex_name = vr_complexes{i};
-  fprintf('Working on %s...\t', complex_name);
+  fprintf('%s...\n', complex_name);
 
   for j = 1:length(max_dimension_list)
     max_dimension = max_dimension_list(j);
@@ -38,6 +37,8 @@ for i = 1:length(vr_complexes)
 
       for l = 1:length(num_divisions_list)
         num_divisions = num_divisions_list(l);
+	fprintf('\tmax_dim = %d, max_filtr_val = %d, num_div = %d\n', ...
+		max_dimension, max_filtration_value, num_divisions);
 
         row = [i, max_dimension, max_filtration_value, ...
           num_divisions, 0];
@@ -126,6 +127,7 @@ for k = 1:length(vr_complexes)
       file_name = ['ensemble_complexity_' vr_complexes{k} '_' x_label '_vs_' y_label '.eps'];
       file_path = strcat(figure_dir, file_name);
       print('-depsc', file_path);
+      eps_to_pdf(file_path);
     end
   end
 end
@@ -160,6 +162,7 @@ if 1 == 0
       file_name = ['ensemble_complexity_' 'all_' x_label '_vs_' y_label '.eps'];
       file_path = strcat(figure_dir, file_name);
       print('-depsc', file_path);
+      eps_to_pdf(file_path);
     end
   end
 end
