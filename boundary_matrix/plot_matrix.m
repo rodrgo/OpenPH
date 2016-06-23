@@ -31,5 +31,6 @@ function h = plot_matrix(matrix, title_str, file_path, masks)
 
     % Save file
     print('-depsc', file_path);
+    eps_to_pdf(file_path);
 
 end

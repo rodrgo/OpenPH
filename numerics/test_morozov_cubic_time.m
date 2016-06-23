@@ -3,15 +3,29 @@
 init;
 
 figure_dir = './figures/';
+figure_tag = 'morozov';
 
-%% Test Morozov cubic time
+% Plot params
+LW = 'LineWidth';
+MS = 'MarkerSize';
+markers = '+o*.xsd^v><ph';
+
+% Algorithms to test
+algorithms = {'std_sparse', 'std_dense', ...
+    'twist_sparse', 'twist_dense', ...
+    'alpha_beta_sparse', 'alpha_beta_dense', ...
+    'rho_sparse', 'rho_dense'};
+
+% Make labels for plotting`
+algorithms_labels = algorithms;
+for i = 1:length(algorithms)
+    algorithms_labels{i} = strrep(algorithms{i}, '_', '\_');
+end
 
 % Matrix for order 11 is too heavy for dense reduction
 orders = 3:11;
-
 stream_sizes = zeros(size(orders));
-reduce_times_sparse = zeros(size(orders));
-%reduce_times_dense = zeros(size(orders));
+time_algorithms = zeros(length(algorithms), length(orders));
 
 for i = 1:length(orders)
     order = orders(i);
@@ -20,37 +34,44 @@ for i = 1:length(orders)
     time_order = tic;
     stream = examples.MorozovCubicTimeExample.getMorozovCubicTimeExample(order);
     stream_sizes(i) = stream.getSize();
-    D = BoundaryMatrix(stream);
-    
-    [~, t] = D.standard_reduction_sparse();
-    reduce_times_sparse(i) = t;
-    
-    %time_dense = tic;
-    %[~, ~] = D.do_classical_reduction_optimised_dense();
-    %reduce_times_dense(i) = toc(time_dense);
-    
+    D = BoundaryMatrix(stream, 'unreduced');
+
+    for l = 1:length(algorithms)
+        algorithm = algorithms{l};
+        [~, t] = reduce_matrix(D, algorithm);
+        time_algorithms(l, i) = 1000*t;
+    end
+
     fprintf('done in %g sec!\n', toc(time_order));
 end
 
 %%
-
-n_cube = stream_sizes.^3;
-
-h_sparse = loglog(stream_sizes, reduce_times_sparse, 'r--');
+% Plot results
+handles = [];
 set(gcf, 'color', [1 1 1]);
-xlabel('Number of simplices (N)');
-ylabel('Time (sec)');
-title('Running time for Morozov complex');
+set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
 
-hold on;
-%h_dense = loglog(stream_sizes, reduce_times_dense, 'b--');
+for ii = 1:size(time_algorithms, 1)
+    x = stream_sizes;
+    y = time_algorithms(ii, :);
+    handles(end + 1) = loglog(x, y, [markers(ii) '-'], LW, 1.5, MS, 10);
+    hold on;
+end
+
 stream_ref = 2*stream_sizes(5:end);
-h_ref = loglog(stream_ref, 1e1*(stream_ref/max(stream_ref)).^3, '-');
-hold off;
-legend([h_sparse, h_ref], 'Classic reduction algorithm', 't = C*N^3');
+handles(end + 1) = loglog(stream_ref, 1e1*(stream_ref/max(stream_ref)).^3, '-');
+algorithms_labels{end + 1} = 't = C*N^3'; 
 
-fileName = strcat(figure_dir, 'morozov_cubic_time');
-file_path = strcat(fileName, '.eps');
+xlabel('m');
+ylabel('time ms');
+legend(handles, algorithms_labels, 'Location', 'NorthWest');
+title('Running time for Morozov complex');
+hold off;
+
+file_name = strcat('morozov_reduction', '_', figure_tag, '.eps');
+file_path = strcat(figure_dir, file_name);
 print('-depsc', file_path);
 eps_to_pdf(file_path);
+fprintf('done in %g sec!\n', toc);
+
 

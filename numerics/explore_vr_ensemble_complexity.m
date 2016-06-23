@@ -47,7 +47,7 @@ for i = 1:length(vr_complexes)
 
         [stream, title_str] = example_factory(complex_name, ...
           max_dimension, max_filtration_value, num_divisions);
-        D = BoundaryMatrix(stream, 'plain');
+        D = BoundaryMatrix(stream, 'unreduced');
 
         row(end) = 1000*toc(t0);
         data_time = [data_time; row];

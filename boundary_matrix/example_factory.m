@@ -23,7 +23,7 @@ is_vietoris_rips = 1 == 1;
 if strcmp(example_name, 'morozov')
     % Morozov Cubic Time Example
     is_vietoris_rips = 1 == 0;
-    order_complexity = 5;
+    order_complexity = 7;
 
     name_str = 'Morozov';
     geo_params_str = sprintf('order=%d', order_complexity);
