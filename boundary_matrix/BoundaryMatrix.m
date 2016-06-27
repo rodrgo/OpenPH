@@ -346,6 +346,19 @@ classdef BoundaryMatrix < handle
         % Persistence markers
         %
 
+        function ph_info = get_persistence_info(obj)
+            neg = reshape(find(obj.low), [], 1);
+            % Find pairs
+            pairs = [reshape(obj.low(neg), [], 1) neg];
+            % Get indicator vector of paired
+            paired = zeros(obj.m, 1);
+            paired(pairs(:, 1)) = 1;
+            paired(pairs(:, 2)) = 1;
+            % Get essentials
+            essentials = find(paired == 0);
+            ph_info = {pairs, essentials};
+        end
+
         function obj = mark_classes(obj)
             obj.mark_as_positive(obj.low == 0);
             obj.mark_as_negative(obj.low > 0);

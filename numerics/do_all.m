@@ -3,9 +3,9 @@
 
 
 tic;
-explore_vr_ensemble_complexity
+test_vr_ensembles
 fileID = fopen('do_all_log.txt','w');
-fprintf(fileID,'explore_vr_ensemble_complexity: %6.6f secs\n', toc);
+fprintf(fileID,'test_vr_ensembles: %6.6f secs\n', toc);
 fclose(fileID);
 
 tic;

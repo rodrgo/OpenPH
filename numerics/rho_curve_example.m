@@ -7,8 +7,9 @@ figure_dir = './figures/';
 figure_tag = 'rho_curve_example';
 
 % Create Vietoris-Rips complexes
+% We do not include random_torus
 complexes = {'morozov', 'house', 'random_figure_8', ...
-                'random_torus', 'sphere_product', ...
+                'sphere_product', ...
                 'icosahedron', 'random_trefoil_knot', ...
                 'random_gaussian'};
 
@@ -63,7 +64,7 @@ for i = 1:length(complexes)
 end
 xlabel('j in [m]');
 ylabel('{rho}(j)');
-legend(handles, complexes, 'Location', 'NorthEast');
+legend(handles, complexes, 'Location', 'SouthWest');
 title('rho curves');
 hold off;
 

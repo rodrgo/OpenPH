@@ -10,14 +10,13 @@ MS = 'MarkerSize';
 markers = '+o*.xsd^v><ph';
 
 % Explore complexity of Vietoris-Rips complexes
-vr_complexes = {'random_torus', 'random_figure_8', ...
+% We do not include random_torus.
+vr_complexes = {'random_figure_8', ...
     'random_gaussian', 'random_trefoil_knot'};
 
 % Algorithms to test
-algorithms = {'std_sparse', 'std_dense', ...
-    'twist_sparse', 'twist_dense', ... 
-    'alpha_beta_sparse', 'alpha_beta_dense', ...
-    'rho_sparse', 'rho_dense'};
+algorithms = {'std_dense', 'twist_dense', ... 
+    'alpha_beta_dense', 'rho_dense'};
 
 % Make labels for plotting`
 algorithms_labels = algorithms;
@@ -26,8 +25,8 @@ for i = 1:length(algorithms)
 end
 
 % Fixed complex parameters
-max_dimension = 5;
-num_divisions = 12;
+max_dimension = 200;
+num_divisions = 20;
 
 % Variable complex parameters
 max_filtration_values = 1:7;
@@ -35,18 +34,20 @@ max_filtration_values = 1:7;
 % Number of complexes per parameter
 num_samples = 10;
 
+% Type of plots
+plot_types = {'m', 'nnz'};
+
 for i = 1:length(vr_complexes)
 
     complex = vr_complexes{i};
-    avg_m = zeros(1, length(max_filtration_values));
-    times_complex = zeros(length(algorithms), length(avg_m));
+
+    % D.m, nnz(D), time in ms, algorithm
+    time_data = [];
 
     for j = 1:length(max_filtration_values)
 
         mfv = max_filtration_values(j);
         fprintf('%s max_filtr_value: %s\n', complex, num2str(mfv));
-        time_algorithms = zeros(length(algorithms), num_samples);
-        ms = zeros(1, num_samples);
 
         for k = 1:num_samples
 
@@ -57,43 +58,43 @@ for i = 1:length(vr_complexes)
                 algorithm = algorithms{l};
                 D = BoundaryMatrix(stream, 'unreduced');
                 [lows, t] = reduce_matrix(D, algorithm);
-                time_algorithms(l, k) = 1000*t;
+                row = [D.m, nnz(D.matrix), 1000*t, l];
+                time_data = [time_data; row];
             end
 
-            ms(k) = D.m;
-
         end
-
-        avg_m(j) = round(mean(ms));
-        times_complex(:, j) = mean(time_algorithms, 2);
 
     end
 
     % Plot results
-    handles = [];
-    set(gcf, 'color', [1 1 1]);
-    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    for p = 1:length(plot_types)
+        x_var = plot_types{p};
+        handles = [];
+        set(gcf, 'color', [1 1 1]);
+        set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
 
-    for ii = 1:size(times_complex, 1)
-        x = avg_m;
-        y = times_complex(ii, :);
-        handles(end + 1) = semilogy(x, y, [markers(ii) '-'], LW, 1.5, MS, 10);
-        hold on;
+        for l = 1:length(algorithms)
+            algo_idx = time_data(:, end) == l;
+            x = time_data(algo_idx, p);
+            y = time_data(algo_idx, 3);
+            handles(end + 1) = semilogy(x, y, '.', LW, 1.5, MS, 10);
+            hold on;
+        end
+
+        xlabel(x_var);
+        ylabel('time (ms)');
+        legend(handles, algorithms_labels, 'Location', 'SouthEast');
+        params_tag = sprintf('max_dim = %d, num_div = %d', max_dimension, num_divisions);
+        params_tag = strrep(params_tag, '_', '\_');
+        title_str = [strrep(complex, '_', '\_'), ', ', params_tag];
+        title(title_str);
+        hold off;
+
+        file_name = [complex, '_', x_var, '_', figure_tag, '.eps'];
+        file_path = strcat(figure_dir, file_name);
+        print('-depsc', file_path);
+        eps_to_pdf(file_path);
     end
-
-    xlabel('Average m');
-    ylabel('time ms');
-    legend(handles, algorithms_labels, 'Location', 'NorthWest');
-    params_tag = sprintf('(max\_dim, num\_div, mfv)=(%d,%d,%d)', max_dimension, num_divisions, mfv);
-    title_str = [strrep(complex, '_', '\_') ', ' params_tag];
-    title(title_str);
-    hold off;
-
-    file_name = strcat(complex, '_', figure_tag, '.eps');
-    file_path = strcat(figure_dir, file_name);
-    print('-depsc', file_path);
-    eps_to_pdf(file_path);
-    fprintf('done in %g sec!\n', toc);
 
 end
 

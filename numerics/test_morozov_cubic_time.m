@@ -3,7 +3,7 @@
 init;
 
 figure_dir = './figures/';
-figure_tag = 'morozov';
+figure_tag = 'speed_morozov';
 
 % Plot params
 LW = 'LineWidth';
@@ -11,10 +11,8 @@ MS = 'MarkerSize';
 markers = '+o*.xsd^v><ph';
 
 % Algorithms to test
-algorithms = {'std_sparse', 'std_dense', ...
-    'twist_sparse', 'twist_dense', ...
-    'alpha_beta_sparse', 'alpha_beta_dense', ...
-    'rho_sparse', 'rho_dense'};
+algorithms = {'std_dense', 'twist_dense', ...
+    'alpha_beta_dense', 'rho_dense'};
 
 % Make labels for plotting`
 algorithms_labels = algorithms;
@@ -23,7 +21,7 @@ for i = 1:length(algorithms)
 end
 
 % Matrix for order 11 is too heavy for dense reduction
-orders = 3:11;
+orders = 3:12;
 stream_sizes = zeros(size(orders));
 time_algorithms = zeros(length(algorithms), length(orders));
 
@@ -58,20 +56,22 @@ for ii = 1:size(time_algorithms, 1)
     hold on;
 end
 
-stream_ref = 2*stream_sizes(5:end);
-handles(end + 1) = loglog(stream_ref, 1e1*(stream_ref/max(stream_ref)).^3, '-');
-algorithms_labels{end + 1} = 't = C*N^3'; 
+%stream_ref = 2*stream_sizes(5:end);
+%handles(end + 1) = loglog(stream_ref, 1e1*(stream_ref/max(stream_ref)).^3, '-');
+stream_ref = stream_sizes(8:10);
+C = 1e-10;
+handles(end + 1) = loglog(stream_ref, C*(stream_ref).^3, '-');
+algorithms_labels{end + 1} = 't = C*m^3'; 
 
 xlabel('m');
-ylabel('time ms');
+ylabel('time (ms)');
 legend(handles, algorithms_labels, 'Location', 'NorthWest');
 title('Running time for Morozov complex');
 hold off;
 
-file_name = strcat('morozov_reduction', '_', figure_tag, '.eps');
+file_name = strcat(figure_tag, '.eps');
 file_path = strcat(figure_dir, file_name);
 print('-depsc', file_path);
 eps_to_pdf(file_path);
-fprintf('done in %g sec!\n', toc);
 
 
