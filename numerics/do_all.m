@@ -9,9 +9,27 @@ fprintf(fileID,'test_vr_ensembles: %6.6f secs\n', toc);
 fclose(fileID);
 
 tic;
+test_vr_ensembles_by_numpoints
+fileID = fopen('do_all_log.txt','w');
+fprintf(fileID,'test_vr_ensembles_by_numpoints: %6.6f secs\n', toc);
+fclose(fileID);
+
+tic;
 test_speed_standard_reduction
 fileID = fopen('do_all_log.txt','a');
 fprintf(fileID,'test_speed_standard_reduction: %6.6f secs\n', toc);
+fclose(fileID);
+
+tic;
+compare_std_vs_twist
+fileID = fopen('do_all_log.txt','a');
+fprintf(fileID,'compare_std_vs_twist: %6.6f secs\n', toc);
+fclose(fileID);
+
+tic;
+plot_morozov_matrix
+fileID = fopen('do_all_log.txt','a');
+fprintf(fileID,'plot_morozov_matrix: %6.6f secs\n', toc);
 fclose(fileID);
 
 tic;
@@ -32,3 +50,14 @@ fileID = fopen('do_all_log.txt','a');
 fprintf(fileID,'rho_curve_example: %6.6f secs\n', toc);
 fclose(fileID);
 
+tic;
+test_essential_reduction
+fileID = fopen('do_all_log.txt','a');
+fprintf(fileID,'test_essential_reduction: %6.6f secs\n', toc);
+fclose(fileID);
+
+tic;
+test_curiosity_8_red
+fileID = fopen('do_all_log.txt','a');
+fprintf(fileID,'test_curiosity_8_red: %6.6f secs\n', toc);
+fclose(fileID);

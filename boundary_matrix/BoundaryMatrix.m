@@ -95,9 +95,9 @@ classdef BoundaryMatrix < handle
             end
         end
 
-        %% 
+        %%%%%%%%%%%%%%%%%%%%% 
         % Query information
-        %
+        %%%%%%%%%%%%%%%%%%%%% 
 
         function d_simplices = get_d_simplices(obj, d)
             d_simplices = find(obj.initial_dimensions == d);
@@ -115,9 +115,31 @@ classdef BoundaryMatrix < handle
             ess = find(obj.classes == Inf);
         end
 
-        %% 
+        function twist_cols = get_twist_cols_unreduced(obj)
+            % Get inidicator vector of unreduced columns
+            unreduced_cols_idx = obj.classes == 0;
+
+            % Copy initial_dimensions vector and mark with 0
+            % all the columns that have already been reduced
+            initial_dimensions_aux = obj.initial_dimensions;
+            initial_dimensions_aux(~unreduced_cols_idx) = 0;
+
+            twist_cols = zeros(1, nnz(initial_dimensions_aux));
+            
+            start = 1;
+            complex_dim = obj.complex_dimension;
+            for d = complex_dim:-1:1 
+                d_simplices_idx = initial_dimensions_aux == d;
+                stop = start + nnz(d_simplices_idx) - 1;
+                twist_cols(start:stop) = find(d_simplices_idx);
+                start = stop + 1;
+            end
+
+        end
+
+        %%%%%%%%%%%%%%%%%%%%% 
         % Modify matrix
-        %
+        %%%%%%%%%%%%%%%%%%%%% 
         
         function obj = as_dense(obj)
             obj.matrix = full(obj.matrix);
@@ -127,6 +149,14 @@ classdef BoundaryMatrix < handle
             obj.matrix(:, idx) = 0;
             obj.low(idx) = 0;
             obj.mark_as_positive(idx);
+        end
+
+        function obj = reduce_col_twist(obj, j)
+            obj.reduce_col(j);
+            if obj.low(j) > 0
+                i = obj.low(j);
+                obj.clear_cols(i);
+            end
         end
 
         function obj = reduce_col(obj, j)
@@ -176,6 +206,8 @@ classdef BoundaryMatrix < handle
                 % Remaining indices in ind are negative
                 % Use local alpha-beta reduction on remaining indices
                 % to find lows.
+                % TO DO:
+                % If we are doing alpha-beta reduction this is redundant
                 obj.create_alpha();
                 neg = (obj.alpha == obj.beta) & (obj.beta > 0) & ind;
                 obj.mark_as_negative(neg);
@@ -212,9 +244,50 @@ classdef BoundaryMatrix < handle
 
         end
 
-        %% 
+        function obj = curiosity_8_clearing(obj)
+            % This function assumes that:
+            %   obj.init() has been called
+            %   obj.alpha_beta_reduce() has been done
+            % We do not perform it again for performance reasons
+
+            % Depending on the homology_mode we need to set
+            % a dim_thresh parameter
+            if strcmp(obj.homology_mode, 'reduced')
+                dim_thresh = 1;
+            elseif strcmp(obj.homology_mode, 'unreduced')
+                dim_thresh = 2;
+            end
+
+            % We only consider columns "j" such that:
+            %   1. Have beta(j) == 0,
+            %   2. Have not been identified as positives by alpha_beta_reduction.
+            beta_zero_cols = find((obj.beta == 0) & (obj.classes ~= 1));
+
+            % We only consider rows "i" such that:
+            %   1. After doing alpha_beta reduction arglow(i) == 0.
+            %       That is, columns for which low* has not been identified.
+            %   2. obj.beta(i) == 0 (as stated by the curiosity).
+            rows = (obj.arglow == 0)' & (obj.beta == 0);
+            for j = beta_zero_cols
+                % Consider "i" st dim(i) = dim(j) - 1 
+                dim_j = obj.initial_dimensions(j);
+                if dim_j > dim_thresh
+                    ind_bd = obj.initial_dimensions == dim_j - 1;
+                    row_range = rows & ind_bd;
+                else
+                    row_range = rows;
+                end
+                % Clear column if row_range is empty
+                % (since therefore low* has to be zero, see curiosity)
+                if ~any(row_range(1:obj.alpha(j)))
+                    obj.clear_cols(j);
+                end
+            end
+        end
+
+        %%%%%%%%%%%%%%%%%%%%% 
         % Persistence information vectors
-        %
+        %%%%%%%%%%%%%%%%%%%%% 
 
         % This function wraps the creation of
         % low, arglow, classes
@@ -342,9 +415,9 @@ classdef BoundaryMatrix < handle
             end
         end
 
-        %% 
+        %%%%%%%%%%%%%%%%%%%%% 
         % Persistence markers
-        %
+        %%%%%%%%%%%%%%%%%%%%% 
 
         function ph_info = get_persistence_info(obj)
             neg = reshape(find(obj.low), [], 1);
@@ -380,222 +453,115 @@ classdef BoundaryMatrix < handle
             obj.classes(idx) = Inf;
         end
 
-        %% 
+        %%%%%%%%%%%%%%%%%%%%% 
         % Visualisation masks
-        %
+        %%%%%%%%%%%%%%%%%%%%% 
 
-        function mask = get_alpha_mask(obj)
+        function mask_cell = get_alpha_mask(obj)
+            obj.create_alpha();
             idx = find(obj.alpha);
             mask = sparse(obj.alpha(idx), idx, ones(size(idx)), obj.m, obj.m);
+            mask_cell = {mask, 'alpha', 'xr'};
         end
 
-        function mask = get_beta_mask(obj)
+        function mask_cell = get_beta_mask(obj)
+            obj.create_beta();
             idx = find(obj.beta);
             mask = sparse(obj.beta(idx), idx, ones(size(idx)), obj.m, obj.m);
+            mask_cell = {mask, 'beta', '+b'};
         end
 
-        function mask = get_left_mask(obj)
+        function mask_cell = get_left_mask(obj)
+            obj.create_left();
             idx = find(obj.left);
             mask = sparse(idx, obj.left(idx), ones(size(idx)), obj.m, obj.m);
+            mask_cell = {mask, 'left', '.g'};
         end
 
+        function mask_cell = get_curiosity_8_mask(obj)
+            % Do alpha beta reduction
+            obj.init();
+            obj.create_alpha();
+            obj.create_beta();
+            neg = (obj.alpha == obj.beta) & (obj.beta > 0);
+            obj.mark_as_negative(neg);
+            pos_pairs = obj.beta(neg);
+            obj.clear_cols(pos_pairs);
+            obj.arglow(pos_pairs) = find(neg);
+
+            % Get an indicator vector with location of lowstars
+            lowstar_ind = zeros(size(neg));
+            lowstar_ind(pos_pairs) = true;
+
+            % Create vector of indicator classes
+            pos_markers = zeros(1, obj.m);
+            pos_markers(pos_pairs) = 1;
+
+            % Locations
+            locs = cell(obj.m, 1);
+            n = 0;
+            for j = 1:obj.m
+                if obj.beta(j) == 0 && obj.classes(j) ~= 1
+                    % Get \{p \in [1, \alpha_j] : \beta_p = 0\}
+                    row_range = (1:obj.m <= obj.alpha(j)) & obj.beta == 0;
+                    % Consider only i st dim(i) = dim(j) - 1 
+                    dim_j = obj.initial_dimensions(j);
+                    % The dimension filter changes depending on
+                    % whether the homology_mode is 'reduced' or 'unreduced'
+                    if strcmp(obj.homology_mode, 'reduced')
+                        dim_thresh = 1;
+                    elseif strcmp(obj.homology_mode, 'unreduced')
+                        dim_thresh = 2;
+                    end
+                    if dim_j > dim_thresh
+                        ind_bd = obj.initial_dimensions == dim_j - 1;
+                        row_range = row_range & ind_bd;
+                    end
+                    % Consier only those that are not already lowstars
+                    row_range = row_range & (~lowstar_ind);
+                    % Get locations
+                    loc = find(row_range);
+                    % If there are no locations, it must be a zero
+                    % and this zero is not given by alpha-beta reduction
+                    % so mark it explicitly
+                    if isempty(loc)
+                        pos_markers(j) = 2;
+                    end
+                else
+                    loc = [];
+                end
+                locs{j} = loc;
+                n = n + length(loc);
+            end
+
+            % Build these indices as a matrix
+            rows = zeros(n, 1);
+            cols = zeros(n, 1);
+            l = 1;
+            for j = 1:obj.m
+                loc = locs{j};
+                if ~isempty(loc)
+                    idx = l:(l+length(loc)-1);
+                    rows(idx) = loc;
+                    cols(idx) = j;
+                    l = l + length(loc);
+                end
+            end
+            mask = sparse(rows, cols, ones(size(rows)), obj.m, obj.m);
+            mask_cell_1 = {mask, 'c8 candidate', 'dk'};
+
+            % Create two more masks with pos_markers data
+            cols = find(pos_markers == 1);
+            mask_pos_ab = sparse(ones(size(cols)), cols, ones(size(cols)), obj.m, obj.m); 
+            mask_cell_2 = {mask_pos_ab, 'alpha/beta => positive', 'c<'};
+
+            cols = find(pos_markers == 2);
+            mask_pos_c8 = sparse(ones(size(cols)), cols, ones(size(cols)), obj.m, obj.m); 
+            mask_cell_3 = {mask_pos_c8, 'c8 => positive', 'm>'};
+
+            % Merge all masks
+            mask_cell = {mask_cell_1, mask_cell_2, mask_cell_3};
+        end
     end
 end
 
-%        function [lows, t] = reduce(obj, algorithm)
-%
-%            if strcmp(algorithm, 'std_sparse')
-%                [lows, t] = obj.standard_reduction_sparse();
-%            elseif strcmp(algorithm, 'std_sparse_opt') 
-%                [lows, t] = obj.standard_reduction_sparse_opt();
-%            elseif strcmp(algorithm, 'std_dense_opt') 
-%                [lows, t] = obj.standard_reduction_dense_opt();
-%            elseif strcmp(algorithm, 'twist_sparse') 
-%                [lows, t] = obj.twist_reduction_sparse();
-%            elseif strcmp(algorithm, 'twist_dense') 
-%                [lows, t] = obj.twist_reduction_dense();
-%            elseif strcmp(algorithm, 'rho_reduction') 
-%                [lows, t] = obj.rho_reduction();
-%            else
-%                fprintf('Algorithm not identified\n');
-%                assert(1 == 0);
-%            end
-%
-%        end
-%
-%        function [lows, t] = twist_reduction_dense(obj)
-%            tic;
-%            R = full(obj.matrix);
-%            obj = obj.create_low();
-%            lows = obj.low;
-%            complex_dim = obj.complex_dimension;
-%            simplex_dim = obj.dimensions;
-%            L = zeros(obj.m, 1);
-%            for d = complex_dim:-1:1
-%                for j = 1:obj.m
-%                    if sum(simplex_dim(j)) == d
-%						% L(lows(j)) == 0 iff lows(j) = low_star(j)
-%                        while (lows(j) > 0) && (L(lows(j)) ~= 0)
-%                            j0 = L(lows(j));
-%                            R(:, j) = mod(R(:,j) + R(:,j0), 2);
-%                            % Update lows
-%                            if any(R(:, j))
-%                                lows(j) = find(R(:,j), 1, 'last');
-%                            else
-%                                lows(j) = 0;
-%                            end
-%                        end
-%                        if lows(j) > 0
-%                            i = lows(j);
-%                            L(i) = j;
-%                            R(:, i) = 0;
-%                        end
-%                    end
-%                end
-%            end
-%            t = toc;
-%        end
-%
-%        function [lows, t] = twist_reduction_sparse(obj)
-%            tic;
-%            R = obj.matrix;
-%            obj = obj.create_low();
-%            lows = obj.low;
-%            complex_dim = obj.complex_dimension;
-%            simplex_dim = obj.dimensions;
-%            L = zeros(obj.m, 1);
-%            for d = complex_dim:-1:1
-%                for j = 1:obj.m
-%                    if sum(simplex_dim(j)) == d
-%						% L(lows(j)) == 0 iff lows(j) = low_star(j)
-%                        while (lows(j) > 0) && (L(lows(j)) ~= 0)
-%                            j0 = L(lows(j));
-%                            R(:, j) = mod(R(:,j) + R(:,j0), 2);
-%                            % Update lows
-%                            if any(R(:, j))
-%                                lows(j) = find(R(:,j), 1, 'last');
-%                            else
-%                                lows(j) = 0;
-%                            end
-%                        end
-%                        if lows(j) > 0
-%                            i = lows(j);
-%                            L(i) = j;
-%                            R(:, i) = 0;
-%                        end
-%                    end
-%                end
-%            end
-%            t = toc;
-%        end
-%
-%        function [lows, t] = standard_reduction_sparse(obj)
-%            tic;
-%            R = obj.matrix;
-%            obj = obj.create_low();
-%            lows = obj.low;
-%            for j = 1:obj.m
-%                j0 = find(lows(1:(j-1)) ~= 0 & lows(1:(j-1)) == lows(j));
-%                while ~isempty(j0)
-%                    R(:, j) = mod(R(:, j) + R(:, j0), 2);
-%                    if any(R(:, j))
-%                        lows(j) = find(R(:, j), 1, 'last');
-%                    else
-%                        lows(j) = 0;
-%                    end
-%                    j0 = find(lows(1:(j-1)) ~= 0 & lows(1:(j-1)) == lows(j));
-%                end
-%            end
-%            t = toc;
-%        end
-%
-%        function [lows, t] = standard_reduction_sparse_opt(obj)
-%            tic;
-%            R = obj.matrix;
-%            obj = obj.create_low();
-%            lows = obj.low;
-%            L = zeros(size(lows)); % lowstar(i) == L(i)
-%            for j = 1:obj.m
-%                R_j = R(:, j);
-%                while (lows(j) > 0 && (L(lows(j)) ~= 0))
-%                    j0 = L(lows(j));
-%					R_j = mod(R_j + R(:, j0), 2);
-%					if any(R_j)
-%						lows(j) = find(R_j, 1, 'last');
-%					else
-%						lows(j) = 0;
-%					end
-%                end
-%                R(:, j) = R_j;
-%                if lows(j) > 0
-%                    L(lows(j)) = j;
-%                end
-%            end
-%            t = toc;
-%        end
-%
-%        function [lows, t] = standard_reduction_dense_opt(obj)
-%            tic;
-%            R = full(obj.matrix);
-%            obj = obj.create_low();
-%            lows = obj.low;
-%            L = zeros(size(lows));
-%            for j = 1:obj.m
-%                while (lows(j) > 0 && (L(lows(j)) ~= 0))
-%                    j0 = L(lows(j));
-%					R(:, j) = mod(R(:, j) + R(:, j0), 2);
-%					if any(R(:, j))
-%						lows(j) = find(R(:, j), 1, 'last');
-%					else
-%						lows(j) = 0;
-%					end
-%                end
-%                if lows(j) > 0
-%                    L(lows(j)) = j;
-%                end
-%            end
-%            t = toc;
-%        end
-%        function [lows, t] = rho_reduction(obj)
-%            tic;
-%            R = obj.matrix;
-%            obj = obj.create_left();
-%            obj = obj.create_low();
-%            obj = obj.create_alpha();
-%            obj = obj.create_beta();
-%            obj = obj.create_rho();
-%            lows = obj.low;
-%            % Look for real alpha/beta pairs
-%            % True low stars
-%            reduced = zeros(1, obj.m);
-%            immediate_lows = obj.alpha == obj.beta';
-%            reduced(immediate_lows) = 1;
-%            zero_rho = find((obj.rho' == 0) & (1:obj.m > 1));
-%            for j = zero_rho
-%                    idx = (obj.beta' == 0) & (1:obj.m < j);
-%                    lows(idx) = 0;
-%                    reduced(idx) = 1;
-%            end
-%            not_reduced = find(reduced == 0);
-%            % Reduce columns
-%            L = lows; % lowstar(i) == L(i)
-%            %idx = find(lows > 0);
-%            %L(lows(idx)) = idx;
-%            for j = 1:obj.m
-%                R_j = R(:, j);
-%                while (lows(j) > 0 && (L(lows(j)) ~= 0))
-%                    j0 = L(lows(j));
-%					R_j = mod(R_j + R(:, j0), 2);
-%					if any(R_j)
-%						lows(j) = find(R_j, 1, 'last');
-%					else
-%						lows(j) = 0;
-%					end
-%                end
-%                R(:, j) = R_j;
-%                if lows(j) > 0
-%                    L(lows(j)) = j;
-%                end
-%            end
-%            t = toc;
-%        end

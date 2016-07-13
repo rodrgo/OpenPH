@@ -14,7 +14,7 @@
 %
 % e.g. (max_dimension, max_filtration_value, num_divisions) = (3, 4, 20)
 
-function [stream, str_cell] = example_factory(example_name, max_dimension, max_filtration_value, num_divisions)
+function [stream, str_cell] = example_factory(example_name, max_dimension, max_filtration_value, num_divisions, num_points)
 
 import edu.stanford.math.plex4.*;
 
@@ -38,40 +38,6 @@ elseif strcmp(example_name, 'house')
 
     stream = api.Plex4.createVietorisRipsStream(point_cloud, max_dimension, max_filtration_value, num_divisions);
 
-elseif strcmp(example_name, 'random_figure_8')
-    % Random Figure-8 Points
-    num_points = 10;
-    point_cloud = examples.PointCloudExamples.getRandomFigure8Points(num_points);
-
-    name_str = 'Rand Fig-8';
-    geo_params_str = sprintf('N=%d', num_points);
-
-    stream = api.Plex4.createVietorisRipsStream(point_cloud, max_dimension, max_filtration_value, num_divisions);
-
-elseif strcmp(example_name, 'random_torus')
-    % Random Torus Points
-    num_points = 35;
-    inner_radius = 2;
-    outer_radius = 5;
-    point_cloud = examples.PointCloudExamples.getRandomTorusPoints(num_points, inner_radius, outer_radius);
-
-    name_str = 'Rand Torus';
-    geo_params_str = sprintf('N=%d, r=%d, R=%d', num_points, inner_radius, outer_radius);
-
-    stream = api.Plex4.createVietorisRipsStream(point_cloud, max_dimension, max_filtration_value, num_divisions);
-
-elseif strcmp(example_name, 'sphere_product')
-    % Random Sphere Product Points
-    num_points = 10;
-    sphere_dimension = 1;
-    num_factors = 2;
-    point_cloud = examples.PointCloudExamples.getRandomSphereProductPoints(num_points, sphere_dimension, num_factors);
-
-    name_str = 'Rand Sphere';
-    geo_params_str = sprintf('N=%d, dim=%d, factors=%d', num_points, sphere_dimension, num_factors);
-
-    stream = api.Plex4.createVietorisRipsStream(point_cloud, max_dimension, max_filtration_value, num_divisions);
-
 elseif strcmp(example_name, 'icosahedron')
     % Icosahedron Vertices
     point_cloud = examples.PointCloudExamples.getIcosahedronVertices();
@@ -81,23 +47,67 @@ elseif strcmp(example_name, 'icosahedron')
 
     stream = api.Plex4.createVietorisRipsStream(point_cloud, max_dimension, max_filtration_value, num_divisions);
 
+elseif strcmp(example_name, 'random_figure_8')
+    % Random Figure-8 Points
+    if nargin < 5
+        num_points = 10;
+    end
+    point_cloud = examples.PointCloudExamples.getRandomFigure8Points(num_points);
+
+    name_str = 'Rand-Fig_8';
+    geo_params_str = sprintf('N=%d', num_points);
+
+    stream = api.Plex4.createVietorisRipsStream(point_cloud, max_dimension, max_filtration_value, num_divisions);
+
+elseif strcmp(example_name, 'random_torus')
+    % Random Torus Points
+    if nargin < 5
+        num_points = 10;
+    end
+    inner_radius = 2;
+    outer_radius = 5;
+    point_cloud = examples.PointCloudExamples.getRandomTorusPoints(num_points, inner_radius, outer_radius);
+
+    name_str = 'Rand-Torus';
+    geo_params_str = sprintf('N=%d, r=%d, R=%d', num_points, inner_radius, outer_radius);
+
+    stream = api.Plex4.createVietorisRipsStream(point_cloud, max_dimension, max_filtration_value, num_divisions);
+
+elseif strcmp(example_name, 'sphere_product')
+    % Random Sphere Product Points
+    if nargin < 5
+        num_points = 10;
+    end
+    sphere_dimension = 1;
+    num_factors = 2;
+    point_cloud = examples.PointCloudExamples.getRandomSphereProductPoints(num_points, sphere_dimension, num_factors);
+
+    name_str = 'Rand-Sphere';
+    geo_params_str = sprintf('N=%d, dim=%d, factors=%d', num_points, sphere_dimension, num_factors);
+
+    stream = api.Plex4.createVietorisRipsStream(point_cloud, max_dimension, max_filtration_value, num_divisions);
+
 elseif strcmp(example_name, 'random_trefoil_knot')
     % Random Trefoil Knot Points
-    num_points = 12;
+    if nargin < 5
+        num_points = 10;
+    end
     point_cloud = examples.PointCloudExamples.getRandomTrefoilKnotPoints(num_points);
 
-    name_str = 'Rand Trefoil Knot';
+    name_str = 'Rand-Trefoil_Knot';
     geo_params_str = sprintf('N=%d', num_points);
 
     stream = api.Plex4.createVietorisRipsStream(point_cloud, max_dimension, max_filtration_value, num_divisions);
 
 elseif strcmp(example_name, 'random_gaussian')
     % Gaussian Points
-    num_points = 10;
+    if nargin < 5
+        num_points = 10;
+    end
     dimension = 3;
     point_cloud = examples.PointCloudExamples.getGaussianPoints(num_points, dimension);
 
-    name_str = 'Rand Gaussian';
+    name_str = 'Rand-Gaussian';
     geo_params_str = sprintf('N=%d, dim=%d', num_points, dimension);    
 
     stream = api.Plex4.createVietorisRipsStream(point_cloud, max_dimension, max_filtration_value, num_divisions);

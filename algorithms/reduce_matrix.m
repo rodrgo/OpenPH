@@ -18,20 +18,47 @@ function [lows, t] = reduce_matrix(D, algorithm)
     elseif strcmp(algorithm, 'twist_dense') 
         D.as_dense();
         [lows, t] = twist_red(D);
-    % Alpha-beta algorithm
-    elseif strcmp(algorithm, 'alpha_beta_sparse') 
-        [lows, t] = alpha_beta_red(D);
-    elseif strcmp(algorithm, 'alpha_beta_dense') 
+    %% Alpha-beta algorithm
+    % Standard reduction
+    elseif strcmp(algorithm, 'alpha_beta_std_sparse') 
+        [lows, t] = alpha_beta_std(D);
+    elseif strcmp(algorithm, 'alpha_beta_std_dense') 
         D.as_dense();
-        [lows, t] = alpha_beta_red(D);
-    % Rho-curve algorithm
-    elseif strcmp(algorithm, 'rho_sparse') 
-        [lows, t] = rho_red(D);
-    elseif strcmp(algorithm, 'rho_dense') 
+        [lows, t] = alpha_beta_std(D);
+    % Twist reduction
+    elseif strcmp(algorithm, 'alpha_beta_twist_sparse') 
+        [lows, t] = alpha_beta_twist(D);
+    elseif strcmp(algorithm, 'alpha_beta_twist_dense') 
         D.as_dense();
-        [lows, t] = rho_red(D);
+        [lows, t] = alpha_beta_twist(D);
+    %% Rho-curve algorithm
+    % Standard reduction
+    elseif strcmp(algorithm, 'rho_std_sparse') 
+        [lows, t] = rho_std(D);
+    elseif strcmp(algorithm, 'rho_std_dense') 
+        D.as_dense();
+        [lows, t] = rho_std(D);
+    %Twist algorithm
+    elseif strcmp(algorithm, 'rho_twist_sparse') 
+        [lows, t] = rho_twist(D);
+    elseif strcmp(algorithm, 'rho_twist_dense') 
+        D.as_dense();
+        [lows, t] = rho_twist(D);
+    % C8 algorithm
+    % Standard reduction
+    elseif strcmp(algorithm, 'c8_std_sparse') 
+        [lows, t] = c8_std(D);
+    elseif strcmp(algorithm, 'c8_std_dense') 
+        D.as_dense();
+        [lows, t] = c8_std(D);
+    % C8 algorithm
+    % Twist reduction
+    elseif strcmp(algorithm, 'c8_twist_sparse') 
+        [lows, t] = c8_twist(D);
+    elseif strcmp(algorithm, 'c8_twist_dense') 
+        D.as_dense();
+        [lows, t] = c8_twist(D);
     else
         assert(false, 'Algorithm not identified\n');
     end
-
 end

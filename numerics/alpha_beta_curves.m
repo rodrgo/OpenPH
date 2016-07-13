@@ -28,8 +28,7 @@ for i = 1:length(vr_complexes)
     D = BoundaryMatrix(stream);
     D.create_alpha();
     D.create_beta();
-    masks = {{D.get_alpha_mask(), 'alpha', '+k'},...
-           {D.get_beta_mask(), 'beta', 'xr'}};
+    masks = {D.get_alpha_mask(), D.get_beta_mask()};
 
     file_name = strcat(complex_name, '_', figure_tag, '.eps');
     file_path = strcat(figure_dir, file_name);

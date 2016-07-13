@@ -14,9 +14,14 @@ vr_complexes = {'random_figure_8', ...
     'random_gaussian', 'random_trefoil_knot'};
 
 % Algorithms to test
-algorithms = {'std_dense', 'twist_dense', ... 
-    'alpha_beta_std_dense', 'rho_std_dense', 'c8_std_dense', ...
-    'alpha_beta_twist_dense', 'rho_twist_dense', 'c8_twist_dense'};
+algo_cores = {'alpha_beta', 'rho', 'c8'};
+
+% Build algorithms
+algorithms = {'std_dense', 'twist_dense'};
+for l = 1:length(algo_cores)
+    algorithms{end + 1} = [algo_cores{l} '_' 'std_dense'];
+    algorithms{end + 1} = [algo_cores{l} '_' 'twist_dense'];
+end
 
 % Make labels for plotting`
 algorithms_labels = algorithms;
@@ -66,39 +71,8 @@ for i = 1:length(vr_complexes)
 
     end
 
-    % Absolute speed results
-    figure_tag = 'abs_speed_algos';
-    for p = 1:length(plot_types)
-        x_var = plot_types{p};
-        handles = [];
-        set(gcf, 'color', [1 1 1]);
-        set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
-
-        for l = 1:length(algorithms)
-            algo_idx = time_data(:, end) == l;
-            x = time_data(algo_idx, p);
-            y = time_data(algo_idx, 3);
-            handles(end + 1) = semilogy(x, y, '.', LW, 1.5, MS, 10);
-            hold on;
-        end
-
-        xlabel(x_var);
-        ylabel('time (ms)');
-        legend(handles, algorithms_labels, 'Location', 'SouthEast');
-        params_tag = sprintf('max_dim = %d, num_div = %d', max_dimension, num_divisions);
-        params_tag = strrep(params_tag, '_', '\_');
-        title_str = [strrep(complex, '_', '\_'), ', ', params_tag];
-        title(title_str);
-        hold off;
-
-        file_name = [complex, '_', x_var, '_', figure_tag, '.eps'];
-        file_path = strcat(figure_dir, file_name);
-        print('-depsc', file_path);
-        eps_to_pdf(file_path);
-    end
-
     % Relative speed results
-    figure_tag = 'rel_speed_algos';
+    figure_tag = 'rel_speed_std_vs_twist';
     for p = 1:length(plot_types)
         x_var = plot_types{p};
         handles = [];
@@ -107,23 +81,21 @@ for i = 1:length(vr_complexes)
         rel_labels = {};
 
         % We want to beat Twist algorithm, so compare everything to it.
-        for l = 2:2
-            for ll = (l+1):length(algorithms)
-                algo_num_idx = time_data(:, end) == l;
-                algo_den_idx = time_data(:, end) == ll;
-                x = time_data(algo_num_idx, p);
-                y = time_data(algo_num_idx, 3)./time_data(algo_den_idx, 3);
-                handles(end + 1) = plot(x, y, 'x');
-                rel_labels{end + 1} = [algorithms_labels{l}, '/', algorithms_labels{ll}];
-                hold on;
-            end
+        for l = 1:floor(length(algorithms)/2)
+            algo_num_idx = time_data(:, end) == (2*l-1);
+            algo_den_idx = time_data(:, end) == (2*l);
+            x = time_data(algo_num_idx, p);
+            y = time_data(algo_num_idx, 3)./time_data(algo_den_idx, 3);
+            handles(end + 1) = plot(x, y, 'x');
+            rel_labels{end + 1} = [algorithms_labels{2*l-1}, '/', algorithms_labels{2*l}];
+            hold on;
         end
         plot(xlim, ones(size(xlim)), '--k');
         hold on;
 
         xlabel(x_var);
         ylabel('relative time');
-        legend(handles, rel_labels, 'Location', 'SouthEast');
+        legend(handles, rel_labels, 'Location', 'NorthEast');
         params_tag = sprintf('max_dim = %d, num_div = %d', max_dimension, num_divisions);
         params_tag = strrep(params_tag, '_', '\_');
         title_str = [strrep(complex, '_', '\_'), ', ', params_tag];

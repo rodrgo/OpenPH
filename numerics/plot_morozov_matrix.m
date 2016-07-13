@@ -21,7 +21,7 @@ order_complexity = 7;
 
 for i = 5:order_complexity
 
-    	stream = examples.MorozovCubicTimeExample.getMorozovCubicTimeExample(order_complexity);
+    	stream = examples.MorozovCubicTimeExample.getMorozovCubicTimeExample(i);
 	complex_name = [complex '_order_' num2str(i)];
 	complex_name_label = strrep(complex_name, '_', '\_');
 

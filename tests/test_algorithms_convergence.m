@@ -16,7 +16,9 @@ vr_complexes = {'house', 'random_figure_8', ...
                 'random_gaussian', 'morozov'};
 
 % Algorithms to test
-algorithms = {'std_dense', 'twist_dense', 'alpha_beta_dense', 'rho_dense'};
+algorithms = {'std_dense', 'twist_dense', ...
+        'alpha_beta_std_dense', 'rho_std_dense', 'c8_std_dense', ...
+        'alpha_beta_twist_dense', 'rho_twist_dense', 'c8_twist_dense'};
 
 % Homology mode
 homology_modes = {'reduced', 'unreduced'};

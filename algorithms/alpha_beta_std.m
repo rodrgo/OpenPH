@@ -1,7 +1,7 @@
-% ALPHA_BETA_RED.M
+% ALPHA_BETA_STD.M
 % 
 
-function [lows, t] = alpha_beta_red(D)
+function [lows, t] = alpha_beta_std(D)
     t0 = tic;
     % Initialise persistence vectors
     D.init();

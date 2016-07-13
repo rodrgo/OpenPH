@@ -12,7 +12,7 @@ markers = '+o*.xsd^v><ph';
 
 % Algorithms to test
 algorithms = {'std_dense', 'twist_dense', ...
-    'alpha_beta_dense', 'rho_dense'};
+    'alpha_beta_std_dense', 'rho_std_dense'};
 
 % Make labels for plotting`
 algorithms_labels = algorithms;
