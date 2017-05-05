@@ -1,7 +1,7 @@
 % This script prepares the javaplex library for use
 
 clc; clear all; close all;
-clear import;
+%clear import;
 
 MATLAB_JAVAPLEX_DIR = ['/home/mendozasmith/src/javaplex/src/matlab/for_distribution'];
 
