@@ -141,17 +141,17 @@ classdef BoundaryMatrix < handle
         % Modify matrix
         %%%%%%%%%%%%%%%%%%%%% 
         
-        function obj = as_dense(obj)
+        function as_dense(obj)
             obj.matrix = full(obj.matrix);
         end
 
-        function obj = clear_cols(obj, idx)
+        function clear_cols(obj, idx)
             obj.matrix(:, idx) = 0;
             obj.low(idx) = 0;
             obj.mark_as_positive(idx);
         end
 
-        function obj = reduce_col_twist(obj, j)
+        function reduce_col_twist(obj, j)
             obj.reduce_col(j);
             if obj.low(j) > 0
                 i = obj.low(j);
@@ -159,7 +159,7 @@ classdef BoundaryMatrix < handle
             end
         end
 
-        function obj = reduce_col(obj, j)
+        function reduce_col(obj, j)
             while (obj.low(j) > 0 && (obj.arglow(obj.low(j)) ~=0))
                 j0 = obj.arglow(obj.low(j));
                 obj.matrix(:, j) = mod(obj.matrix(:, j) + obj.matrix(:, j0), 2);
@@ -174,10 +174,10 @@ classdef BoundaryMatrix < handle
             end
         end
 
-        function obj = alpha_beta_reduce(obj)
+        function alpha_beta_reduce(obj)
             % Create relevant vectors
-            obj = obj.create_alpha();
-            obj = obj.create_beta();
+            obj.create_alpha();
+            obj.create_beta();
 
             % Pick obvious lows from alpha/beta pairs
             neg = (obj.alpha == obj.beta) & (obj.beta > 0);
@@ -191,7 +191,7 @@ classdef BoundaryMatrix < handle
             obj.arglow(pos_pairs) = find(neg);
         end
 
-        function obj = rho_clearing(obj)
+        function rho_clearing(obj)
 
             % Define range of action for rho_clearing
             max_rho_zero = find(obj.rho == 0, 1, 'last');
@@ -244,7 +244,7 @@ classdef BoundaryMatrix < handle
 
         end
 
-        function obj = curiosity_8_clearing(obj)
+        function curiosity_8_clearing(obj)
             % This function assumes that:
             %   obj.init() has been called
             %   obj.alpha_beta_reduce() has been done
@@ -291,7 +291,7 @@ classdef BoundaryMatrix < handle
 
         % This function wraps the creation of
         % low, arglow, classes
-        function obj = init(obj)
+        function init(obj)
             obj.create_low();
             obj.create_arglow();
             obj.create_classes();
@@ -313,14 +313,14 @@ classdef BoundaryMatrix < handle
             end
         end
 
-        function obj = create_classes(obj)
+        function create_classes(obj)
             if ~obj.has_classes
                 obj.classes = zeros(1, obj.m);
                 obj.has_classes = true;
             end
         end
 
-        function obj = create_low(obj)
+        function create_low(obj)
             if ~obj.has_low
                 % Create low
                 obj.low = zeros(1, obj.m);
@@ -332,7 +332,7 @@ classdef BoundaryMatrix < handle
             end
         end
 
-        function obj = create_arglow(obj)
+        function create_arglow(obj)
             if ~obj.has_arglow
                 % Create arglow
                 obj.arglow = zeros(obj.m, 1);
@@ -342,7 +342,7 @@ classdef BoundaryMatrix < handle
         end
 
 
-        function obj = create_left(obj)
+        function create_left(obj)
             if ~obj.has_left
                 % Create left
                 obj.left = zeros(obj.m, 1);
@@ -354,7 +354,7 @@ classdef BoundaryMatrix < handle
             end
         end
 
-        function obj = create_alpha(obj)
+        function create_alpha(obj)
             if ~obj.has_alpha
                 % Requirements for alpha
                 if ~obj.has_low
@@ -370,7 +370,7 @@ classdef BoundaryMatrix < handle
             end
         end
 
-        function obj = create_rho(obj)
+        function create_rho(obj)
             if ~obj.has_rho
                 % Requirements for rho
                 if ~obj.has_beta
@@ -396,7 +396,7 @@ classdef BoundaryMatrix < handle
             end
         end
 
-        function obj = create_beta(obj)
+        function create_beta(obj)
             if ~obj.has_beta
                 % Requirements for beta
                 if ~obj.has_left
@@ -432,7 +432,7 @@ classdef BoundaryMatrix < handle
             ph_info = {pairs, essentials};
         end
 
-        function obj = mark_classes(obj)
+        function mark_classes(obj)
             obj.mark_as_positive(obj.low == 0);
             obj.mark_as_negative(obj.low > 0);
             % Essentials are positive columns that are not
@@ -441,15 +441,15 @@ classdef BoundaryMatrix < handle
         end
 
         % Positives can either be paired or essential
-        function obj = mark_as_positive(obj, idx)
+        function mark_as_positive(obj, idx)
             obj.classes(idx) = +1;
         end
 
-        function obj = mark_as_negative(obj, idx)
+        function mark_as_negative(obj, idx)
             obj.classes(idx) = -1;
         end
 
-        function obj = mark_as_essential(obj, idx)
+        function mark_as_essential(obj, idx)
             obj.classes(idx) = Inf;
         end
 
