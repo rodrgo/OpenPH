@@ -26,12 +26,14 @@ classdef BoundaryMatrix < handle
         %   0   iff j is unreduced
         %
         % arglow(i) = \{j \in [m] : low*(j) = i\}
+        % lowstar(j) is the lowstar of column j
         %
         % These vectors must be maintained whenever the
         % the state of BoundaryMatrix is modified
         low;
         classes;
         arglow;
+        lowstar;
 
         % Persistence sub-information
         left;
@@ -39,14 +41,28 @@ classdef BoundaryMatrix < handle
         beta;
         rho;
 
+        % Candidate pivots (for alpha-beta-parallel reduction)
+        candidate_pivots;
+
         % Booleans
         has_low;
         has_arglow;
+        has_lowstar;
         has_classes;
         has_alpha;
         has_left;
         has_beta;
         has_rho;
+
+        % Count operations per iteration
+        % iters.num_column_adds(k) = number of column adds at iteration k
+        % iters.num_entry_adds(k) = number of entries that change from
+        %   0->1 or 1->0 at each iteration
+        % iters.percentage_reduced(k) = percentage of reduced columns at
+        %   each iteration
+
+        metrics;
+
     end
 
     methods
@@ -85,6 +101,7 @@ classdef BoundaryMatrix < handle
 
                 % Set vectors 
                 obj.has_low = false;
+                obj.has_lowstar = false;
                 obj.has_arglow = false;
                 obj.has_classes = false;
                 obj.has_alpha = false;
@@ -92,12 +109,44 @@ classdef BoundaryMatrix < handle
                 obj.has_beta = false;
                 obj.has_rho = false;
 
+                % iters
+                obj.metrics = [];
+                obj.metrics.next_iter = 1;
+                obj.metrics.iters = obj.metrics.next_iter - 1;
+                obj.metrics.num_column_adds= zeros(1, obj.m);
+                obj.metrics.num_entry_adds = zeros(1, obj.m);
+                obj.metrics.percentage_unreduced = ones(1, obj.m);
+
             end
         end
 
-        %%%%%%%%%%%%%%%%%%%%% 
+        % ===================
+        % Update metrics
+        % ===================
+
+        function record_column_add(obj, left, right)
+            pos = obj.metrics.next_iter;
+            obj.metrics.num_column_adds(pos) = obj.metrics.num_column_adds(pos) + 1;
+            num_flips = obj.m - nnz(obj.matrix(:, left) ~= 0 & obj.matrix(:, right) ~= 0);
+            obj.metrics.num_entry_adds(pos) = obj.metrics.num_entry_adds(pos) + num_flips;
+        end
+
+        function record_iteration(obj)
+            pos = obj.metrics.next_iter;
+            obj.metrics.percentage_unreduced(pos) = 1 - nnz(obj.classes)/obj.m;
+            obj.metrics.iters = obj.metrics.next_iter;
+            obj.metrics.next_iter = obj.metrics.next_iter + 1;
+            if obj.metrics.next_iter > length(obj.metrics.num_column_adds)
+                pos = obj.metrics.next_iter;
+                obj.metrics.num_column_adds(pos) = 0;
+                obj.metrics.num_entry_adds(pos) = 0;
+                obj.metrics.percentage_unreduced(pos) = 1;
+            end
+        end
+
+        % ===================
         % Query information
-        %%%%%%%%%%%%%%%%%%%%% 
+        % ===================
 
         function d_simplices = get_d_simplices(obj, d)
             d_simplices = find(obj.initial_dimensions == d);
@@ -105,6 +154,11 @@ classdef BoundaryMatrix < handle
 
         function b = is_reduced(obj, j)
             b = ~(obj.low(j) > 0 && obj.arglow(obj.low(j)) ~= 0);
+        end
+
+        function b = matrix_is_reduced(obj)
+            lows = obj.low(obj.low > 0);
+            b = length(unique(lows)) == length(lows);
         end
 
         function unreduced_cols = get_unreduced_cols(obj)
@@ -138,6 +192,11 @@ classdef BoundaryMatrix < handle
         end
 
         %%%%%%%%%%%%%%%%%%%%% 
+        % Record operations 
+        %%%%%%%%%%%%%%%%%%%%% 
+
+
+        %%%%%%%%%%%%%%%%%%%%% 
         % Modify matrix
         %%%%%%%%%%%%%%%%%%%%% 
         
@@ -159,9 +218,78 @@ classdef BoundaryMatrix < handle
             end
         end
 
+        function col = left_to_right(obj, l, j)
+            obj.record_column_add(l, j);
+            obj.matrix(:, j) = mod(obj.matrix(:, j) + obj.matrix(:, l), 2);
+            obj.low(j) = obj.get_low(j);
+        end
+
+        function reset_candidate_pivots(obj)
+            obj.candidate_pivots(:) = 0;
+        end
+
+        function mark_first_low(obj)
+            % We look for first non-essential column j such that
+            % columns 1:(j-1) are unreduced.
+            % We update obj.classes so that if obj.classes ~=0
+            % then column is reduced
+
+            j = find(obj.classes == 0, 1, 'first'); 
+
+            if ~isempty(j)
+                assert(obj.low(j) > 0);
+                if obj.low(1:(j-1)) ~= obj.low(j)
+                    obj.arglow(obj.low(j)) = j;
+                    obj.mark_as_negative(j);
+                    i = obj.low(j);
+                    obj.clear_cols(i);
+                end
+            end
+
+        end
+
+        function update_features(obj, j)
+            if obj.low(j) > 0
+                is_lowstar = false;
+                if obj.left(obj.low(j)) == j
+                    is_lowstar = true;
+                else
+                    % Check if all columns 1:(j-1) have been reduced
+                    previous_reduced = all(obj.classes(1:(j-1)) ~= 0);
+                    first_low = isempty(find(obj.low(1:(j-1)) == obj.low(j)));
+                    % If low is not a left, we can only guarantee that
+                    % it is a lowstar if the previous columns
+                    % have already been reduced (since we are
+                    % updating in parallel)
+                    if first_low
+                        if previous_reduced
+                            is_lowstar = true;
+                        else
+                            % We need to mark those columns which
+                            % we can't guarantee are lowstars due
+                            % to the parallel implementation, but 
+                            % which are the first lows observed
+                            %
+                            % This object does not update automatically
+                            obj.candidate_pivots(j) = obj.low(j);
+                        end
+                    end
+                end
+                if is_lowstar
+                    obj.arglow(obj.low(j)) = j;
+                    obj.mark_as_negative(j);
+                    i = obj.low(j);
+                    obj.clear_cols(i);
+                end
+            else
+                obj.mark_as_positive(j);
+            end
+        end
+
         function reduce_col(obj, j)
             while (obj.low(j) > 0 && (obj.arglow(obj.low(j)) ~=0))
                 j0 = obj.arglow(obj.low(j));
+                obj.record_column_add(j0, j);
                 obj.matrix(:, j) = mod(obj.matrix(:, j) + obj.matrix(:, j0), 2);
                 obj.low(j) = obj.get_low(j);
             end
@@ -180,7 +308,8 @@ classdef BoundaryMatrix < handle
             obj.create_beta();
 
             % Pick obvious lows from alpha/beta pairs
-            neg = (obj.alpha == obj.beta) & (obj.beta > 0);
+            neg_ind = (obj.alpha == obj.beta) & (obj.beta > 0);
+            neg = find(neg_ind);
             obj.mark_as_negative(neg);
 
             % Clear and mark associated positive columns
@@ -188,7 +317,11 @@ classdef BoundaryMatrix < handle
             obj.clear_cols(pos_pairs);
 
             % Mark arglows
-            obj.arglow(pos_pairs) = find(neg);
+            obj.arglow(pos_pairs) = neg;
+
+            % Record lowstars
+            obj.lowstar(pos_pairs) = 0;
+            obj.lowstar(neg) = pos_pairs;
         end
 
         function rho_clearing(obj)
@@ -293,6 +426,7 @@ classdef BoundaryMatrix < handle
         % low, arglow, classes
         function init(obj)
             obj.create_low();
+            obj.create_lowstar();
             obj.create_arglow();
             obj.create_classes();
         end
@@ -313,11 +447,79 @@ classdef BoundaryMatrix < handle
             end
         end
 
+        function idx = find_arglow(obj)
+            idx = obj.arglow(obj.arglow ~= 0);
+        end
+
+        function lowstars = find_nonzero_lowstar(obj)
+            idx = obj.lowstar ~= -1;
+            pos = find(idx);
+            lowstars = obj.lowstar(pos);
+        end
+
+        function neighbours = get_row_neighbours(obj, i, j0, mode)
+            if strcmp(mode, 'all')
+                neighbours = find(obj.matrix(i, (j0+1):end) == 1);
+            elseif strcmp(mode, 'lowstar')
+                neighbours = find(obj.low((j0+1):end) == i);
+            else
+                error('mode not recognised');
+            end
+
+            if ~isempty(neighbours)
+                neighbours = neighbours + j0;
+            end
+        end
+
+        % lowstar_pivots is a cell array of objects with
+        %   pivot.col = column of lowstar
+        %   pivot.row = row of lows
+        %   pivot.neighbours = {j \in [m] : D_{i,j} = 1 for j >= pivot.col and i == pivot.row}
+        function lowstar_pivots = get_lowstar_pivots(obj)
+
+            lowstars = find(obj.arglow);
+            lowstar_cols = obj.arglow(lowstars);
+            lowstar_pivots = cell(1, length(lowstars));
+            for l = 1:length(lowstar_pivots)
+                i = lowstars(l);
+                j = lowstar_cols(l);
+                pivot = [];
+                pivot.row = i;
+                pivot.col = j;
+                pivot.neighbours = obj.get_row_neighbours(i, j, 'lowstar');
+                lowstar_pivots{l} = pivot; 
+            end 
+
+            % Add candidate pivots
+            % Not already 
+            % Get indices of nonzero candidate_pivots
+            ind = find(obj.candidate_pivots ~= 0); 
+            candidate_pivots = cell(1, length(ind));
+            for l = 1:length(ind)
+                j = ind(l);
+                i = obj.candidate_pivots(j);
+                pivot = [];
+                pivot.row = i;
+                pivot.col = j;
+                pivot.neighbours = obj.get_row_neighbours(i, j, 'lowstar');
+                candidate_pivots{l} = pivot;
+            end
+
+            % Add first lows
+
+            lowstar_pivots = [lowstar_pivots, candidate_pivots];
+
+        end
+
         function create_classes(obj)
             if ~obj.has_classes
                 obj.classes = zeros(1, obj.m);
                 obj.has_classes = true;
             end
+        end
+
+        function create_candidate_pivots(obj)
+            obj.candidate_pivots = zeros(1, obj.m);
         end
 
         function create_low(obj)
@@ -329,6 +531,15 @@ classdef BoundaryMatrix < handle
                 end
                 % Mark low as created
                 obj.has_low = true;
+            end
+        end
+
+        function create_lowstar(obj)
+            if ~obj.has_lowstar
+                % Create lowstar 
+                obj.lowstar = -1*ones(1, obj.m);
+                % Mark lowstar as created
+                obj.has_lowstar = true;
             end
         end
 
@@ -453,9 +664,39 @@ classdef BoundaryMatrix < handle
             obj.classes(idx) = Inf;
         end
 
-        %%%%%%%%%%%%%%%%%%%%% 
+        function set_unmarked(obj)
+            % Mark negatives
+            neg_ind = obj.classes == 0 & obj.low > 0;
+            obj.arglow(neg_ind) = find(neg_ind);
+            obj.mark_as_negative(neg_ind);
+            % Mark positives
+            pos = obj.low(neg_ind);
+            obj.clear_cols(pos);
+            % Mark essentials
+            idx = obj.classes == 0;
+            obj.mark_as_essential(idx);
+        end
+
+        % ===================
+        % Stats
+        % ===================
+
+        function print_ph_status(obj)
+            num_positives = nnz(obj.classes == 1);
+            num_negatives = nnz(obj.classes == -1);
+            num_essential = nnz(obj.classes == Inf);
+            num_unknown = nnz(obj.classes == 0);
+            fprintf('\nStats:\n');
+            fprintf('\tpositives = %d\n', num_positives);
+            fprintf('\tnegatives = %d\n', num_negatives);
+            fprintf('\tessential = %d\n', num_essential);
+            fprintf('\tunknown = %d\n', num_unknown);
+            fprintf('\ttotal = %d\n', obj.m);
+        end
+
+        % ===================
         % Visualisation masks
-        %%%%%%%%%%%%%%%%%%%%% 
+        % ===================
 
         function mask_cell = get_alpha_mask(obj)
             obj.create_alpha();

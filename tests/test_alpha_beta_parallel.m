@@ -1,28 +1,19 @@
 % test_speed_standard_reduction.m
 init;
 
-figure_dir = './figures/';
-figure_tag = 'test_algos';
-
-% Plot params
-LW = 'LineWidth';
-MS = 'MarkerSize';
-markers = '+o*.xsd^v><ph';
-
 % Explore complexity of Vietoris-Rips complexes
 vr_complexes = {'house', 'random_figure_8', ...
                 'random_torus', 'sphere_product', ...
                 'icosahedron', 'random_trefoil_knot', ...
                 'random_gaussian', 'morozov'};
+%vr_complexes = {'icosahedron'};
 
 % Algorithms to test
-algorithms = {'std_dense', 'twist_dense', ...
-        'alpha_beta_std_dense', 'rho_std_dense', 'c8_std_dense', ...
-        'alpha_beta_twist_dense', 'rho_twist_dense', 'c8_twist_dense', ...
-	'alpha_beta_parallel_dense'};
+algorithms = {'alpha_beta_parallel_dense'};
 
 % Homology mode
 homology_modes = {'reduced', 'unreduced'};
+homology_modes = {'reduced'};
 
 % Complex parameters
 max_dim = 5;
@@ -30,7 +21,7 @@ num_divs= 10;
 max_filtration_values = [5];
 
 % Number of complexes per parameter
-num_samples = 3;
+num_samples = 10;
 
 time_init = tic;
 
@@ -58,19 +49,13 @@ for h = 1:length(homology_modes)
                 for l = 1:length(algorithms)
 
                     algo = algorithms{l};
+                    D = BoundaryMatrix(stream, homology_mode);
+                    fprintf('\t\t\t%s... ', algo);
 
-                    if ~isequal(algo, 'alpha_beta_parallel_dense') || isequal(homology_mode, 'reduced')
-                        D = BoundaryMatrix(stream, homology_mode);
-                        fprintf('\t\t\t%s... ', algo);
+                    [lows, t] = reduce_matrix(D, algo);
 
-                        [lows, t] = reduce_matrix(D, algo);
-
-                        assert(all(lows == lows_test), 'Output incorrect!');
-                        fprintf('\t\tsuccess in %g secs!\n', t);
-                    else 
-                        fprintf('\t\t\talpha_beta_parallel not defined for unreduced boundary matrix ');
-                        fprintf('(skipping this test)\n');
-                    end
+                    assert(all(lows == lows_test), 'Output incorrect!');
+                    fprintf('\t\tsuccess in %g secs!\n', t);
 
                 end
 
@@ -84,4 +69,3 @@ end
 
 time_total = toc(time_init);
 fprintf('All tests finished successfully in %s secs :)\n', num2str(time_total));
-

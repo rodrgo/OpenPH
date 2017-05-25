@@ -5,6 +5,7 @@ function [lows, t] = alpha_beta_twist(D)
     t0 = tic;
     % Initialise persistence vectors
     D.init();
+    D.record_iteration();
 
     % Mark as lowstar all columns with alpha=beta
     D.alpha_beta_reduce();
@@ -13,6 +14,7 @@ function [lows, t] = alpha_beta_twist(D)
     twist_cols = D.get_twist_cols_unreduced();
     for j = twist_cols
         D.reduce_col_twist(j);
+        D.record_iteration();
     end
 
     % Extract lows

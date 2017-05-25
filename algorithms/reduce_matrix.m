@@ -58,7 +58,15 @@ function [lows, t] = reduce_matrix(D, algorithm)
     elseif strcmp(algorithm, 'c8_twist_dense') 
         D.as_dense();
         [lows, t] = c8_twist(D);
+    % C8 algorithm
+    % Twist reduction
+    elseif strcmp(algorithm, 'alpha_beta_parallel_sparse')
+        [lows, t] = alpha_beta_parallel(D);
+    elseif strcmp(algorithm, 'alpha_beta_parallel_dense')
+        D.as_dense();
+        [lows, t] = alpha_beta_parallel(D);
     else
         assert(false, 'Algorithm not identified\n');
     end
+
 end
