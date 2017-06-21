@@ -2,7 +2,7 @@
 init;
 
 figure_dir = './figures/';
-experiment_tag = 'benchmark_alpha_beta_parallel';
+experiment_tag = 'lookBack_benchmark_alpha_beta_parallel';
 
 LW = 'LineWidth';
 MS = 'MarkerSize';
@@ -30,6 +30,9 @@ max_filtration_value = 5;
 
 % Number of complexes per parameter
 num_samples = 3;
+
+% num_points
+num_points = 15;
 
 time_init = tic;
 
@@ -98,7 +101,7 @@ for h = 1:length(homology_modes)
 
         for k = 1:num_samples
 
-            stream = example_factory(complex, max_dim, mfv, num_divs);
+            stream = example_factory(complex, max_dim, mfv, num_divs, num_points);
             T = BoundaryMatrix(stream, homology_mode);
             lows_test = reduce_matrix(T, 'testing');
             fprintf('\t\tSample %d/%d\tm = %d\n', k, num_samples, T.m);

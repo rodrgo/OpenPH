@@ -43,6 +43,7 @@ classdef BoundaryMatrix < handle
 
         % Candidate pivots (for alpha-beta-parallel reduction)
         candidate_pivots;
+        previous_lowstars;
 
         % Booleans
         has_low;
@@ -228,6 +229,10 @@ classdef BoundaryMatrix < handle
             obj.candidate_pivots(:) = 0;
         end
 
+        function reset_previous_lowstars(obj)
+            obj.previous_lowstars(:) = 0;
+        end
+
         function mark_first_low(obj)
             % We look for first non-essential column j such that
             % columns 1:(j-1) are unreduced.
@@ -270,7 +275,8 @@ classdef BoundaryMatrix < handle
                             % to the parallel implementation, but 
                             % which are the first lows observed
                             %
-                            % This object does not update automatically
+                            % This object does not update
+                            % automatically
                             obj.candidate_pivots(j) = obj.low(j);
                         end
                     end
@@ -284,6 +290,43 @@ classdef BoundaryMatrix < handle
             else
                 obj.mark_as_positive(j);
             end
+
+        end
+
+        function mark_previous_lowstars(obj, j)
+
+            % -------------
+            % Look for lowstars in columns 1:(j-1)
+            % -------------
+
+            % For each "j", look for unreduced columns 1:(j-1)
+            % and mark more obvious lowstars
+
+            lows = obj.low(1:j);
+            mm = max(lows);
+            if mm > 0
+                count = zeros(mm, 1);
+                for l = 1:j
+                    if lows(l) ~= 0
+                        count(lows(l)) = count(lows(l)) + 1;
+                    end
+                end
+                % These are the lowstars
+                ind = find(count == 1 & obj.arglow(1:mm) == 0);
+                % Mark these as lowstars
+                for l = 1:length(ind)
+                    col = find(lows == ind(l));
+                    obj.previous_lowstars(col) = 1;
+                end
+            end
+
+        end
+
+        function declare_previous_lowstars(obj, j)
+            obj.arglow(obj.low(j)) = j;
+            obj.mark_as_negative(j);
+            i = obj.low(j);
+            obj.clear_cols(i);
         end
 
         function reduce_col(obj, j)
@@ -520,6 +563,10 @@ classdef BoundaryMatrix < handle
 
         function create_candidate_pivots(obj)
             obj.candidate_pivots = zeros(1, obj.m);
+        end
+
+        function create_previous_lowstars(obj)
+            obj.previous_lowstars = zeros(1, obj.m);
         end
 
         function create_low(obj)
