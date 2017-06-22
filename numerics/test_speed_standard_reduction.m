@@ -14,9 +14,12 @@ vr_complexes = {'random_figure_8', ...
     'random_gaussian', 'random_trefoil_knot'};
 
 % Algorithms to test
-algorithms = {'std_dense', 'twist_dense', ... 
-    'alpha_beta_std_dense', 'rho_std_dense', 'c8_std_dense', ...
-    'alpha_beta_twist_dense', 'rho_twist_dense', 'c8_twist_dense'};
+algorithms = {'std', 'twist', ... 
+    'alpha_beta_std', 'rho_std', 'c8_std', ...
+    'alpha_beta_twist', 'rho_twist', 'c8_twist'};
+
+% Matrix dense?
+as_dense = true;
 
 % Make labels for plotting`
 algorithms_labels = algorithms;
@@ -56,8 +59,7 @@ for i = 1:length(vr_complexes)
 
             for l = 1:length(algorithms)
                 algorithm = algorithms{l};
-                D = BoundaryMatrix(stream, 'unreduced');
-                [lows, t] = reduce_matrix(D, algorithm);
+                [lows, t, D] = reduce_stream(stream, 'unreduced', algorithm, as_dense);
                 row = [D.m, nnz(D.matrix), 1000*t, l];
                 time_data = [time_data; row];
             end

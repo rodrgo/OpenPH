@@ -16,10 +16,13 @@ vr_complexes = {'house', 'random_figure_8', ...
                 'random_gaussian', 'morozov'};
 
 % Algorithms to test
-algorithms = {'std_dense', 'twist_dense', ...
-        'alpha_beta_std_dense', 'rho_std_dense', 'c8_std_dense', ...
-        'alpha_beta_twist_dense', 'rho_twist_dense', 'c8_twist_dense', ...
-	'alpha_beta_parallel_dense'};
+algorithms = {'std', 'twist', ...
+        'alpha_beta_std', 'rho_std', 'c8_std', ...
+        'alpha_beta_twist', 'rho_twist', 'c8_twist', ...
+	'alpha_beta_parallel'};
+
+% Matrix dense?
+as_dense = true;
 
 % Homology mode
 homology_modes = {'reduced', 'unreduced'};
@@ -51,20 +54,19 @@ for h = 1:length(homology_modes)
             for k = 1:num_samples
 
                 stream = example_factory(complex, max_dim, mfv, num_divs);
-                T = BoundaryMatrix(stream, homology_mode);
-                lows_test = reduce_matrix(T, 'testing');
+                lows_test = reduce_stream(stream, homology_mode, 'testing', as_dense);
+
                 fprintf('\t\tSample %d/%d\tm = %d\n', k, num_samples, T.m);
 
                 for l = 1:length(algorithms)
 
                     algo = algorithms{l};
 
-                    if ~isequal(algo, 'alpha_beta_parallel_dense') || isequal(homology_mode, 'reduced')
-                        D = BoundaryMatrix(stream, homology_mode);
+                    if ~isequal(algo, 'alpha_beta_parallel') || isequal(homology_mode, 'reduced')
+
+                        [lows, t] = reduce_stream(stream, homology_mode, algo, as_dense);
+
                         fprintf('\t\t\t%s... ', algo);
-
-                        [lows, t] = reduce_matrix(D, algo);
-
                         assert(all(lows == lows_test), 'Output incorrect!');
                         fprintf('\t\tsuccess in %g secs!\n', t);
                     else 

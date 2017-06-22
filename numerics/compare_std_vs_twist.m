@@ -17,11 +17,14 @@ vr_complexes = {'random_figure_8', ...
 algo_cores = {'alpha_beta', 'rho', 'c8'};
 
 % Build algorithms
-algorithms = {'std_dense', 'twist_dense'};
+algorithms = {'std', 'twist'};
 for l = 1:length(algo_cores)
-    algorithms{end + 1} = [algo_cores{l} '_' 'std_dense'];
-    algorithms{end + 1} = [algo_cores{l} '_' 'twist_dense'];
+    algorithms{end + 1} = [algo_cores{l} '_' 'std'];
+    algorithms{end + 1} = [algo_cores{l} '_' 'twist'];
 end
+
+% Matrix dense?
+as_dense = true;
 
 % Make labels for plotting`
 algorithms_labels = algorithms;
@@ -61,8 +64,7 @@ for i = 1:length(vr_complexes)
 
             for l = 1:length(algorithms)
                 algorithm = algorithms{l};
-                D = BoundaryMatrix(stream, 'unreduced');
-                [lows, t] = reduce_matrix(D, algorithm);
+                [lows, t, D] = reduce_stream(stream, 'unreduced', algorithm, as_dense);
                 row = [D.m, nnz(D.matrix), 1000*t, l];
                 time_data = [time_data; row];
             end

@@ -1,66 +1,73 @@
 classdef BoundaryMatrix < handle
     properties
-        % Matrix homology mode
-        % homology_mode is 'reduced' or 'unreduced'
-        %
-        % 'reduced': Add dummy simplex so that 0-Betti number
-        %   counts components.
-        % 'unreduced': Does not add dummy simplex.
-        homology_mode;
 
+        % ---------------
+        % Homology mode
+        % ---------------
+        %   'reduced': Add dummy simplex so that 0-Betti number
+        %              counts components.
+        %   'unreduced': Does not add dummy simplex.
+        homology_mode;
+        
+        % ---------------
         % Matrix properties
-        m;
+        % ---------------
+
+        % The boundary matrix
         matrix;
+
+        % Number of columns/rows in matrix
+        m;
+
+        % Dimension of the complex
         complex_dimension;
+
+        % Initial dimensions of columns
         initial_dimensions;
 
+        % ---------------
         % Persistence information
         %
-        % low(j) = max{i \in [m] : D_{i,j} = 1}
-        % low converges to low* at the end of reduction.
-        %
+        %   These vectors must be maintained whenever the
+        %   the state of BoundaryMatrix is modified
+        % ---------------
+
+        % low(j) = max{i \in [m] : matrix(i,j) = 1}
+        %   low converges to low* at the end of reduction.
+        low;
+        has_low;
+
+        % lowstar(j) is the lowstar of column j
+        lowstar;
+        has_lowstar;
+
+        % arglow(i) = {j \in [m] : low*(j) = i}
+        arglow;
+        has_arglow;
+
         % classes(j) = class of column j after reduction.
         %   + 1 iff j is positive
         %   - 1 iff j is negative
         %   Inf iff j is essential
         %   0   iff j is unreduced
-        %
-        % arglow(i) = \{j \in [m] : low*(j) = i\}
-        % lowstar(j) is the lowstar of column j
-        %
-        % These vectors must be maintained whenever the
-        % the state of BoundaryMatrix is modified
-        low;
         classes;
-        arglow;
-        lowstar;
-
-        % Persistence sub-information
-        left;
-        alpha;
-        beta;
-        rho;
-
-        % Candidate pivots (for alpha-beta-parallel reduction)
-        candidate_pivots;
-        previous_lowstars;
-
-        % Booleans
-        has_low;
-        has_arglow;
-        has_lowstar;
         has_classes;
-        has_alpha;
-        has_left;
-        has_beta;
-        has_rho;
 
-        % Count operations per iteration
-        % iters.num_column_adds(k) = number of column adds at iteration k
-        % iters.num_entry_adds(k) = number of entries that change from
-        %   0->1 or 1->0 at each iteration
-        % iters.percentage_reduced(k) = percentage of reduced columns at
-        %   each iteration
+        % left(i) = min{j \in [m] : matrix(i, j) = 1}
+        left;
+        has_left;
+
+        % alpha(j) = max{i \in [m] : matrix(i, j) = 1}
+        alpha;
+        has_alpha;
+
+        % beta(j) = max{i \in [m] : left(i) = j}
+        beta;
+        has_beta;
+
+        % ---------------
+        % Convergence Metrics
+        % ---------------
 
         metrics;
 
@@ -100,7 +107,7 @@ classdef BoundaryMatrix < handle
                 obj.initial_dimensions = sum(obj.matrix);
                 obj.complex_dimension = max(obj.initial_dimensions);
 
-                % Set vectors 
+                % Booleans
                 obj.has_low = false;
                 obj.has_lowstar = false;
                 obj.has_arglow = false;
@@ -108,21 +115,39 @@ classdef BoundaryMatrix < handle
                 obj.has_alpha = false;
                 obj.has_left = false;
                 obj.has_beta = false;
-                obj.has_rho = false;
 
-                % iters
+                % ----------------
+                % obj.metrics
+                % ----------------
+
                 obj.metrics = [];
                 obj.metrics.next_iter = 1;
                 obj.metrics.iters = obj.metrics.next_iter - 1;
+
+                % iters.num_column_adds(k) = number of column adds at iteration k
                 obj.metrics.num_column_adds= zeros(1, obj.m);
+
+                % iters.num_entry_adds(k) = number of entries that change from
+                %   0->1 or 1->0 at each iteration
                 obj.metrics.num_entry_adds = zeros(1, obj.m);
+
+                % iters.percentage_reduced(k) = percentage of reduced columns at
+                %   each iteration
                 obj.metrics.percentage_unreduced = ones(1, obj.m);
 
             end
         end
 
         % ===================
-        % Update metrics
+        % as_dense
+        % ===================
+        
+        function as_dense(obj)
+            obj.matrix = full(obj.matrix);
+        end
+
+        % ===================
+        % Metrics
         % ===================
 
         function record_column_add(obj, left, right)
@@ -146,12 +171,8 @@ classdef BoundaryMatrix < handle
         end
 
         % ===================
-        % Query information
+        % Check if reduced 
         % ===================
-
-        function d_simplices = get_d_simplices(obj, d)
-            d_simplices = find(obj.initial_dimensions == d);
-        end
 
         function b = is_reduced(obj, j)
             b = ~(obj.low(j) > 0 && obj.arglow(obj.low(j)) ~= 0);
@@ -160,6 +181,34 @@ classdef BoundaryMatrix < handle
         function b = matrix_is_reduced(obj)
             lows = obj.low(obj.low > 0);
             b = length(unique(lows)) == length(lows);
+        end
+
+        % ===================
+        % Get/Find functions
+        % ===================
+
+        function l = get_low(obj, j)
+            if any(obj.matrix(:, j))
+                l = find(obj.matrix(:, j), 1, 'last');
+            else
+                l = 0;
+            end
+        end
+
+        function l = get_left(obj, i)
+            if any(obj.matrix(i, :))
+                l = find(obj.matrix(i, :), 1, 'first');
+            else
+                l = 0;
+            end
+        end
+
+        function idx = find_arglow(obj)
+            idx = obj.arglow(obj.arglow ~= 0);
+        end
+
+        function d_simplices = get_d_simplices(obj, d)
+            d_simplices = find(obj.initial_dimensions == d);
         end
 
         function unreduced_cols = get_unreduced_cols(obj)
@@ -192,18 +241,9 @@ classdef BoundaryMatrix < handle
 
         end
 
-        %%%%%%%%%%%%%%%%%%%%% 
-        % Record operations 
-        %%%%%%%%%%%%%%%%%%%%% 
-
-
-        %%%%%%%%%%%%%%%%%%%%% 
-        % Modify matrix
-        %%%%%%%%%%%%%%%%%%%%% 
-        
-        function as_dense(obj)
-            obj.matrix = full(obj.matrix);
-        end
+        % ===================
+        % Reduce
+        % ===================
 
         function clear_cols(obj, idx)
             obj.matrix(:, idx) = 0;
@@ -223,110 +263,6 @@ classdef BoundaryMatrix < handle
             obj.record_column_add(l, j);
             obj.matrix(:, j) = mod(obj.matrix(:, j) + obj.matrix(:, l), 2);
             obj.low(j) = obj.get_low(j);
-        end
-
-        function reset_candidate_pivots(obj)
-            obj.candidate_pivots(:) = 0;
-        end
-
-        function reset_previous_lowstars(obj)
-            obj.previous_lowstars(:) = 0;
-        end
-
-        function mark_first_low(obj)
-            % We look for first non-essential column j such that
-            % columns 1:(j-1) are unreduced.
-            % We update obj.classes so that if obj.classes ~=0
-            % then column is reduced
-
-            j = find(obj.classes == 0, 1, 'first'); 
-
-            if ~isempty(j)
-                assert(obj.low(j) > 0);
-                if obj.low(1:(j-1)) ~= obj.low(j)
-                    obj.arglow(obj.low(j)) = j;
-                    obj.mark_as_negative(j);
-                    i = obj.low(j);
-                    obj.clear_cols(i);
-                end
-            end
-
-        end
-
-        function update_features(obj, j)
-            if obj.low(j) > 0
-                is_lowstar = false;
-                if obj.left(obj.low(j)) == j
-                    is_lowstar = true;
-                else
-                    % Check if all columns 1:(j-1) have been reduced
-                    previous_reduced = all(obj.classes(1:(j-1)) ~= 0);
-                    first_low = isempty(find(obj.low(1:(j-1)) == obj.low(j)));
-                    % If low is not a left, we can only guarantee that
-                    % it is a lowstar if the previous columns
-                    % have already been reduced (since we are
-                    % updating in parallel)
-                    if first_low
-                        if previous_reduced
-                            is_lowstar = true;
-                        else
-                            % We need to mark those columns which
-                            % we can't guarantee are lowstars due
-                            % to the parallel implementation, but 
-                            % which are the first lows observed
-                            %
-                            % This object does not update
-                            % automatically
-                            obj.candidate_pivots(j) = obj.low(j);
-                        end
-                    end
-                end
-                if is_lowstar
-                    obj.arglow(obj.low(j)) = j;
-                    obj.mark_as_negative(j);
-                    i = obj.low(j);
-                    obj.clear_cols(i);
-                end
-            else
-                obj.mark_as_positive(j);
-            end
-
-        end
-
-        function mark_previous_lowstars(obj, j)
-
-            % -------------
-            % Look for lowstars in columns 1:(j-1)
-            % -------------
-
-            % For each "j", look for unreduced columns 1:(j-1)
-            % and mark more obvious lowstars
-
-            lows = obj.low(1:j);
-            mm = max(lows);
-            if mm > 0
-                count = zeros(mm, 1);
-                for l = 1:j
-                    if lows(l) ~= 0
-                        count(lows(l)) = count(lows(l)) + 1;
-                    end
-                end
-                % These are the lowstars
-                ind = find(count == 1 & obj.arglow(1:mm) == 0);
-                % Mark these as lowstars
-                for l = 1:length(ind)
-                    col = find(lows == ind(l));
-                    obj.previous_lowstars(col) = 1;
-                end
-            end
-
-        end
-
-        function declare_previous_lowstars(obj, j)
-            obj.arglow(obj.low(j)) = j;
-            obj.mark_as_negative(j);
-            i = obj.low(j);
-            obj.clear_cols(i);
         end
 
         function reduce_col(obj, j)
@@ -367,191 +303,21 @@ classdef BoundaryMatrix < handle
             obj.lowstar(neg) = pos_pairs;
         end
 
-        function rho_clearing(obj)
-
-            % Define range of action for rho_clearing
-            max_rho_zero = find(obj.rho == 0, 1, 'last');
-
-            if ~isempty(max_rho_zero)
-                ind = 1:obj.m <= max_rho_zero;
-
-                % Clear positive columns and mark them as positive
-                pos_idx = (obj.beta == 0) & ind;
-                obj.clear_cols(pos_idx);
-
-                % Remaining indices in ind are negative
-                % Use local alpha-beta reduction on remaining indices
-                % to find lows.
-                % TO DO:
-                % If we are doing alpha-beta reduction this is redundant
-                obj.create_alpha();
-                neg = (obj.alpha == obj.beta) & (obj.beta > 0) & ind;
-                obj.mark_as_negative(neg);
-                obj.arglow(obj.low(find(neg))) = find(neg);
-            end
-
-            % Experiment: reduce with 'kappa' curve
-            % Explore kappa curve for morozov
-            if false
-                kappa = zeros(1, obj.m);
-                for j = 1:obj.m
-                    if obj.low(j) > 0
-                        l = obj.left(obj.low(j));
-                        if (obj.low(l) == obj.low(j)) && (l < j)
-                            kappa(j) = obj.low(j);
-                        end
-                    end
-                end
-
-                for j = 2:obj.m
-                    kappa(j) = max(kappa(j-1), kappa(j));
-                end
-
-                unreduced_cols = obj.get_unreduced_cols();
-                for j = unreduced_cols
-                    fprintf('j=%d, low=%d, kappa=%d\n',j,obj.low(j),kappa(j));
-                    if (obj.arglow(obj.low(j)) == 0) && (obj.low(j) > kappa(j))
-                        obj.arglow(obj.low(j)) = j;
-                        obj.mark_as_negative(j);
-                    end
-                end
-                fprintf('Size kappa-red: %d\n', length(unreduced_cols));
-            end
-
-        end
-
-        function curiosity_8_clearing(obj)
-            % This function assumes that:
-            %   obj.init() has been called
-            %   obj.alpha_beta_reduce() has been done
-            % We do not perform it again for performance reasons
-
-            % Depending on the homology_mode we need to set
-            % a dim_thresh parameter
-            if strcmp(obj.homology_mode, 'reduced')
-                dim_thresh = 1;
-            elseif strcmp(obj.homology_mode, 'unreduced')
-                dim_thresh = 2;
-            end
-
-            % We only consider columns "j" such that:
-            %   1. Have beta(j) == 0,
-            %   2. Have not been identified as positives by alpha_beta_reduction.
-            beta_zero_cols = find((obj.beta == 0) & (obj.classes ~= 1));
-
-            % We only consider rows "i" such that:
-            %   1. After doing alpha_beta reduction arglow(i) == 0.
-            %       That is, columns for which low* has not been identified.
-            %   2. obj.beta(i) == 0 (as stated by the curiosity).
-            rows = (obj.arglow == 0)' & (obj.beta == 0);
-            for j = beta_zero_cols
-                % Consider "i" st dim(i) = dim(j) - 1 
-                dim_j = obj.initial_dimensions(j);
-                if dim_j > dim_thresh
-                    ind_bd = obj.initial_dimensions == dim_j - 1;
-                    row_range = rows & ind_bd;
-                else
-                    row_range = rows;
-                end
-                % Clear column if row_range is empty
-                % (since therefore low* has to be zero, see curiosity)
-                if ~any(row_range(1:obj.alpha(j)))
-                    obj.clear_cols(j);
-                end
-            end
-        end
-
-        %%%%%%%%%%%%%%%%%%%%% 
+        % ===================
         % Persistence information vectors
-        %%%%%%%%%%%%%%%%%%%%% 
+        % ===================
 
-        % This function wraps the creation of
-        % low, arglow, classes
+        % -------------------
+        % Create
+        % -------------------
+
         function init(obj)
+            % Wraps the creation of
+            % low, lowstar, arglow, classes
             obj.create_low();
             obj.create_lowstar();
             obj.create_arglow();
             obj.create_classes();
-        end
-
-        function l = get_low(obj, j)
-            if any(obj.matrix(:, j))
-                l = find(obj.matrix(:, j), 1, 'last');
-            else
-                l = 0;
-            end
-        end
-
-        function l = get_left(obj, i)
-            if any(obj.matrix(i, :))
-                l = find(obj.matrix(i, :), 1, 'first');
-            else
-                l = 0;
-            end
-        end
-
-        function idx = find_arglow(obj)
-            idx = obj.arglow(obj.arglow ~= 0);
-        end
-
-        function lowstars = find_nonzero_lowstar(obj)
-            idx = obj.lowstar ~= -1;
-            pos = find(idx);
-            lowstars = obj.lowstar(pos);
-        end
-
-        function neighbours = get_row_neighbours(obj, i, j0, mode)
-            if strcmp(mode, 'all')
-                neighbours = find(obj.matrix(i, (j0+1):end) == 1);
-            elseif strcmp(mode, 'lowstar')
-                neighbours = find(obj.low((j0+1):end) == i);
-            else
-                error('mode not recognised');
-            end
-
-            if ~isempty(neighbours)
-                neighbours = neighbours + j0;
-            end
-        end
-
-        % lowstar_pivots is a cell array of objects with
-        %   pivot.col = column of lowstar
-        %   pivot.row = row of lows
-        %   pivot.neighbours = {j \in [m] : D_{i,j} = 1 for j >= pivot.col and i == pivot.row}
-        function lowstar_pivots = get_lowstar_pivots(obj)
-
-            lowstars = find(obj.arglow);
-            lowstar_cols = obj.arglow(lowstars);
-            lowstar_pivots = cell(1, length(lowstars));
-            for l = 1:length(lowstar_pivots)
-                i = lowstars(l);
-                j = lowstar_cols(l);
-                pivot = [];
-                pivot.row = i;
-                pivot.col = j;
-                pivot.neighbours = obj.get_row_neighbours(i, j, 'lowstar');
-                lowstar_pivots{l} = pivot; 
-            end 
-
-            % Add candidate pivots
-            % Not already 
-            % Get indices of nonzero candidate_pivots
-            ind = find(obj.candidate_pivots ~= 0); 
-            candidate_pivots = cell(1, length(ind));
-            for l = 1:length(ind)
-                j = ind(l);
-                i = obj.candidate_pivots(j);
-                pivot = [];
-                pivot.row = i;
-                pivot.col = j;
-                pivot.neighbours = obj.get_row_neighbours(i, j, 'lowstar');
-                candidate_pivots{l} = pivot;
-            end
-
-            % Add first lows
-
-            lowstar_pivots = [lowstar_pivots, candidate_pivots];
-
         end
 
         function create_classes(obj)
@@ -559,14 +325,6 @@ classdef BoundaryMatrix < handle
                 obj.classes = zeros(1, obj.m);
                 obj.has_classes = true;
             end
-        end
-
-        function create_candidate_pivots(obj)
-            obj.candidate_pivots = zeros(1, obj.m);
-        end
-
-        function create_previous_lowstars(obj)
-            obj.previous_lowstars = zeros(1, obj.m);
         end
 
         function create_low(obj)
@@ -628,32 +386,6 @@ classdef BoundaryMatrix < handle
             end
         end
 
-        function create_rho(obj)
-            if ~obj.has_rho
-                % Requirements for rho
-                if ~obj.has_beta
-                    obj.create_beta();
-                end
-                % Create rho
-                obj.rho = zeros(1, obj.m);
-                if strcmp(obj.homology_mode, 'reduced')
-                    obj.rho(1) = (-1)^(0 + (obj.beta(1) == 0));
-                elseif strcmp(obj.homology_mode, 'unreduced')
-                    obj.rho(1) = 0;
-                end
-
-                for j = 2:obj.m
-                    if obj.beta(j) > 0
-                            obj.rho(j) = obj.rho(j-1) + 1;
-                    else
-                            obj.rho(j) = obj.rho(j-1) - 1;
-                    end
-                end
-                % Mark rho as created
-                obj.has_rho = true;
-            end
-        end
-
         function create_beta(obj)
             if ~obj.has_beta
                 % Requirements for beta
@@ -673,22 +405,9 @@ classdef BoundaryMatrix < handle
             end
         end
 
-        %%%%%%%%%%%%%%%%%%%%% 
-        % Persistence markers
-        %%%%%%%%%%%%%%%%%%%%% 
-
-        function ph_info = get_persistence_info(obj)
-            neg = reshape(find(obj.low), [], 1);
-            % Find pairs
-            pairs = [reshape(obj.low(neg), [], 1) neg];
-            % Get indicator vector of paired
-            paired = zeros(obj.m, 1);
-            paired(pairs(:, 1)) = 1;
-            paired(pairs(:, 2)) = 1;
-            % Get essentials
-            essentials = find(paired == 0);
-            ph_info = {pairs, essentials};
-        end
+        % -------------------
+        % Mark
+        % -------------------
 
         function mark_classes(obj)
             obj.mark_as_positive(obj.low == 0);
@@ -725,8 +444,21 @@ classdef BoundaryMatrix < handle
         end
 
         % ===================
-        % Stats
+        % Auxiliary debugging functions
         % ===================
+
+        function ph_info = get_persistence_info(obj)
+            neg = reshape(find(obj.low), [], 1);
+            % Find pairs
+            pairs = [reshape(obj.low(neg), [], 1) neg];
+            % Get indicator vector of paired
+            paired = zeros(obj.m, 1);
+            paired(pairs(:, 1)) = 1;
+            paired(pairs(:, 2)) = 1;
+            % Get essentials
+            essentials = find(paired == 0);
+            ph_info = {pairs, essentials};
+        end
 
         function print_ph_status(obj)
             num_positives = nnz(obj.classes == 1);
@@ -766,90 +498,6 @@ classdef BoundaryMatrix < handle
             mask_cell = {mask, 'left', '.g'};
         end
 
-        function mask_cell = get_curiosity_8_mask(obj)
-            % Do alpha beta reduction
-            obj.init();
-            obj.create_alpha();
-            obj.create_beta();
-            neg = (obj.alpha == obj.beta) & (obj.beta > 0);
-            obj.mark_as_negative(neg);
-            pos_pairs = obj.beta(neg);
-            obj.clear_cols(pos_pairs);
-            obj.arglow(pos_pairs) = find(neg);
-
-            % Get an indicator vector with location of lowstars
-            lowstar_ind = zeros(size(neg));
-            lowstar_ind(pos_pairs) = true;
-
-            % Create vector of indicator classes
-            pos_markers = zeros(1, obj.m);
-            pos_markers(pos_pairs) = 1;
-
-            % Locations
-            locs = cell(obj.m, 1);
-            n = 0;
-            for j = 1:obj.m
-                if obj.beta(j) == 0 && obj.classes(j) ~= 1
-                    % Get \{p \in [1, \alpha_j] : \beta_p = 0\}
-                    row_range = (1:obj.m <= obj.alpha(j)) & obj.beta == 0;
-                    % Consider only i st dim(i) = dim(j) - 1 
-                    dim_j = obj.initial_dimensions(j);
-                    % The dimension filter changes depending on
-                    % whether the homology_mode is 'reduced' or 'unreduced'
-                    if strcmp(obj.homology_mode, 'reduced')
-                        dim_thresh = 1;
-                    elseif strcmp(obj.homology_mode, 'unreduced')
-                        dim_thresh = 2;
-                    end
-                    if dim_j > dim_thresh
-                        ind_bd = obj.initial_dimensions == dim_j - 1;
-                        row_range = row_range & ind_bd;
-                    end
-                    % Consier only those that are not already lowstars
-                    row_range = row_range & (~lowstar_ind);
-                    % Get locations
-                    loc = find(row_range);
-                    % If there are no locations, it must be a zero
-                    % and this zero is not given by alpha-beta reduction
-                    % so mark it explicitly
-                    if isempty(loc)
-                        pos_markers(j) = 2;
-                    end
-                else
-                    loc = [];
-                end
-                locs{j} = loc;
-                n = n + length(loc);
-            end
-
-            % Build these indices as a matrix
-            rows = zeros(n, 1);
-            cols = zeros(n, 1);
-            l = 1;
-            for j = 1:obj.m
-                loc = locs{j};
-                if ~isempty(loc)
-                    idx = l:(l+length(loc)-1);
-                    rows(idx) = loc;
-                    cols(idx) = j;
-                    l = l + length(loc);
-                end
-            end
-            mask = sparse(rows, cols, ones(size(rows)), obj.m, obj.m);
-            mask_cell_1 = {mask, 'c8 candidate', 'dk'};
-
-            % Create two more masks with pos_markers data
-            cols = find(pos_markers == 1);
-            mask_pos_ab = sparse(ones(size(cols)), cols, ones(size(cols)), obj.m, obj.m); 
-            mask_cell_2 = {mask_pos_ab, 'alpha/beta => positive', 'c<'};
-
-            cols = find(pos_markers == 2);
-            mask_pos_c8 = sparse(ones(size(cols)), cols, ones(size(cols)), obj.m, obj.m); 
-            mask_cell_3 = {mask_pos_c8, 'c8 => positive', 'm>'};
-
-            % Merge all masks
-            mask_cell = {mask_cell_1, mask_cell_2, mask_cell_3};
-        end
     end
 end
 

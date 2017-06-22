@@ -18,8 +18,8 @@ vr_complexes = {'random_figure_8', ...
                 'random_gaussian'};
 
 % Algorithms to test
-algorithms = {'std_dense', 'twist_dense', 'alpha_beta_std_dense', 'rho_std_dense'};
-algorithm = 'std_dense';
+algorithms = {'std', 'twist', 'alpha_beta_std', 'rho_std'};
+algorithm = 'std';
 
 % Homology mode
 homology_mode = 'unreduced';
@@ -66,8 +66,7 @@ for i = 1:length(vr_complexes)
             fprintf('\t\tSample %d/%d\tm = %d\n', k, num_samples, stream.getSize());
 
             % Get groundtruth
-            D = BoundaryMatrix(stream, homology_mode);
-            [~, t_red] = reduce_matrix(D, algorithm);
+            [~, t_red, D] = reduce_stream(stream, homology_mode, algorithm, true);
             ph_info = D.get_persistence_info();
             relevant_ess = ph_info{2};
 
@@ -75,7 +74,7 @@ for i = 1:length(vr_complexes)
 
             % Estimate essentials
             D = BoundaryMatrix(stream, homology_mode);
-            [selected_ess, t_ess] = essential_red(D);
+            [selected_ess, t_ess] = essential_std(D);
 
             num_sel_ess = length(selected_ess);
 

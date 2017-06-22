@@ -19,31 +19,34 @@ complex = 'morozov'
 
 order_complexity = 7;
 
+import edu.stanford.math.plex4.*;
+
 for i = 5:order_complexity
 
-    	stream = examples.MorozovCubicTimeExample.getMorozovCubicTimeExample(i);
-	complex_name = [complex '_order_' num2str(i)];
-	complex_name_label = strrep(complex_name, '_', '\_');
+    stream = examples.MorozovCubicTimeExample.getMorozovCubicTimeExample(i);
+    complex_name = [complex '_order_' num2str(i)];
+    complex_name_label = strrep(complex_name, '_', '\_');
 
-	% Our way to create the Matlab's boundary matrix
-	D = BoundaryMatrix(stream, 'reduced');
-	matrix_tda = D.matrix;
+    % Our way to create the Matlab's boundary matrix
+    D = BoundaryMatrix(stream, 'reduced');
+    matrix_tda = D.matrix;
 
-	% Spy boundary matrices
-	figure;
-	set(gcf, 'color', [1 1 1]);
-	set(gca, 'xtick', [], 'ytick', [], 'XTickLabel', '', 'YTickLabel', '');
+    % Spy boundary matrices
+    figure;
+    set(gcf, 'color', [1 1 1]);
+    set(gca, 'xtick', [], 'ytick', [], 'XTickLabel', '', 'YTickLabel', '');
 
-	spy_tda(matrix_tda);
-	[m, n] = size(matrix_tda);
-	xlabel(['(m, n) = (' num2str(m) ',' num2str(n) ')']);
-	title([complex_name_label ': tda']);
+    spy_tda(matrix_tda);
+    [m, n] = size(matrix_tda);
+    xlabel(['(m, n) = (' num2str(m) ',' num2str(n) ')']);
+    title([complex_name_label ': tda']);
 
-	% Save plot
-	file_path = [figure_dir complex_name '_' tag '.eps'];
-	print('-depsc', file_path);
-	eps_to_pdf(file_path);
+    % Save plot
+    file_path = [figure_dir complex_name '_' tag '.eps'];
+    print('-depsc', file_path);
+    eps_to_pdf(file_path);
 
-	fprintf('done with %s!\n', complex_name);
+    fprintf('done with %s!\n', complex_name);
+
 end
 

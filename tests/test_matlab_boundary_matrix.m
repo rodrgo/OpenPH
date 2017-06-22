@@ -13,6 +13,8 @@
 %
 init;
 
+import edu.stanford.math.plex4.*;
+
 figure_dir = './figures/';
 tag = 'bd_mat_comp';
 

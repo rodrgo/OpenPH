@@ -12,8 +12,10 @@ markers = '+o*xsd^v><ph.';
 vr_complexes = {'random_gaussian'};
 
 % Algorithms to test
-%algorithms = {'alpha_beta_parallel_dense', 'std_dense', 'twist_dense', 'alpha_beta_std_dense', 'alpha_beta_twist_dense'};
-algorithms = {'alpha_beta_parallel_dense'};
+algorithms = {'alpha_beta_parallel'};
+
+% Matrix dense?
+as_dense = true;
 
 color_list = create_color_palette(length(algorithms));
 
@@ -58,17 +60,18 @@ for i = 1:length(vr_complexes)
     for k = 1:num_samples
 
         stream = example_factory(complex, max_dim, mfv, num_divs, num_points);
-        T = BoundaryMatrix(stream, homology_mode);
+        T = BoundaryMatrixFactory(stream, homology_mode, 'testing', as_dense);
         lows_test = reduce_matrix(T, 'testing');
         fprintf('\t\tSample %d/%d\tm = %d\n', k, num_samples, T.m);
 
         for l = 1:length(algorithms)
 
             algo = algorithms{l};
-            D = BoundaryMatrix(stream, homology_mode);
-            fprintf('\t\t\t%s... ', algo);
 
+            D = BoundaryMatrixFactory(stream, homology_mode, algo, as_dense);
             [lows, t] = reduce_matrix(D, algo);
+
+            fprintf('\t\t\t%s... ', algo);
 
             if k == 1
                 label_ind(end + 1) = true;
@@ -83,7 +86,7 @@ for i = 1:length(vr_complexes)
             metrics = D.metrics;
             x = 1:metrics.iters; 
 
-            if isequal(algo, 'alpha_beta_parallel_dense')
+            if isequal(algo, 'alpha_beta_parallel')
                 style = '-+';
             else
                 style = '--';

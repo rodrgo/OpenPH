@@ -9,10 +9,12 @@ vr_complexes = {'house', 'random_figure_8', ...
 %vr_complexes = {'icosahedron'};
 
 % Algorithms to test
-algorithms = {'alpha_beta_parallel_dense'};
+algorithms = {'alpha_beta_parallel'};
+
+% Matrix dense?
+as_dense = true;
 
 % Homology mode
-homology_modes = {'reduced', 'unreduced'};
 homology_modes = {'reduced'};
 
 % Complex parameters
@@ -49,11 +51,9 @@ for h = 1:length(homology_modes)
                 for l = 1:length(algorithms)
 
                     algo = algorithms{l};
-                    D = BoundaryMatrix(stream, homology_mode);
+                    [lows, t] = reduce_stream(stream, homology_mode, algo, as_dense);
+
                     fprintf('\t\t\t%s... ', algo);
-
-                    [lows, t] = reduce_matrix(D, algo);
-
                     assert(all(lows == lows_test), 'Output incorrect!');
                     fprintf('\t\tsuccess in %g secs!\n', t);
 

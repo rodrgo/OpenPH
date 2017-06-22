@@ -20,23 +20,23 @@ num_divisions = 10;
 rho_curves = {};
 
 for i = 1:length(complexes)
-  tic;
+    tic;
 
-  % create example
-  complex_name = complexes{i};
-  fprintf('Working on %s...\t', complexes{i});
-  [stream, title_str] = example_factory(complex_name, max_dimension, max_filtration_value, num_divisions);
+    % create example
+    complex_name = complexes{i};
+    fprintf('Working on %s...\t', complexes{i});
+    [stream, title_str] = example_factory(complex_name, max_dimension, max_filtration_value, num_divisions);
 
-  D = BoundaryMatrix(stream, 'unreduced');
+    D = ReductionRho(stream, 'unreduced');
 
-  D.create_rho();
-  rho_curves{end + 1} = D.rho;
+    D.create_rho();
+    rho_curves{end + 1} = D.rho;
 
-%  file_name = strcat(complex_name, '_', figure_tag, '.eps');
-%  file_path = strcat(figure_dir, file_name);
-%  plot_matrix(D.matrix, title_str, file_path, masks);
+    %  file_name = strcat(complex_name, '_', figure_tag, '.eps');
+    %  file_path = strcat(figure_dir, file_name);
+    %  plot_matrix(D.matrix, title_str, file_path, masks);
 
-  fprintf('done in %g sec!\n', toc);
+    fprintf('done in %g sec!\n', toc);
 end
 
 LW = 'LineWidth';

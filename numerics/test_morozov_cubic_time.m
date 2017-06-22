@@ -2,6 +2,8 @@
 % Note: make sure that you give matlab enough heap space to work with
 init;
 
+import edu.stanford.math.plex4.*;
+
 figure_dir = './figures/';
 figure_tag = 'speed_morozov';
 
@@ -11,8 +13,10 @@ MS = 'MarkerSize';
 markers = '+o*.xsd^v><ph';
 
 % Algorithms to test
-algorithms = {'std_dense', 'twist_dense', ...
-    'alpha_beta_std_dense', 'rho_std_dense'};
+algorithms = {'std', 'twist', 'alpha_beta_std', 'rho_std'};
+
+% Matrix dense?
+as_dense = true;
 
 % Make labels for plotting`
 algorithms_labels = algorithms;
@@ -32,11 +36,10 @@ for i = 1:length(orders)
     time_order = tic;
     stream = examples.MorozovCubicTimeExample.getMorozovCubicTimeExample(order);
     stream_sizes(i) = stream.getSize();
-    D = BoundaryMatrix(stream, 'unreduced');
 
     for l = 1:length(algorithms)
         algorithm = algorithms{l};
-        [~, t] = reduce_matrix(D, algorithm);
+        [~, t, D] = reduce_stream(stream, 'unreduced', algorithm, as_dense);
         time_algorithms(l, i) = 1000*t;
     end
 

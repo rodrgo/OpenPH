@@ -33,7 +33,7 @@ for i = 1:length(vr_complexes)
     stream = example_factory(complex, max_dim, mfv, num_divs);
 
     % Our way to create the Matlab's boundary matrix
-    D = BoundaryMatrix(stream, 'unreduced');
+    D = ReductionC8(stream, 'unreduced');
     matrix = D.matrix;
 
     alpha_mask = D.get_alpha_mask();
@@ -95,11 +95,11 @@ for i = 1:length(vr_complexes)
 
             % Get groundtruth
             D = BoundaryMatrix(stream, homology_mode);
-            [lows, t] = reduce_matrix(D, 'std_dense');
+            [lows, t] = reduce_matrix(D, 'std');
             num_pos = nnz(D.classes == 1);
 
             % Measure positives
-            D = BoundaryMatrix(stream, homology_mode);
+            D = ReductionC8(stream, homology_mode);
             D.init();
             alpha_beta_pos = zeros(1, D.m);
             D.alpha_beta_reduce();
