@@ -71,6 +71,7 @@ classdef BoundaryMatrix < handle
 
         metrics;
 
+
     end
 
     methods
@@ -171,7 +172,7 @@ classdef BoundaryMatrix < handle
         end
 
         % ===================
-        % Check if reduced 
+        % Booleans
         % ===================
 
         function b = is_reduced(obj, j)
@@ -181,6 +182,22 @@ classdef BoundaryMatrix < handle
         function b = matrix_is_reduced(obj)
             lows = obj.low(obj.low > 0);
             b = length(unique(lows)) == length(lows);
+        end
+
+        function b = is_negative(obj, j)
+            if obj.has_beta && obj.has_classes
+                b = obj.beta(j) > 0 || obj.classes(j) == -1;
+            else
+                error('Object has no beta/classes vector');
+            end
+        end
+
+        function b = is_positive(obj, j)
+            if obj.has_low && obj.has_classes
+                b = obj.low(j) == 0 || obj.classes(j) == 1;
+            else
+                error('Object has no beta/classes vector');
+            end
         end
 
         % ===================
