@@ -53,7 +53,7 @@ for i = 1:length(max_dimensions)
 
                 t0 = tic;
                 stream = example_factory(complex_name, max_dim, mfv, num_div);
-                D = BoundaryMatrix(stream, 'unreduced');
+                D = BoundaryMatrix(stream);
                 t = 1000*toc(t0);
 
                 params = [max_dim, mfv, num_div];

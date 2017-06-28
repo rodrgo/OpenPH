@@ -49,9 +49,6 @@ for i = 1:length(vr_complexes)
 
 end
 
-% Homology mode
-homology_mode = 'unreduced';
-
 % Complex parameters
 max_dimension = [10];
 num_divisions= [15];
@@ -94,12 +91,12 @@ for i = 1:length(vr_complexes)
             fprintf('\t\tSample %d/%d\tm = %d\n', k, num_samples, stream.getSize());
 
             % Get groundtruth
-            D = BoundaryMatrix(stream, homology_mode);
+            D = BoundaryMatrix(stream);
             [lows, t] = reduce_matrix(D, 'std');
             num_pos = nnz(D.classes == 1);
 
             % Measure positives
-            D = ReductionC8(stream, homology_mode);
+            D = ReductionC8(stream);
             D.init();
             alpha_beta_pos = zeros(1, D.m);
             D.alpha_beta_reduce();

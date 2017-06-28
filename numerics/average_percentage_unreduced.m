@@ -19,9 +19,6 @@ as_dense = true;
 
 color_list = create_color_palette(length(algorithms));
 
-% Homology mode
-homology_mode = 'reduced'
-
 % Complex parameters
 max_dim = 5;
 num_divs= 10;
@@ -60,7 +57,7 @@ for i = 1:length(vr_complexes)
     for k = 1:num_samples
 
         stream = example_factory(complex, max_dim, mfv, num_divs, num_points);
-        T = BoundaryMatrixFactory(stream, homology_mode, 'testing', as_dense);
+        T = BoundaryMatrixFactory(stream, 'testing', as_dense);
         lows_test = reduce_matrix(T, 'testing');
         fprintf('\t\tSample %d/%d\tm = %d\n', k, num_samples, T.m);
 
@@ -68,7 +65,7 @@ for i = 1:length(vr_complexes)
 
             algo = algorithms{l};
 
-            D = BoundaryMatrixFactory(stream, homology_mode, algo, as_dense);
+            D = BoundaryMatrixFactory(stream, algo, as_dense);
             [lows, t] = reduce_matrix(D, algo);
 
             fprintf('\t\t\t%s... ', algo);

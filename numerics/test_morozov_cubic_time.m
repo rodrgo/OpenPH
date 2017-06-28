@@ -39,7 +39,7 @@ for i = 1:length(orders)
 
     for l = 1:length(algorithms)
         algorithm = algorithms{l};
-        [~, t, D] = reduce_stream(stream, 'unreduced', algorithm, as_dense);
+        [~, t, D] = reduce_stream(stream, algorithm, as_dense);
         time_algorithms(l, i) = 1000*t;
     end
 

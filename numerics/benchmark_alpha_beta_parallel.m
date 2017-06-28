@@ -22,10 +22,6 @@ color_list = create_color_palette(length(algorithms));
 % Matrix dense?
 as_dense = true;
 
-% Homology mode
-homology_modes = {'reduced', 'unreduced'};
-homology_modes = {'reduced'};
-
 % Complex parameters
 max_dim = 5;
 num_divs= 10;
@@ -39,240 +35,233 @@ num_points = 15;
 
 time_init = tic;
 
-for h = 1:length(homology_modes)
+for i = 1:length(vr_complexes)
 
-    homology_mode = homology_modes{h};
-    fprintf('homology_mode = %s\n\n', homology_mode);
+    complex = vr_complexes{i};
 
-    for i = 1:length(vr_complexes)
+    complex_tag = strrep(complex, '_', '\_');
 
-        complex = vr_complexes{i};
+    % ---------------------
+    % One figure per complex and per metric
+    % ---------------------
 
-        complex_tag = strrep(complex, '_', '\_');
+    % num_column_adds
 
-        % ---------------------
-        % One figure per complex and per metric
-        % ---------------------
+    figure(1);
+    set(gcf, 'color', [1 1 1]);
+    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    handles_1 = [];
+    labels_1 = {};
 
-        % num_column_adds
+    % num_entry_adds
 
-        figure(1);
-        set(gcf, 'color', [1 1 1]);
-        set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
-        handles_1 = [];
-        labels_1 = {};
+    figure(2);
+    set(gcf, 'color', [1 1 1]);
+    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    handles_2 = [];
+    labels_2 = {};
 
-        % num_entry_adds
+    % pecentage_reduced
 
-        figure(2);
-        set(gcf, 'color', [1 1 1]);
-        set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
-        handles_2 = [];
-        labels_2 = {};
+    figure(3);
+    set(gcf, 'color', [1 1 1]);
+    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    handles_3 = [];
+    labels_3 = {};
 
-        % pecentage_reduced
+    % num_column_adds
 
-        figure(3);
-        set(gcf, 'color', [1 1 1]);
-        set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
-        handles_3 = [];
-        labels_3 = {};
+    figure(4);
+    set(gcf, 'color', [1 1 1]);
+    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    handles_4 = [];
+    labels_4 = {};
 
-        % num_column_adds
+    % num_entry_adds
 
-        figure(4);
-        set(gcf, 'color', [1 1 1]);
-        set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
-        handles_4 = [];
-        labels_4 = {};
+    figure(5);
+    set(gcf, 'color', [1 1 1]);
+    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    handles_5 = [];
+    labels_5 = {};
 
-        % num_entry_adds
+    % labels_ind
 
-        figure(5);
-        set(gcf, 'color', [1 1 1]);
-        set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
-        handles_5 = [];
-        labels_5 = {};
+    label_ind = [];
 
-        % labels_ind
+    mfv = max_filtration_value;
+    fprintf('\n\t%s @ (max_dim, num_divs, mfv) = (%d, %d, %d)\n',...
+        complex, max_dim, num_divs, mfv);
 
-        label_ind = [];
+    for k = 1:num_samples
 
-        mfv = max_filtration_value;
-        fprintf('\n\t%s @ (max_dim, num_divs, mfv) = (%d, %d, %d)\n',...
-            complex, max_dim, num_divs, mfv);
+        stream = example_factory(complex, max_dim, mfv, num_divs, num_points);
+        lows_test = reduce_stream(stream, 'testing', as_dense);
 
-        for k = 1:num_samples
+        fprintf('\t\tSample %d/%d\tm = %d\n', k, num_samples, T.m);
 
-            stream = example_factory(complex, max_dim, mfv, num_divs, num_points);
-            lows_test = reduce_stream(stream, homology_mode, 'testing', as_dense);
+        for l = 1:length(algorithms)
 
-            fprintf('\t\tSample %d/%d\tm = %d\n', k, num_samples, T.m);
+            algo = algorithms{l};
+            [lows, t] = reduce_stream(stream, algo, as_dense);
+            fprintf('\t\t\t%s... ', algo);
 
-            for l = 1:length(algorithms)
+            if k == 1
+                label_ind(end + 1) = true;
+            else
+                label_ind(end + 1) = false;
+            end
 
-                algo = algorithms{l};
-                [lows, t] = reduce_stream(stream, homology_mode, algo, as_dense);
-                fprintf('\t\t\t%s... ', algo);
+            % --------------
+            % Extract metrics
+            % --------------
 
-                if k == 1
-                    label_ind(end + 1) = true;
-                else
-                    label_ind(end + 1) = false;
-                end
+            metrics = D.metrics;
+            x = 1:metrics.iters; 
 
-                % --------------
-                % Extract metrics
-                % --------------
+            if isequal(algo, 'alpha_beta_parallel')
+                style = '-+';
+            else
+                style = '--';
+            end
 
-                metrics = D.metrics;
-                x = 1:metrics.iters; 
+            % --------------
+            % num_column_adds 
+            % --------------
 
-                if isequal(algo, 'alpha_beta_parallel')
-                    style = '-+';
-                else
-                    style = '--';
-                end
+            figure(1);
+            labels_1{end + 1} = strrep(algo, '_', '\_');
+            handles_1(end + 1) = plot(x, metrics.num_column_adds(x), style, 'Color', color_list{l});
+            hold on;
 
-                % --------------
-                % num_column_adds 
-                % --------------
+            % --------------
+            % num_entry_adds 
+            % --------------
 
-                figure(1);
-                labels_1{end + 1} = strrep(algo, '_', '\_');
-                handles_1(end + 1) = plot(x, metrics.num_column_adds(x), style, 'Color', color_list{l});
-                hold on;
+            figure(2);
+            labels_2{end + 1} = strrep(algo, '_', '\_');
+            handles_2(end + 1) = semilogy(x, metrics.num_entry_adds(x), style, 'Color', color_list{l});
+            hold on;
 
-                % --------------
-                % num_entry_adds 
-                % --------------
+            % --------------
+            % percentage_unreduced
+            % --------------
 
-                figure(2);
-                labels_2{end + 1} = strrep(algo, '_', '\_');
-                handles_2(end + 1) = semilogy(x, metrics.num_entry_adds(x), style, 'Color', color_list{l});
-                hold on;
+            figure(3)
+            labels_3{end + 1} = strrep(algo, '_', '\_');
+            handles_3(end + 1) = plot(x, metrics.percentage_unreduced(x), style, 'Color', color_list{l});
+            hold on;
 
-                % --------------
-                % percentage_unreduced
-                % --------------
+            % --------------
+            % num_column_adds cumulative 
+            % --------------
 
-                figure(3)
-                labels_3{end + 1} = strrep(algo, '_', '\_');
-                handles_3(end + 1) = plot(x, metrics.percentage_unreduced(x), style, 'Color', color_list{l});
-                hold on;
+            figure(4);
+            labels_4{end + 1} = strrep(algo, '_', '\_');
+            handles_4(end + 1) = plot(x, cumsum(metrics.num_column_adds(x)), style, 'Color', color_list{l});
+            hold on;
 
-                % --------------
-                % num_column_adds cumulative 
-                % --------------
+            % --------------
+            % num_entry_adds cumulative 
+            % --------------
 
-                figure(4);
-                labels_4{end + 1} = strrep(algo, '_', '\_');
-                handles_4(end + 1) = plot(x, cumsum(metrics.num_column_adds(x)), style, 'Color', color_list{l});
-                hold on;
+            figure(5);
+            labels_5{end + 1} = strrep(algo, '_', '\_');
+            handles_5(end + 1) = semilogy(x, cumsum(metrics.num_entry_adds(x)), style, 'Color', color_list{l});
+            hold on;
 
-                % --------------
-                % num_entry_adds cumulative 
-                % --------------
+            % Assert output is correct
 
-                figure(5);
-                labels_5{end + 1} = strrep(algo, '_', '\_');
-                handles_5(end + 1) = semilogy(x, cumsum(metrics.num_entry_adds(x)), style, 'Color', color_list{l});
-                hold on;
+            assert(all(lows == lows_test), 'Output incorrect!');
+            fprintf('\t\tsuccess in %g secs!\n', t);
 
-                % Assert output is correct
+        end % end algorithms
 
-                assert(all(lows == lows_test), 'Output incorrect!');
-                fprintf('\t\tsuccess in %g secs!\n', t);
+    end % end num_samples
 
-            end % end algorithms
+    ind = find(label_ind);
 
-        end % end num_samples
+    % num_column_adds
 
-        ind = find(label_ind);
+    figure_tag = strcat(experiment_tag, '-', complex, '-', 'num_col_adds', '.eps');
+    filepath = fullfile(figure_dir, figure_tag);
 
-        % num_column_adds
+    figure(1);
+    hold off;
+    legend(handles_1(ind), labels_1(ind));
+    xlabel('iteration');
+    ylabel('column additions');
+    title({'Number of column additions', complex_tag});
 
-        figure_tag = strcat(experiment_tag, '-', complex, '-', 'num_col_adds', '.eps');
-        filepath = fullfile(figure_dir, figure_tag);
+    print('-depsc', filepath);
+    eps_to_pdf(filepath);
+    close(1);
 
-        figure(1);
-        hold off;
-        legend(handles_1(ind), labels_1(ind));
-        xlabel('iteration');
-        ylabel('column additions');
-        title({'Number of column additions', complex_tag});
+    % num_entry_adds
 
-        print('-depsc', filepath);
-        eps_to_pdf(filepath);
-        close(1);
+    figure_tag = strcat(experiment_tag, '-', complex, '-', 'num_entry_adds', '.eps');
+    filepath = fullfile(figure_dir, figure_tag);
 
-        % num_entry_adds
+    figure(2);
+    hold off;
+    legend(handles_2(ind), labels_2(ind));
+    xlabel('iteration');
+    ylabel('entries changed in column additions');
+    title({'Number of entries changed in column additions', complex_tag});
 
-        figure_tag = strcat(experiment_tag, '-', complex, '-', 'num_entry_adds', '.eps');
-        filepath = fullfile(figure_dir, figure_tag);
+    print('-depsc', filepath);
+    eps_to_pdf(filepath);
+    close(2);
 
-        figure(2);
-        hold off;
-        legend(handles_2(ind), labels_2(ind));
-        xlabel('iteration');
-        ylabel('entries changed in column additions');
-        title({'Number of entries changed in column additions', complex_tag});
+    % percentage_reduced
 
-        print('-depsc', filepath);
-        eps_to_pdf(filepath);
-        close(2);
+    figure_tag = strcat(experiment_tag, '-', complex, '-', 'percentage_unreduced', '.eps');
+    filepath = fullfile(figure_dir, figure_tag);
 
-        % percentage_reduced
+    figure(3);
+    hold off;
+    legend(handles_3(ind), labels_3(ind));
+    xlabel('iteration');
+    ylabel('% of unreduced columns');
+    title({'Percentage of unreduced columns', complex_tag});
 
-        figure_tag = strcat(experiment_tag, '-', complex, '-', 'percentage_unreduced', '.eps');
-        filepath = fullfile(figure_dir, figure_tag);
+    print('-depsc', filepath);
+    eps_to_pdf(filepath);
+    close(3);
 
-        figure(3);
-        hold off;
-        legend(handles_3(ind), labels_3(ind));
-        xlabel('iteration');
-        ylabel('% of unreduced columns');
-        title({'Percentage of unreduced columns', complex_tag});
+    % num_column_adds cumulative
 
-        print('-depsc', filepath);
-        eps_to_pdf(filepath);
-        close(3);
+    figure_tag = strcat(experiment_tag, '-', complex, '-', 'num_col_adds_cumulative', '.eps');
+    filepath = fullfile(figure_dir, figure_tag);
 
-        % num_column_adds cumulative
+    figure(4);
+    hold off;
+    legend(handles_4(ind), labels_4(ind));
+    xlabel('iteration');
+    ylabel('column additions (cumulative)');
+    title({'Number of column additions (cumulative)', complex_tag});
 
-        figure_tag = strcat(experiment_tag, '-', complex, '-', 'num_col_adds_cumulative', '.eps');
-        filepath = fullfile(figure_dir, figure_tag);
+    print('-depsc', filepath);
+    eps_to_pdf(filepath);
+    close(4);
 
-        figure(4);
-        hold off;
-        legend(handles_4(ind), labels_4(ind));
-        xlabel('iteration');
-        ylabel('column additions (cumulative)');
-        title({'Number of column additions (cumulative)', complex_tag});
+    % num_entry_adds cumulative
 
-        print('-depsc', filepath);
-        eps_to_pdf(filepath);
-        close(4);
+    figure_tag = strcat(experiment_tag, '-', complex, '-', 'num_entry_adds_cumulative', '.eps');
+    filepath = fullfile(figure_dir, figure_tag);
 
-        % num_entry_adds cumulative
+    figure(5);
+    hold off;
+    legend(handles_5(ind), labels_5(ind));
+    xlabel('iteration');
+    ylabel('entries changed in column additions (cumulative)');
+    title({'Number of entries changed in column additions (cumulative)', complex_tag});
 
-        figure_tag = strcat(experiment_tag, '-', complex, '-', 'num_entry_adds_cumulative', '.eps');
-        filepath = fullfile(figure_dir, figure_tag);
+    print('-depsc', filepath);
+    eps_to_pdf(filepath);
+    close(5);
 
-        figure(5);
-        hold off;
-        legend(handles_5(ind), labels_5(ind));
-        xlabel('iteration');
-        ylabel('entries changed in column additions (cumulative)');
-        title({'Number of entries changed in column additions (cumulative)', complex_tag});
-
-        print('-depsc', filepath);
-        eps_to_pdf(filepath);
-        close(5);
-
-    end % end vr_complexes
-
-end % end homology_mode
+end % end vr_complexes
 
 % --------------
 % End

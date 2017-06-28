@@ -28,7 +28,7 @@ for i = 5:order_complexity
     complex_name_label = strrep(complex_name, '_', '\_');
 
     % Our way to create the Matlab's boundary matrix
-    D = BoundaryMatrix(stream, 'reduced');
+    D = BoundaryMatrix(stream);
     matrix_tda = D.matrix;
 
     % Spy boundary matrices

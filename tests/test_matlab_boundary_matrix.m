@@ -36,7 +36,7 @@ for i = 1:length(vr_complexes)
 	max_dimension, max_filtration_value, num_divisions);
 
 	% Our way to create the Matlab's boundary matrix
-	D = BoundaryMatrix(stream, 'unreduced');
+	D = BoundaryMatrix(stream);
 	matrix_tda = D.matrix;
 
 	% Javaplex's way to create Matlab's boundary matrix

@@ -59,7 +59,7 @@ for i = 1:length(vr_complexes)
 
             for l = 1:length(algorithms)
                 algorithm = algorithms{l};
-                [lows, t, D] = reduce_stream(stream, 'unreduced', algorithm, as_dense);
+                [lows, t, D] = reduce_stream(stream, algorithm, as_dense);
                 row = [D.m, nnz(D.matrix), 1000*t, l];
                 time_data = [time_data; row];
             end

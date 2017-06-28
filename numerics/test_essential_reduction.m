@@ -21,9 +21,6 @@ vr_complexes = {'random_figure_8', ...
 algorithms = {'std', 'twist', 'alpha_beta_std', 'rho_std'};
 algorithm = 'std';
 
-% Homology mode
-homology_mode = 'unreduced';
-
 % Complex parameters
 max_dimension = [3, 5, 10];
 num_divisions= [5, 10, 15];
@@ -66,14 +63,14 @@ for i = 1:length(vr_complexes)
             fprintf('\t\tSample %d/%d\tm = %d\n', k, num_samples, stream.getSize());
 
             % Get groundtruth
-            [~, t_red, D] = reduce_stream(stream, homology_mode, algorithm, true);
+            [~, t_red, D] = reduce_stream(stream, algorithm, true);
             ph_info = D.get_persistence_info();
             relevant_ess = ph_info{2};
 
             num_rel_ess = length(relevant_ess);
 
             % Estimate essentials
-            D = BoundaryMatrix(stream, homology_mode);
+            D = BoundaryMatrix(stream);
             [selected_ess, t_ess] = essential_std(D);
 
             num_sel_ess = length(selected_ess);

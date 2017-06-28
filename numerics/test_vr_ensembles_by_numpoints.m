@@ -38,7 +38,7 @@ for h = 1:length(vr_complexes)
 
         t0 = tic;
         stream = example_factory(complex_name, max_dim, mfv, num_div, num_points);
-        D = BoundaryMatrix(stream, 'unreduced');
+        D = BoundaryMatrix(stream);
         t = 1000*toc(t0);
 
         row = [h, num_points, max_dim, num_div, mfv, t, D.m, nnz(D.matrix)];

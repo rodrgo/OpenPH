@@ -7,7 +7,7 @@ classdef BoundaryMatrix < handle
         %   'reduced': Add dummy simplex so that 0-Betti number
         %              counts components.
         %   'unreduced': Does not add dummy simplex.
-        homology_mode;
+        homology_mode = 'reduced';
         
         % ---------------
         % Matrix properties
@@ -24,6 +24,9 @@ classdef BoundaryMatrix < handle
 
         % Initial dimensions of columns
         initial_dimensions;
+
+        % Simplex dimensions
+        simplex_dimensions;
 
         % ---------------
         % Persistence information
@@ -75,19 +78,13 @@ classdef BoundaryMatrix < handle
     end
 
     methods
-        function obj = BoundaryMatrix(stream, homology_mode)
+        function obj = BoundaryMatrix(stream)
             if nargin > 0
-
-                % Default homology_mode is plain
-                if nargin == 1
-                    obj.homology_mode = 'unreduced';
-                else
-                    obj.homology_mode = homology_mode;
-                end
 
                 % Get boundary matrix for given stream from Javaplex
                 import edu.stanford.math.plex4.*;
                 if strcmp(obj.homology_mode, 'reduced')
+                    fprintf('reduced homology_mode has been deprecated');
                     ccs = streams.utility.StreamUtility.getCompressedBoundaryMatrixRedHom(stream);
                     obj.m = stream.getSize() + 1; % Add dummy simplex
                 elseif strcmp(obj.homology_mode, 'unreduced')
@@ -104,8 +101,17 @@ classdef BoundaryMatrix < handle
                 obj.matrix = sparse(rows, cols, vals, obj.m, obj.m);
                 assert(istriu(obj.matrix));
 
+                % Transform to dense
+                obj.as_dense();
+
+                % Create simplex_dimensions
+            
+                obj.create_simplex_dimensions();
+
                 % Get dimension of the complex
-                obj.initial_dimensions = sum(obj.matrix);
+                % obj.initial_dimensions = sum(obj.matrix);
+                % obj.complex_dimension = max(obj.initial_dimensions);
+                obj.initial_dimensions = obj.simplex_dimensions;
                 obj.complex_dimension = max(obj.initial_dimensions);
 
                 % Booleans
@@ -136,6 +142,20 @@ classdef BoundaryMatrix < handle
                 %   each iteration
                 obj.metrics.percentage_unreduced = ones(1, obj.m);
 
+            end
+        end
+
+        function create_simplex_dimensions(obj)
+            % Infer the dimension of each simplex in the complex
+            obj.simplex_dimensions = -1*ones(1, obj.m);
+            dim = 0;
+            dim_ind = ~any(obj.matrix, 1);
+            number_updated = 0;
+            while number_updated < obj.m
+                obj.simplex_dimensions(dim_ind) = dim;
+                dim = dim + 1;
+                number_updated = number_updated + nnz(dim_ind);
+                dim_ind = any(obj.matrix(dim_ind, :), 1);
             end
         end
 
@@ -249,7 +269,7 @@ classdef BoundaryMatrix < handle
             
             start = 1;
             complex_dim = obj.complex_dimension;
-            for d = complex_dim:-1:1 
+            for d = complex_dim:-1:1
                 d_simplices_idx = initial_dimensions_aux == d;
                 stop = start + nnz(d_simplices_idx) - 1;
                 twist_cols(start:stop) = find(d_simplices_idx);
