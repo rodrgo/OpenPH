@@ -59,6 +59,6 @@ for i = 1:length(vr_complexes)
 
 end
 
-
 time_total = toc(time_init);
 fprintf('All tests finished successfully in %s secs :)\n', num2str(time_total));
+
