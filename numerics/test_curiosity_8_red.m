@@ -33,7 +33,7 @@ for i = 1:length(vr_complexes)
     stream = example_factory(complex, max_dim, mfv, num_divs);
 
     % Our way to create the Matlab's boundary matrix
-    D = ReductionC8(stream, 'unreduced');
+    D = ReductionC8(stream);
     matrix = D.matrix;
 
     alpha_mask = D.get_alpha_mask();

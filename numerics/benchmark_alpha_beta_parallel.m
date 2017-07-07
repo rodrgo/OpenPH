@@ -96,14 +96,14 @@ for i = 1:length(vr_complexes)
     for k = 1:num_samples
 
         stream = example_factory(complex, max_dim, mfv, num_divs, num_points);
-        lows_test = reduce_stream(stream, 'testing', as_dense);
+        [lows_test, ~, T]= reduce_stream(stream, 'testing', as_dense);
 
         fprintf('\t\tSample %d/%d\tm = %d\n', k, num_samples, T.m);
 
         for l = 1:length(algorithms)
 
             algo = algorithms{l};
-            [lows, t] = reduce_stream(stream, algo, as_dense);
+            [lows, t, D] = reduce_stream(stream, algo, as_dense);
             fprintf('\t\t\t%s... ', algo);
 
             if k == 1

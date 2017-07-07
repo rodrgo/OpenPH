@@ -2,8 +2,8 @@
 classdef ReductionC8 < BoundaryMatrix & handle
 
     methods
-        function obj = ReductionC8(stream, homology_mode)
-            obj = obj@BoundaryMatrix(stream, homology_mode);
+        function obj = ReductionC8(stream)
+            obj = obj@BoundaryMatrix(stream);
         end
 
         % ===================

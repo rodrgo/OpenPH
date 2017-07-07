@@ -7,7 +7,7 @@ classdef BoundaryMatrix < handle
         %   'reduced': Add dummy simplex so that 0-Betti number
         %              counts components.
         %   'unreduced': Does not add dummy simplex.
-        homology_mode = 'reduced';
+        homology_mode = 'unreduced';
         
         % ---------------
         % Matrix properties
@@ -355,6 +355,8 @@ classdef BoundaryMatrix < handle
             obj.create_lowstar();
             obj.create_arglow();
             obj.create_classes();
+            % Clear columns of dimension 0
+            obj.clear_cols(find(obj.simplex_dimensions == 0));
         end
 
         function create_classes(obj)

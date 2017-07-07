@@ -7,8 +7,8 @@ classdef ReductionRho < BoundaryMatrix & handle
     end
 
     methods
-        function obj = ReductionRho(stream, homology_mode)
-            obj = obj@BoundaryMatrix(stream, homology_mode);
+        function obj = ReductionRho(stream)
+            obj = obj@BoundaryMatrix(stream);
             obj.has_rho = false;
         end
 
