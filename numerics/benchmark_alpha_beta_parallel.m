@@ -2,7 +2,7 @@
 init;
 
 figure_dir = './figures/';
-experiment_tag = 'lookBack_benchmark_alpha_beta_parallel';
+experiment_tag = 'benchmark_alpha_beta_parallel';
 
 LW = 'LineWidth';
 MS = 'MarkerSize';
@@ -131,8 +131,16 @@ for i = 1:length(vr_complexes)
 
             figure(1);
             labels_1{end + 1} = strrep(algo, '_', '\_');
-            handles_1(end + 1) = plot(x, metrics.num_column_adds(x), style, 'Color', color_list{l});
+
+            y = metrics.num_column_adds(x);
+            handles_1(end + 1) = loglog(x, y, style, 'Color', color_list{l});
             hold on;
+
+            % Arrow
+            ll=ceil(length(x)*(k-1/2)/num_samples);
+            txt=['\leftarrow m=' num2str(T.m)];
+            h=text(x(ll), y(ll), txt, 'HorizontalAlignment', 'left');
+            set(h, 'Color', color_list{l});
 
             % --------------
             % num_entry_adds 
@@ -140,8 +148,16 @@ for i = 1:length(vr_complexes)
 
             figure(2);
             labels_2{end + 1} = strrep(algo, '_', '\_');
-            handles_2(end + 1) = semilogy(x, metrics.num_entry_adds(x), style, 'Color', color_list{l});
+
+            y = metrics.num_entry_adds(x);
+            handles_2(end + 1) = loglog(x, y, style, 'Color', color_list{l});
             hold on;
+
+            % Arrow
+            ll=ceil(length(x)*(k-1/2)/num_samples);
+            txt=['\leftarrow m=' num2str(T.m)];
+            h=text(x(ll), y(ll), txt, 'HorizontalAlignment', 'left');
+            set(h, 'Color', color_list{l});
 
             % --------------
             % percentage_unreduced
@@ -149,8 +165,16 @@ for i = 1:length(vr_complexes)
 
             figure(3)
             labels_3{end + 1} = strrep(algo, '_', '\_');
-            handles_3(end + 1) = plot(x, metrics.percentage_unreduced(x), style, 'Color', color_list{l});
+
+            y = metrics.percentage_unreduced(x);
+            handles_3(end + 1) = loglog(x, y, style, 'Color', color_list{l});
             hold on;
+
+            % Arrow
+            ll=ceil(length(x)*(k-1/2)/num_samples);
+            txt=['\leftarrow m=' num2str(T.m)];
+            h=text(x(ll), y(ll), txt, 'HorizontalAlignment', 'left');
+            set(h, 'Color', color_list{l});
 
             % --------------
             % num_column_adds cumulative 
@@ -158,8 +182,16 @@ for i = 1:length(vr_complexes)
 
             figure(4);
             labels_4{end + 1} = strrep(algo, '_', '\_');
-            handles_4(end + 1) = plot(x, cumsum(metrics.num_column_adds(x)), style, 'Color', color_list{l});
+
+            y = cumsum(metrics.num_column_adds(x));
+            handles_4(end + 1) = loglog(x, y, style, 'Color', color_list{l});
             hold on;
+
+            % Arrow
+            ll=ceil(length(x)*(k-1/2)/num_samples);
+            txt=['\leftarrow m=' num2str(T.m)];
+            h=text(x(ll), y(ll), txt, 'HorizontalAlignment', 'left');
+            set(h, 'Color', color_list{l});
 
             % --------------
             % num_entry_adds cumulative 
@@ -167,8 +199,16 @@ for i = 1:length(vr_complexes)
 
             figure(5);
             labels_5{end + 1} = strrep(algo, '_', '\_');
-            handles_5(end + 1) = semilogy(x, cumsum(metrics.num_entry_adds(x)), style, 'Color', color_list{l});
+
+            y = cumsum(metrics.num_entry_adds(x));
+            handles_5(end + 1) = loglog(x, y, style, 'Color', color_list{l});
             hold on;
+
+            % Arrow
+            ll=ceil(length(x)*(k-1/2)/num_samples);
+            txt=['\leftarrow m=' num2str(T.m)];
+            h=text(x(ll), y(ll), txt, 'HorizontalAlignment', 'left');
+            set(h, 'Color', color_list{l});
 
             % Assert output is correct
 
