@@ -37,6 +37,9 @@ classdef ReductionParallel < BoundaryMatrix
 
         updated;
 
+        % Dimensions index
+        dimensions_index;
+
         % Threading mode
         threading;
 
@@ -50,6 +53,12 @@ classdef ReductionParallel < BoundaryMatrix
             obj.pivots_cell = cell(1, obj.m);
             obj.updated = false(1, obj.m);
             obj.threading = 'alpha_beta';
+
+            % Dimensions index
+            obj.dimensions_index = cell(1, obj.complex_dimension);
+            for d = 1:obj.complex_dimension
+                obj.dimensions_index{d} = find(obj.simplex_dimensions == d);
+            end
         end
 
         function set_threading(obj, threading)
@@ -177,27 +186,74 @@ classdef ReductionParallel < BoundaryMatrix
             obj.previous_lowstars(:) = 0;
         end
 
+        function mark_unique_unreduced_per_dimension(obj)
+            % Let cols_dim(d) = {columns of dimension "d"}
+            % We look for j=min{col \in cols_dim(d) : col is unreduced}
+
+            % For each dimension
+            visited = false(obj.m, 1);
+            for d = obj.complex_dimension:-1:1
+                % If this happens, then surely we haven't observed obj.(j)
+                % j = find(obj.classes == 0 & obj.simplex_dimensions == d, 1, 'first'); 
+                % if ~isempty(j) & obj.arglow(obj.low(j)) == 0
+                visited(:) = false;
+                ind = obj.dimensions_index{d};
+                ceiling = 0;
+                for j = ind
+                    if obj.low(j) > 0
+                        if ~visited(obj.low(j))
+                            if obj.classes(j) == 0 && obj.low(j) > ceiling
+                                % mark as lowstar
+                                obj.arglow(obj.low(j)) = j;
+                                obj.mark_as_negative(j);
+                                i = obj.low(j);
+                                % We call obj.clear_cols, though since
+                                % i<j, i is already reduced.
+                                obj.clear_cols(i);
+                            end
+                        else
+                            ceiling = obj.low(j);
+                        end
+                        % mark as visited
+                        visited(obj.low(j)) = true;
+                    end
+                end
+            end
+        end
+
         function mark_first_unreduced_per_dimension(obj)
             % Let cols_dim(d) = {columns of dimension "d"}
             % We look for j=min{col \in cols_dim(d) : col is unreduced}
 
-            for d = 1:obj.complex_dimension
+            %for d = 1:obj.complex_dimension
+            for d = obj.complex_dimension:-1:1
                 % If this happens, then surely we haven't observed obj.(j)
-                j = find(obj.classes == 0 & obj.simplex_dimensions == d, 1, 'first'); 
-                if ~isempty(j) & obj.arglow(obj.low(j)) == 0
-                    % We claim that isempty(j) == false
-                    % if and only if the matrix is still unreduced.
-                    % and dimension is not zero
-                    assert(obj.low(j) > 0);
-                    % If low(j) is positive and we have
-                    % not observed it before, then this is
-                    % a lowstar.
-                    obj.arglow(obj.low(j)) = j;
-                    obj.mark_as_negative(j);
-                    i = obj.low(j);
-                    % We call obj.clear_cols, though since
-                    % i<j, i is already reduced.
-                    obj.clear_cols(i);
+                %j = find(obj.classes == 0 & obj.simplex_dimensions == d, 1, 'first'); 
+                %if ~isempty(j) & obj.arglow(obj.low(j)) == 0
+                ind = find(obj.classes == 0 & obj.simplex_dimensions == d);
+                if ~isempty(ind)
+                    pos = 1;
+                    j = ind(pos);
+                    while pos <= length(ind) && obj.arglow(obj.low(j)) == 0
+                        % We claim that isempty(j) == false
+                        % if and only if the matrix is still unreduced.
+                        % and dimension is not zero
+                        assert(obj.low(j) > 0);
+                        % If low(j) is positive and we have
+                        % not observed it before, then this is
+                        % a lowstar.
+                        obj.arglow(obj.low(j)) = j;
+                        obj.mark_as_negative(j);
+                        i = obj.low(j);
+                        % We call obj.clear_cols, though since
+                        % i<j, i is already reduced.
+                        obj.clear_cols(i);
+                        % Update pos and j
+                        pos = pos + 1;
+                        if pos <= length(ind)
+                            j = ind(pos);
+                        end
+                    end
                 end
             end
         end

@@ -33,7 +33,8 @@ function [lows, t] = alpha_beta_parallel(D)
 
         % For each dimension, add to pivots first column
         % that has a low at a given position
-        D.mark_first_unreduced_per_dimension();
+        %D.mark_first_unreduced_per_dimension();
+        D.mark_unique_unreduced_per_dimension();
 
         % Get known lowstars
         %   pivots = D.get_lowstar_pivots();
