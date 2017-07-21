@@ -1,9 +1,14 @@
-% This script prepares the javaplex library for use
+% This script loads javaplex components
 
 clc; clear all; close all;
-%clear import;
 
-MATLAB_JAVAPLEX_DIR = ['/home/mendozasmith/src/javaplex/src/matlab/for_distribution'];
+% Set javaplex directory
+
+JAVAPLEX_DIR = '/home/mendozasmith/src/javaplex/'
+
+% Build matlab javaplex directory 
+
+MATLAB_JAVAPLEX_DIR = fullfile(JAVAPLEX_DIR, 'src/matlab/for_distribution');
 
 javaaddpath([MATLAB_JAVAPLEX_DIR '/lib/javaplex.jar']);
 import edu.stanford.math.plex4.*;
