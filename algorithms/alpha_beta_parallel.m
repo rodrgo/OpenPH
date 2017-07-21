@@ -13,8 +13,6 @@ function [lows, t] = alpha_beta_parallel(D)
     %   Can be either 'alpha_beta' or 'first_lows'
     D.set_threading('alpha_beta');
 
-    D.create_candidate_pivots();
-
     verbose = false;
     if verbose
         fprintf('\nStart of algorithm:');
@@ -22,27 +20,17 @@ function [lows, t] = alpha_beta_parallel(D)
     end
 
     % Get arglows and lowstars from alpha-beta reduce
+    % These are initial pivots
     D.alpha_beta_reduce();
 
     while ~D.matrix_is_reduced()
 
-        % Reduce first low
-        % Sets as low the first unreduced column j such that
-        % low(1:(j-1)) is reduced
-        % D.mark_first_low();
-
-        % For each dimension, add to pivots first column
-        % that has a low at a given position
-        %D.mark_first_unreduced_per_dimension();
+        % For each dimension, add to pivots first unreduced
+        % column "j" such that low(j) == i
         D.mark_unique_unreduced_per_dimension();
 
         % Get known lowstars
-        %   pivots = D.get_lowstar_pivots();
         pivots_cell = D.get_pivots_cell();
-
-        % Reset candidate pivots here
-        % D.reset_candidate_pivots();
-        % D.reset_previous_lowstars();
 
         if length(pivots_cell) > 0
 
@@ -64,63 +52,24 @@ function [lows, t] = alpha_beta_parallel(D)
                 end
             end
 
-            % Try to update information on
-            % "unclassified pivots" and "updated columns"
-            % We do this in two stages.
-            % Update in two stages:
-            %   First new alpha-beta and clearing
-            %   Then other strategies 
+            % Try to infer nature of updated columns
+            % We do this in two stages
 
+            %   Check for alpha/beta information
             updated = D.get_updated();
             for j = updated
                 D.alpha_beta_check(j);
             end
 
+            %   Run c8 check
             updated = D.get_updated();
             for j = updated
                 D.c8_check(j);
             end
-             
-%            % Try to find class of given markers
-%            unreduced_pivots = find(obj.classes == 0 & obj.pivots > 0);
-%            for j = unreduced_pivots
-%                D.update_persistence_markers(j);
-%            end
-%
-%            D.update_pivot_vectors();
-
-%            % Update matrix invariants
-%            for l = 1:length(pivots)
-%                pivot = pivots{l};
-%                for j = pivot.neighbours
-%                    % Checks whether after parallel-reducing
-%                    % we have enough information to declare
-%                    % that "j" is reduced.
-%                    D.update_features(j);
-%                end
-%            end
-
-            % -------------
-            % Jared's suggestion 
-            % -------------
-
-            % Mark lowstar strategy (move inside update features)
-            % Mark previous lowstars
-%            for l = 1:length(pivots)
-%                pivot = pivots{l};
-%                j0 = pivot.col;
-%                D.mark_previous_lowstars(j0);
-%            end
-
-            % Update matrix invariants
-%            prev_lowstars = find(D.previous_lowstars);
-%            for l = 1:length(prev_lowstars)
-%                j0 = prev_lowstars(l);
-%                D.declare_previous_lowstars(j0);
-%            end
 
         else
-            % set to unmarked was here before
+            % Do nothing
+            % If pivots_cell is empty we are done!
         end
         if verbose
             D.print_ph_status();
