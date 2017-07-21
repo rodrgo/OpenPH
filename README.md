@@ -53,8 +53,12 @@ Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c6
 
 ## Authors
 
-* **Rodrigo Mendoza-Smith** - *Initial work* - [PurpleBooth](people.maths.ox.ac.uk/mendozasmith/)
-* **Jared Tanner** - *Initial work* - [PurpleBooth](people.maths.ox.ac.uk/tanner/)
+* **Rodrigo Mendoza-Smith** - [personal webpage](people.maths.ox.ac.uk/mendozasmith/)
+* **Jared Tanner** - [personal webpage](people.maths.ox.ac.uk/tanner/)
+
+## Citing
+
+TBD
 
 ## License
 
