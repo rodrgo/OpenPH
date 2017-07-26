@@ -207,7 +207,7 @@ classdef ReductionParallel < BoundaryMatrix
                                 obj.clear_cols(i);
                             end
                         else
-                            ceiling = obj.low(j);
+                            ceiling = max(ceiling, obj.low(j));
                         end
                         % mark as visited
                         visited(obj.low(j)) = true;
