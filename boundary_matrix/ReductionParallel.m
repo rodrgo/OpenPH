@@ -94,6 +94,10 @@ classdef ReductionParallel < BoundaryMatrix
             ind = find(obj.updated);
         end
 
+        function reset_updated(obj)
+            obj.updated(:) = false;
+        end
+
         function neighbours = get_row_neighbours(obj, i, j0)
             % Given i and j0 returns
             %   {j \in [m] : j > j0 & i == low(j)}
