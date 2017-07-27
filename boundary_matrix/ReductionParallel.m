@@ -254,50 +254,53 @@ classdef ReductionParallel < BoundaryMatrix
         end
 
         function c8_check(obj, j)
-            % Extended c8-check that also works with columns that do not necessarily
+            % Extended c8-check that also works
+            % with columns that do not necessarily
             % have obj.beta(j) == 0
             %
             % For any "j", let
-            %   I = {i \in [j-1] : dim(i) == dim(j)-1}
+            %   I = {i \in [m] : dim(i) == dim(j)-1}
             %
             % lowstar(j) \in S where
             %
             %    S = {i \in I : i \in [beta(j), low(j)]}                \setminus
             %        {i \in I : arglow(l) = i > 0}                      \setminus
             %        {i \in I : i = lowstar(l) for some l \in [j-1]}
-            %
-            % If obj.beta(j) == 0, then
-            %   S = S \setminus {i \in I : beta(i) == 0}
-            %
-            % If obj.beta(j) >  0, then
             %   S = S \setminus {i \in I : beta(i) > 0}
-            %
 
             dim_j = obj.simplex_dimensions(j);
             S = true(1, obj.m);
-            % 
+
+            % Global-palette
+
+            S(obj.simplex_dimensions ~= (dim_j-1)) = false;
+            S(obj.beta > 0) = false;
+            S(obj.lowstar > 0) = false;
+            S(obj.arglow(obj.arglow > 0)) = false;
+            S(obj.classes == -1) = false;
+
+            % Local-palette
+
             S(1:(obj.beta(j)-1)) = false;
             S((obj.low(j)+1):end) = false;
-            S(obj.simplex_dimensions ~= (dim_j-1)) = false;
-            S(obj.arglow(obj.arglow > 0)) = false;
-            S(obj.lowstar > 0) = false;
-            S(obj.classes == -1) = false;
 
             if obj.beta(j) == 0
                 % Column can be positive or negative
-                S(obj.beta(j) > 0) = false;
                 if nnz(S) == 0
                     obj.clear_cols(j);
-                    fprintf('c8 success #1\n');
+                    %fprintf('success #1: %d\n', j);
+                else
+                    if nnz(S) == 1
+                        %fprintf('almost: %d\n', j);
+                    end
                 end
             else
                 % Column has to be negative
-                S(obj.beta(j) > 0) = false;
                 assert(nnz(S) > 0);
                 if nnz(S) == 1
                     i = find(S);
                     obj.clear_cols(i);
-                    fprintf('c8 success #2\n');
+                    %fprintf('success #2: %d\n', i);
                 end
             end
 
