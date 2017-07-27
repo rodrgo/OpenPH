@@ -85,6 +85,22 @@ for i = 1:length(vr_complexes)
     handles_5 = [];
     labels_5 = {};
 
+    % Essential estimation
+
+    figure(6);
+    set(gcf, 'color', [1 1 1]);
+    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    handles_6 = [];
+    labels_6 = {};
+
+    % Lowstar L1
+
+    figure(7);
+    set(gcf, 'color', [1 1 1]);
+    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    handles_7 = [];
+    labels_7 = {};
+
     % labels_ind
 
     label_ind = [];
@@ -103,7 +119,7 @@ for i = 1:length(vr_complexes)
         for l = 1:length(algorithms)
 
             algo = algorithms{l};
-            [lows, t, D] = reduce_stream(stream, algo, as_dense);
+            [lows, t, D] = reduce_stream(stream, algo, as_dense, lows_test);
             fprintf('\t\t\t%s... ', algo);
 
             if k == 1
@@ -210,6 +226,40 @@ for i = 1:length(vr_complexes)
             h=text(x(ll), y(ll), txt, 'HorizontalAlignment', 'left');
             set(h, 'Color', color_list{l});
 
+            % --------------
+            % Essential estimation (precision)
+            % --------------
+
+            figure(6);
+            labels_6{end + 1} = strrep(algo, '_', '\_');
+
+            y = metrics.essential_precision(x);
+            handles_6(end + 1) = loglog(x, y, style, 'Color', color_list{l});
+            hold on;
+
+            % Arrow
+            ll=ceil(length(x)*(k-1/2)/num_samples);
+            txt=['\leftarrow m=' num2str(T.m)];
+            h=text(x(ll), y(ll), txt, 'HorizontalAlignment', 'left');
+            set(h, 'Color', color_list{l});
+
+            % --------------
+            % Lowstar distance (L1)
+            % --------------
+
+            figure(7);
+            labels_7{end + 1} = strrep(algo, '_', '\_');
+
+            y = metrics.lowstar.l1(x);
+            handles_7(end + 1) = loglog(x, y, style, 'Color', color_list{l});
+            hold on;
+
+            % Arrow
+            ll=ceil(length(x)*(k-1/2)/num_samples);
+            txt=['\leftarrow m=' num2str(T.m)];
+            h=text(x(ll), y(ll), txt, 'HorizontalAlignment', 'left');
+            set(h, 'Color', color_list{l});
+
             % Assert output is correct
 
             assert(all(lows == lows_test), 'Output incorrect!');
@@ -300,6 +350,38 @@ for i = 1:length(vr_complexes)
     print('-depsc', filepath);
     eps_to_pdf(filepath);
     close(5);
+
+    % essential estimation
+
+    figure_tag = strcat(experiment_tag, '-', complex, '-', 'essential_estimation_precision', '.eps');
+    filepath = fullfile(figure_dir, figure_tag);
+
+    figure(6);
+    hold off;
+    legend(handles_6(ind), labels_6(ind));
+    xlabel('iteration');
+    ylabel('Precision TP/(TP + FP)');
+    title({'Positive Predictive Value (Precision) of Essential Estimation', complex_tag});
+
+    print('-depsc', filepath);
+    eps_to_pdf(filepath);
+    close(6);
+
+    % Lowstar L1 distance
+
+    figure_tag = strcat(experiment_tag, '-', complex, '-', 'lowstar_l1_distance', '.eps');
+    filepath = fullfile(figure_dir, figure_tag);
+
+    figure(7);
+    hold off;
+    legend(handles_7(ind), labels_7(ind));
+    xlabel('iteration');
+    ylabel('||low - lowstar||_1');
+    title({'L1 distance between lowstar and low at each iteration', complex_tag});
+
+    print('-depsc', filepath);
+    eps_to_pdf(filepath);
+    close(7);
 
 end % end vr_complexes
 

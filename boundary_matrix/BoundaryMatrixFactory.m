@@ -3,7 +3,7 @@
 %   corresponding methods to reduce with each
 %   algorithm.
 
-function D = BoundaryMatrixFactory(stream, algorithm, as_dense)
+function D = BoundaryMatrixFactory(stream, algorithm, as_dense, true_lowstar)
 
     % Default algorithms implemented by BoundaryMatrix
     default_algorithms = {'testing', 'std', 'twist', ...
@@ -19,6 +19,10 @@ function D = BoundaryMatrixFactory(stream, algorithm, as_dense)
         D = ReductionParallel(stream);
     else
         error('Algorithm not identified\n');
+    end
+
+    if nargin > 3 
+        D.enable_lowstar_tracking(true_lowstar);
     end
 
     if as_dense

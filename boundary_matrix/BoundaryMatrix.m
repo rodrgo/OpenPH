@@ -74,11 +74,20 @@ classdef BoundaryMatrix < handle
 
         metrics;
 
+        % -------------
+        % Add ons
+        % -------------
+
+        has_essential_addon;
+        has_lowstar_tracking;
+        true_lowstar;
+        ess;
+        essential_palette;
 
     end
 
     methods
-        function obj = BoundaryMatrix(stream)
+        function obj = BoundaryMatrix(stream, true_lowstar)
             if nargin > 0
 
                 % Get boundary matrix for given stream from Javaplex
@@ -142,6 +151,17 @@ classdef BoundaryMatrix < handle
                 %   each iteration
                 obj.metrics.percentage_unreduced = ones(1, obj.m);
 
+                % ----------------
+                % Groundtruth
+                % ----------------
+
+                obj.has_essential_addon = false;
+                obj.has_lowstar_tracking = false;
+
+                if nargin > 1
+                    obj.enable_lowstar_tracking(true_lowstar);
+                end
+
             end
         end
 
@@ -157,6 +177,73 @@ classdef BoundaryMatrix < handle
                 number_updated = number_updated + nnz(dim_ind);
                 dim_ind = any(obj.matrix(dim_ind, :), 1);
             end
+        end
+
+        % ===================
+        % Addons
+        % ===================
+
+        function enable_lowstar_tracking(obj, true_lowstar)
+
+            obj.true_lowstar = true_lowstar;
+
+            % ----------------
+            % Essential addon
+            % ----------------
+
+            % By estimation procedure we always
+            % true positives = |Ess|
+            % false positives = |Ess_hat|-|Ess|
+            % true negatives = m - |Ess_hat| 
+            % false negatives = 0 
+            %
+            % Hence,
+            %   Precision = TP/(TP + FP) = |Ess|/|Ess_hat|
+            %   Recall = TP/(TP + FN) = 1
+
+            % Essentials addon
+            obj.has_essential_addon = true;
+            obj.metrics.essential_precision = zeros(1, obj.m);
+
+            % Compute groundtruth_ess from true_lowstar
+            paired = false(1, obj.m);
+            paired(obj.true_lowstar(obj.true_lowstar > 0)) = true;
+            paired(obj.true_lowstar > 0) = true;
+            obj.ess = find(paired == false);
+
+            % Create essential_palette to estimate essentials
+            obj.essential_palette = true(1, obj.m);
+            obj.essential_palette(obj.beta > 0) = false;
+
+            % ----------------
+            % Lowstar tracking
+            % ----------------
+
+            % Lowstar tracking
+            obj.has_lowstar_tracking = true;
+            obj.metrics.lowstar = [];
+            obj.metrics.lowstar.l1 = zeros(1, obj.m);
+
+        end
+
+        function precision = get_precision_of_essential_estimate(obj)
+
+            obj.essential_palette(obj.low(obj.low > 0)) = false;
+            obj.essential_palette(obj.lowstar > 0) = false;
+            obj.essential_palette(obj.arglow(obj.arglow > 0)) = false;
+            obj.essential_palette(obj.classes == -1) = false;
+
+            ess_hat = find(obj.essential_palette == true);
+
+            % tp = Ess
+            assert(all(ismember(obj.ess, ess_hat)));
+
+            if length(obj.ess) == 0
+                precision = 0;
+            else
+                precision = length(obj.ess)/length(ess_hat);
+            end
+
         end
 
         % ===================
@@ -181,6 +268,13 @@ classdef BoundaryMatrix < handle
         function record_iteration(obj)
             pos = obj.metrics.next_iter;
             obj.metrics.percentage_unreduced(pos) = 1 - nnz(obj.classes)/obj.m;
+            if obj.has_essential_addon
+                precision = obj.get_precision_of_essential_estimate();
+                obj.metrics.essential_precision(pos) = precision;
+            end
+            if obj.has_lowstar_tracking
+                obj.metrics.lowstar.l1(pos) = norm(obj.low - obj.true_lowstar, 1); 
+            end
             obj.metrics.iters = obj.metrics.next_iter;
             obj.metrics.next_iter = obj.metrics.next_iter + 1;
             if obj.metrics.next_iter > length(obj.metrics.num_column_adds)
