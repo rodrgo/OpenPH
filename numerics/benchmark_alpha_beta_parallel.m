@@ -111,7 +111,7 @@ for i = 1:length(vr_complexes)
 
     for k = 1:num_samples
 
-        stream = example_factory(complex, max_dim, mfv, num_divs, num_points);
+        [stream, complex_cell_info] = example_factory(complex, max_dim, mfv, num_divs, num_points);
         [lows_test, ~, T]= reduce_stream(stream, 'testing', as_dense);
 
         fprintf('\t\tSample %d/%d\tm = %d\n', k, num_samples, T.m);
@@ -182,7 +182,6 @@ for i = 1:length(vr_complexes)
             figure(3)
             labels_3{end + 1} = strrep(algo, '_', '\_');
 
-            y = metrics.percentage_unreduced(x);
             handles_3(end + 1) = loglog(x, y, style, 'Color', color_list{l});
             hold on;
 
@@ -271,6 +270,14 @@ for i = 1:length(vr_complexes)
 
     ind = find(label_ind);
 
+    complex_str = complex_cell_info{1};
+    params_str = complex_cell_info{2}; 
+    if length(params_str) == 0;
+        second_line_str = [complex_str];
+    else
+        second_line_str = [complex_str, ': ', params_str];
+    end
+
     % num_column_adds
 
     figure_tag = strcat(experiment_tag, '-', complex, '-', 'num_col_adds', '.eps');
@@ -281,7 +288,7 @@ for i = 1:length(vr_complexes)
     legend(handles_1(ind), labels_1(ind));
     xlabel('iteration');
     ylabel('column additions');
-    title({'Number of column additions', complex_tag});
+    title({'Number of column additions', second_line_str});
 
     print('-depsc', filepath);
     eps_to_pdf(filepath);
@@ -297,7 +304,7 @@ for i = 1:length(vr_complexes)
     legend(handles_2(ind), labels_2(ind));
     xlabel('iteration');
     ylabel('entries changed in column additions');
-    title({'Number of entries changed in column additions', complex_tag});
+    title({'Number of entries changed in column additions', second_line_str});
 
     print('-depsc', filepath);
     eps_to_pdf(filepath);
@@ -313,7 +320,7 @@ for i = 1:length(vr_complexes)
     legend(handles_3(ind), labels_3(ind));
     xlabel('iteration');
     ylabel('% of unreduced columns');
-    title({'Percentage of unreduced columns', complex_tag});
+    title({'Percentage of unreduced columns', second_line_str});
 
     print('-depsc', filepath);
     eps_to_pdf(filepath);
@@ -329,7 +336,7 @@ for i = 1:length(vr_complexes)
     legend(handles_4(ind), labels_4(ind));
     xlabel('iteration');
     ylabel('column additions (cumulative)');
-    title({'Number of column additions (cumulative)', complex_tag});
+    title({'Number of column additions (cumulative)', second_line_str});
 
     print('-depsc', filepath);
     eps_to_pdf(filepath);
@@ -345,7 +352,7 @@ for i = 1:length(vr_complexes)
     legend(handles_5(ind), labels_5(ind));
     xlabel('iteration');
     ylabel('entries changed in column additions (cumulative)');
-    title({'Number of entries changed in column additions (cumulative)', complex_tag});
+    title({'Number of entries changed in column additions (cumulative)', second_line_str});
 
     print('-depsc', filepath);
     eps_to_pdf(filepath);
@@ -360,8 +367,8 @@ for i = 1:length(vr_complexes)
     hold off;
     legend(handles_6(ind), labels_6(ind));
     xlabel('iteration');
-    ylabel('Precision TP/(TP + FP)');
-    title({'Positive Predictive Value (Precision) of Essential Estimation', complex_tag});
+    ylabel('Positive Predictive Vaule');
+    title({'Positive Predictive Value of Essential Estimation', second_line_str});
 
     print('-depsc', filepath);
     eps_to_pdf(filepath);
@@ -376,8 +383,8 @@ for i = 1:length(vr_complexes)
     hold off;
     legend(handles_7(ind), labels_7(ind));
     xlabel('iteration');
-    ylabel('||low - lowstar||_1');
-    title({'L1 distance between lowstar and low at each iteration', complex_tag});
+    ylabel('||low - low^*||_1');
+    title({'||low - low^*||_1 per iteration', second_line_str});
 
     print('-depsc', filepath);
     eps_to_pdf(filepath);
