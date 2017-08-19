@@ -4,3 +4,5 @@
 *.pdf
 *.mat
 *.swp
+*.bin
+*.tex

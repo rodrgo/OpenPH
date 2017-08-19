@@ -14,8 +14,13 @@ vr_complexes = {'house', 'random_figure_8', ...
                 'icosahedron', 'random_trefoil_knot', ...
                 'random_gaussian', 'morozov'};
 
+vr_complexes = {'random_gaussian', 'random_figure_8', ...
+                'random_trefoil_knot', ...
+                'sphere_product'};
+
 % Algorithms to test
-algorithms = {'alpha_beta_parallel', 'std', 'twist', 'alpha_beta_std', 'alpha_beta_twist'};
+%algorithms = {'alpha_beta_parallel', 'std', 'twist', 'alpha_beta_std', 'alpha_beta_twist'};
+algorithms = {'alpha_beta_parallel', 'std', 'twist'};
 
 color_list = create_color_palette(length(algorithms));
 
@@ -35,6 +40,31 @@ num_points = 15;
 
 time_init = tic;
 
+% ---------------------
+% Create placeholders for tables
+% ---------------------
+
+% Table experiments:
+num_experiments = 3;
+
+num_complexes = length(vr_complexes);
+num_algos = length(algorithms); % num of algorithms
+
+% Essential estimation
+ess_percentiles = [0.1, 0.5, 0.9, 0.95, 1];
+tensor_ess = zeros(num_complexes, num_samples, num_algos, length(ess_percentiles));
+
+% Percentage of unreduced columns
+unreduced_percentiles = [0.9, 0.5, 0.1, 0.05, 0.01];
+tensor_unreduced = zeros(num_complexes, num_samples, num_algos, length(unreduced_percentiles));
+
+% L1 distance
+l1_percentiles = [1e-1, 1e-2, 1e-3, 1e-4, 0];
+tensor_l1 = zeros(num_complexes, num_samples, num_algos, length(l1_percentiles));
+
+% Total column operation difference
+tensor_col_ops = zeros(num_complexes, num_samples, num_algos); % last entry stores total number of column operations
+
 for i = 1:length(vr_complexes)
 
     complex = vr_complexes{i};
@@ -49,7 +79,7 @@ for i = 1:length(vr_complexes)
 
     figure(1);
     set(gcf, 'color', [1 1 1]);
-    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    set(gca, 'Fontname', 'setTimes', 'Fontsize', 18);
     handles_1 = [];
     labels_1 = {};
 
@@ -57,7 +87,7 @@ for i = 1:length(vr_complexes)
 
     figure(2);
     set(gcf, 'color', [1 1 1]);
-    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    set(gca, 'Fontname', 'setTimes', 'Fontsize', 18);
     handles_2 = [];
     labels_2 = {};
 
@@ -65,7 +95,7 @@ for i = 1:length(vr_complexes)
 
     figure(3);
     set(gcf, 'color', [1 1 1]);
-    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    set(gca, 'Fontname', 'setTimes', 'Fontsize', 18);
     handles_3 = [];
     labels_3 = {};
 
@@ -73,7 +103,7 @@ for i = 1:length(vr_complexes)
 
     figure(4);
     set(gcf, 'color', [1 1 1]);
-    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    set(gca, 'Fontname', 'setTimes', 'Fontsize', 18);
     handles_4 = [];
     labels_4 = {};
 
@@ -81,7 +111,7 @@ for i = 1:length(vr_complexes)
 
     figure(5);
     set(gcf, 'color', [1 1 1]);
-    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    set(gca, 'Fontname', 'setTimes', 'Fontsize', 18);
     handles_5 = [];
     labels_5 = {};
 
@@ -89,7 +119,7 @@ for i = 1:length(vr_complexes)
 
     figure(6);
     set(gcf, 'color', [1 1 1]);
-    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    set(gca, 'Fontname', 'setTimes', 'Fontsize', 18);
     handles_6 = [];
     labels_6 = {};
 
@@ -97,7 +127,7 @@ for i = 1:length(vr_complexes)
 
     figure(7);
     set(gcf, 'color', [1 1 1]);
-    set(gca, 'Fontname', 'setTimes', 'Fontsize', 15);
+    set(gca, 'Fontname', 'setTimes', 'Fontsize', 18);
     handles_7 = [];
     labels_7 = {};
 
@@ -146,7 +176,7 @@ for i = 1:length(vr_complexes)
             % --------------
 
             figure(1);
-            labels_1{end + 1} = strrep(algo, '_', '\_');
+            labels_1{end + 1} = strrep(name_change(algo), '_', '\_');
 
             y = metrics.num_column_adds(x);
             handles_1(end + 1) = loglog(x, y, style, 'Color', color_list{l});
@@ -163,7 +193,7 @@ for i = 1:length(vr_complexes)
             % --------------
 
             figure(2);
-            labels_2{end + 1} = strrep(algo, '_', '\_');
+            labels_2{end + 1} = strrep(name_change(algo), '_', '\_');
 
             y = metrics.num_entry_adds(x);
             handles_2(end + 1) = loglog(x, y, style, 'Color', color_list{l});
@@ -180,8 +210,9 @@ for i = 1:length(vr_complexes)
             % --------------
 
             figure(3)
-            labels_3{end + 1} = strrep(algo, '_', '\_');
+            labels_3{end + 1} = strrep(name_change(algo), '_', '\_');
 
+            y = metrics.percentage_unreduced(x);
             handles_3(end + 1) = loglog(x, y, style, 'Color', color_list{l});
             hold on;
 
@@ -191,12 +222,19 @@ for i = 1:length(vr_complexes)
             h=text(x(ll), y(ll), txt, 'HorizontalAlignment', 'left');
             set(h, 'Color', color_list{l});
 
+            % Store tensor info
+
+            % Number of iterations for 90 percent reduction
+            for pp = 1:length(unreduced_percentiles)
+            	tensor_unreduced(i, k, l, pp) = find(y - unreduced_percentiles(pp) <= 0 , 1, 'first');
+            end
+
             % --------------
             % num_column_adds cumulative 
             % --------------
 
             figure(4);
-            labels_4{end + 1} = strrep(algo, '_', '\_');
+            labels_4{end + 1} = strrep(name_change(algo), '_', '\_');
 
             y = cumsum(metrics.num_column_adds(x));
             handles_4(end + 1) = loglog(x, y, style, 'Color', color_list{l});
@@ -208,12 +246,15 @@ for i = 1:length(vr_complexes)
             h=text(x(ll), y(ll), txt, 'HorizontalAlignment', 'left');
             set(h, 'Color', color_list{l});
 
+            % Store tensor info
+            tensor_col_ops(i, k, l) = y(x(end));
+
             % --------------
             % num_entry_adds cumulative 
             % --------------
 
             figure(5);
-            labels_5{end + 1} = strrep(algo, '_', '\_');
+            labels_5{end + 1} = strrep(name_change(algo), '_', '\_');
 
             y = cumsum(metrics.num_entry_adds(x));
             handles_5(end + 1) = loglog(x, y, style, 'Color', color_list{l});
@@ -230,7 +271,7 @@ for i = 1:length(vr_complexes)
             % --------------
 
             figure(6);
-            labels_6{end + 1} = strrep(algo, '_', '\_');
+            labels_6{end + 1} = strrep(name_change(algo), '_', '\_');
 
             y = metrics.essential_precision(x);
             handles_6(end + 1) = loglog(x, y, style, 'Color', color_list{l});
@@ -242,12 +283,18 @@ for i = 1:length(vr_complexes)
             h=text(x(ll), y(ll), txt, 'HorizontalAlignment', 'left');
             set(h, 'Color', color_list{l});
 
+            % Store tensor info
+            for pp = 1:length(ess_percentiles)
+                ep = find(y - ess_percentiles(pp) >= 0 , 1, 'first');
+            	tensor_ess(i, k, l, pp) = ep;
+            end
+
             % --------------
             % Lowstar distance (L1)
             % --------------
 
             figure(7);
-            labels_7{end + 1} = strrep(algo, '_', '\_');
+            labels_7{end + 1} = strrep(name_change(algo), '_', '\_');
 
             y = metrics.lowstar.l1(x);
             handles_7(end + 1) = loglog(x, y, style, 'Color', color_list{l});
@@ -258,6 +305,11 @@ for i = 1:length(vr_complexes)
             txt=['\leftarrow m=' num2str(T.m)];
             h=text(x(ll), y(ll), txt, 'HorizontalAlignment', 'left');
             set(h, 'Color', color_list{l});
+
+            % Store tensor info
+            for pp = 1:length(l1_percentiles)
+            	tensor_l1(i, k, l, pp) = find(y - l1_percentiles(pp) <= 0 , 1, 'first');
+            end
 
             % Assert output is correct
 
@@ -285,10 +337,11 @@ for i = 1:length(vr_complexes)
 
     figure(1);
     hold off;
-    legend(handles_1(ind), labels_1(ind));
+    legend(handles_1(ind), labels_1(ind), 'Location', 'northeast');
     xlabel('iteration');
-    ylabel('column additions');
-    title({'Number of column additions', second_line_str});
+    ylabel('count of column additions');
+    title(second_line_str);
+    %title({'Number of column additions', second_line_str});
 
     print('-depsc', filepath);
     eps_to_pdf(filepath);
@@ -301,10 +354,11 @@ for i = 1:length(vr_complexes)
 
     figure(2);
     hold off;
-    legend(handles_2(ind), labels_2(ind));
+    legend(handles_2(ind), labels_2(ind), 'Location', 'southeast');
     xlabel('iteration');
-    ylabel('entries changed in column additions');
-    title({'Number of entries changed in column additions', second_line_str});
+    ylabel('count of XOR operations');
+    title(second_line_str);
+    %title({'Number of entries changed in column additions', second_line_str});
 
     print('-depsc', filepath);
     eps_to_pdf(filepath);
@@ -320,7 +374,8 @@ for i = 1:length(vr_complexes)
     legend(handles_3(ind), labels_3(ind));
     xlabel('iteration');
     ylabel('% of unreduced columns');
-    title({'Percentage of unreduced columns', second_line_str});
+    title(second_line_str);
+    %title({'Percentage of unreduced columns', second_line_str});
 
     print('-depsc', filepath);
     eps_to_pdf(filepath);
@@ -333,10 +388,11 @@ for i = 1:length(vr_complexes)
 
     figure(4);
     hold off;
-    legend(handles_4(ind), labels_4(ind));
+    legend(handles_4(ind), labels_4(ind), 'Location', 'southeast');
     xlabel('iteration');
-    ylabel('column additions (cumulative)');
-    title({'Number of column additions (cumulative)', second_line_str});
+    ylabel('count of column additions (cumulative)');
+    title(second_line_str);
+    %title({'Number of column additions (cumulative)', second_line_str});
 
     print('-depsc', filepath);
     eps_to_pdf(filepath);
@@ -349,10 +405,11 @@ for i = 1:length(vr_complexes)
 
     figure(5);
     hold off;
-    legend(handles_5(ind), labels_5(ind));
+    legend(handles_5(ind), labels_5(ind), 'Location', 'southeast');
     xlabel('iteration');
-    ylabel('entries changed in column additions (cumulative)');
-    title({'Number of entries changed in column additions (cumulative)', second_line_str});
+    ylabel('count of XOR operations (cumulative)');
+    title(second_line_str);
+    %title({'Number of entries changed in column additions (cumulative)', second_line_str});
 
     print('-depsc', filepath);
     eps_to_pdf(filepath);
@@ -367,8 +424,9 @@ for i = 1:length(vr_complexes)
     hold off;
     legend(handles_6(ind), labels_6(ind));
     xlabel('iteration');
-    ylabel('Positive Predictive Vaule');
-    title({'Positive Predictive Value of Essential Estimation', second_line_str});
+    ylabel('Positive Predictive Value');
+    title(second_line_str);
+    %title({'Positive Predictive Value of Essential Estimation', second_line_str});
 
     print('-depsc', filepath);
     eps_to_pdf(filepath);
@@ -381,16 +439,172 @@ for i = 1:length(vr_complexes)
 
     figure(7);
     hold off;
-    legend(handles_7(ind), labels_7(ind));
+    legend(handles_7(ind), labels_7(ind), 'Location', 'southwest');
     xlabel('iteration');
-    ylabel('||low - low^*||_1');
-    title({'||low - low^*||_1 per iteration', second_line_str});
+    ylabel('$\frac{\|low - low^*\|_1}{\|low^*\|_1}$', 'Interpreter', 'LaTex');
+    title(second_line_str);
+    %title({'||low - low^*||_1/||low^*||_1 per iteration', second_line_str});
 
     print('-depsc', filepath);
     eps_to_pdf(filepath);
     close(7);
 
 end % end vr_complexes
+
+% --------------
+% Print stats tables
+% --------------
+
+fileId = fopen('tables.tex', 'w');
+
+% table i
+for i = 1:num_experiments
+    if i == 1
+        levels_x = unreduced_percentiles;
+        tensor_x = tensor_unreduced;
+    elseif i == 2
+        levels_x = ess_percentiles;
+        tensor_x = tensor_ess;
+    else
+        levels_x = l1_percentiles;
+        tensor_x = tensor_l1;
+    end
+    fprintf(fileId,'\n\n\n\n');
+
+    fprintf(fileId,'\\begin{small}\n');
+    fprintf(fileId,'\\begin{table*}\n');
+    fprintf(fileId,'\\centering\n');
+    fprintf(fileId,'\\begin{tabular}{l');
+    fprintf(fileId,'||');
+    for j = 1:num_complexes
+        for l = 1:num_algos
+            fprintf(fileId,'c');
+        end
+        if j < num_complexes
+    	    fprintf(fileId,'|');
+        end
+    end
+
+    fprintf(fileId,'}\n');
+    fprintf(fileId,'\\toprule\n');
+    if i == 1
+        fprintf(fileId,'\\multirow{2}{*}{Proportion} &\n');
+    elseif i == 2
+        fprintf(fileId,'\\multirow{2}{*}{Precision} &\n');
+    else
+        fprintf(fileId,'\\multirow{2}{*}{$\\frac{\\|\\low - \\lowstar\\|_1}{\\|\\lowstar\\|_1}$} &\n');
+    end
+    for j = 1:num_complexes
+        fprintf(fileId,'\\multicolumn{%d}{c}{%s}', num_algos, name_change_table(vr_complexes{j}));
+        if j < num_complexes
+            fprintf(fileId,'&\n');
+        else
+            fprintf(fileId,'\\\\\n');
+        end
+    end
+    for j = 1:num_complexes
+        for l = 1:num_algos
+            fprintf(fileId,'& {%s} ', name_change(algorithms{l}));
+        end
+    end
+    fprintf(fileId,'\\\\\n');
+    fprintf(fileId,'\\midrule\n');
+
+    % row 'it'
+    for pp = 1:length(levels_x)
+        if i == 1 || i == 2
+            fprintf(fileId,'%1.2f', levels_x(pp));
+        else
+            fprintf(fileId,'%g', levels_x(pp));
+        end
+        for j = 1:num_complexes
+            for k = 1:num_algos
+                fprintf(fileId,' & %d', tensor_x(j, 1, k, pp)); % Only do it for alpha_beta_parallel
+            end
+        end
+        fprintf(fileId,'\\\\\n');
+    end
+
+    fprintf(fileId,'\\bottomrule\n');
+    fprintf(fileId,'\\end{tabular}\n');
+    if i == 1
+        fprintf(fileId,'\\caption{Iterations to unreduced percentage}\n');
+	fprintf(fileId,'\\label{tab:iterations_unreduced}\n');
+    elseif i == 2
+        fprintf(fileId,'\\caption{Iterations to essential-estimation precision}\n');
+	fprintf(fileId,'\\label{tab:iterations_essential}\n');
+    else
+        fprintf(fileId,'\\caption{Iterations to relative $\\ell_1$-error}\n');
+	fprintf(fileId,'\\label{tab:iterations_l1_error}\n');
+    end
+    fprintf(fileId,'\\end{table*}\n');
+    fprintf(fileId,'\\end{small}\n');
+
+end
+
+% --------------
+% Print savings table
+% --------------
+
+fprintf(fileId,'\n\n\n\n');
+fprintf(fileId,'\\begin{small}\n');
+fprintf(fileId,'\\begin{table*}\n');
+fprintf(fileId,'\\centering\n');
+fprintf(fileId,'\\begin{tabular}{l');
+fprintf(fileId,'||');
+for j = 1:num_complexes
+    for l = 1:num_algos
+        if strcmp(algorithms{l}, 'alpha_beta_parallel') == 0
+            fprintf(fileId,'c');
+        end
+    end
+    if j < num_complexes
+        fprintf(fileId,'|');
+    end
+end
+fprintf(fileId,'}\n');
+fprintf(fileId,'\\toprule\n');
+fprintf(fileId,'\\multirow{2}{*}{Sample} &\n');
+for j = 1:num_complexes
+    fprintf(fileId,'\\multicolumn{%d}{c}{%s}', num_algos-1, name_change_table(vr_complexes{j}));
+    if j < num_complexes
+        fprintf(fileId,'&\n');
+    else
+        fprintf(fileId,'\\\\\n');
+    end
+end
+for j = 1:num_complexes
+    for l = 1:num_algos
+        if strcmp(algorithms{l}, 'alpha_beta_parallel') == 0
+            fprintf(fileId,'& {%s} ', name_change(algorithms{l}));
+        end
+    end
+end
+fprintf(fileId,'\\\\\n');
+fprintf(fileId,'\\midrule\n');
+
+% row 'it'
+for s = 1:num_samples
+    fprintf(fileId,'%d', s);
+    for j = 1:num_complexes
+        for k = 1:num_algos
+            if strcmp(algorithms{k}, 'alpha_beta_parallel') == 0
+                ratio = tensor_col_ops(j, s, 1)/tensor_col_ops(j, s, k);
+                fprintf(fileId,' & %1.2f', ratio);
+            end
+        end
+    end
+    fprintf(fileId,'\\\\\n');
+end
+
+fprintf(fileId,'\\bottomrule\n');
+fprintf(fileId,'\\end{tabular}\n');
+fprintf(fileId,'\\caption{Ratio of total column operations}\n');
+fprintf(fileId,'\\label{tab:ratio_cumsum_operations}\n');
+fprintf(fileId,'\\end{table*}\n');
+fprintf(fileId,'\\end{small}\n');
+
+fclose(fileId);
 
 % --------------
 % End

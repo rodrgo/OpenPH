@@ -273,7 +273,7 @@ classdef BoundaryMatrix < handle
                 obj.metrics.essential_precision(pos) = precision;
             end
             if obj.has_lowstar_tracking
-                obj.metrics.lowstar.l1(pos) = norm(obj.low - obj.true_lowstar, 1); 
+                obj.metrics.lowstar.l1(pos) = norm(obj.low - obj.true_lowstar, 1)/norm(obj.true_lowstar, 1); 
             end
             obj.metrics.iters = obj.metrics.next_iter;
             obj.metrics.next_iter = obj.metrics.next_iter + 1;
