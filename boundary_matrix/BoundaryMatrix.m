@@ -90,28 +90,35 @@ classdef BoundaryMatrix < handle
         function obj = BoundaryMatrix(stream, true_lowstar)
             if nargin > 0
 
-                % Get boundary matrix for given stream from Javaplex
-                import edu.stanford.math.plex4.*;
-                if strcmp(obj.homology_mode, 'reduced')
-                    fprintf('reduced homology_mode has been deprecated');
-                    ccs = streams.utility.StreamUtility.getCompressedBoundaryMatrixRedHom(stream);
-                    obj.m = stream.getSize() + 1; % Add dummy simplex
-                elseif strcmp(obj.homology_mode, 'unreduced')
-                    ccs = streams.utility.StreamUtility.getCompressedBoundaryMatrix(stream);
-                    obj.m = stream.getSize();
+                if isa(stream, 'double')
+                    % In this case, 'stream' is already a boundary matrix
+                    obj.matrix = stream;
+                    assert(istriu(obj.matrix));
+                    obj.m = size(obj.matrix, 1);
                 else
-                    assert(false, 'homology_mode not recognised');
+                    % Get boundary matrix for given stream from Javaplex
+                    import edu.stanford.math.plex4.*;
+                    if strcmp(obj.homology_mode, 'reduced')
+                        fprintf('reduced homology_mode has been deprecated');
+                        ccs = streams.utility.StreamUtility.getCompressedBoundaryMatrixRedHom(stream);
+                        obj.m = stream.getSize() + 1; % Add dummy simplex
+                    elseif strcmp(obj.homology_mode, 'unreduced')
+                        ccs = streams.utility.StreamUtility.getCompressedBoundaryMatrix(stream);
+                        obj.m = stream.getSize();
+                    else
+                        assert(false, 'homology_mode not recognised');
+                    end
+
+                    % Create sparse boundary matrix
+                    rows = double(cell2mat(cell(ccs.get(0).toArray())));
+                    cols = double(cell2mat(cell(ccs.get(1).toArray())));
+                    vals = ones(size(rows));
+                    obj.matrix = sparse(rows, cols, vals, obj.m, obj.m);
+                    assert(istriu(obj.matrix));
+
+                    % Transform to dense
+                    obj.as_dense();
                 end
-
-                % Create sparse boundary matrix
-                rows = double(cell2mat(cell(ccs.get(0).toArray())));
-                cols = double(cell2mat(cell(ccs.get(1).toArray())));
-                vals = ones(size(rows));
-                obj.matrix = sparse(rows, cols, vals, obj.m, obj.m);
-                assert(istriu(obj.matrix));
-
-                % Transform to dense
-                obj.as_dense();
 
                 % Create simplex_dimensions
             
