@@ -10,6 +10,13 @@ LW = 'LineWidth';
 MS = 'MarkerSize';
 markers = '+o*xsd^v><ph.';
 
+% Font size
+fs = [];
+fs.title = 20;
+fs.legend = 17;
+fs.axis = 20;
+fs.ticks = 20;
+
 % Explore complexity of Vietoris-Rips complexes
 % Do not include house, random_torus, morozov
 vr_complexes = {'random_figure_8', ...
@@ -137,12 +144,18 @@ for i = 1:length(vr_complex_labels)
     vr_complex_labels{i} = strrep(vr_complexes{i}, '_', '\_');
 end
 
-xlabel('(TP + FP)/m');
-ylabel('Precision: TP/(TP + FP)');
-legend(handles, vr_complex_labels, 'Location', 'SouthEast');
+xlabel('(TP + FP)/m', 'FontSize', fs.axis);
+ylabel('Precision: TP/(TP + FP)', 'FontSize', fs.axis);
+			% Tick size
+			xt = get(gca, 'XTick');
+			set(gca, 'FontSize', fs.ticks);
+
+			xt = get(gca, 'YTick');
+			set(gca, 'FontSize', fs.ticks);
+legend(handles, vr_complex_labels, 'Location', 'SouthEast', 'FontSize', fs.legend);
 
 title_str = ['Estimation of essential classes in O(m)'];
-title(title_str);
+title(title_str, 'FontSize', fs.title);
 hold off;
 
 file_name = [figure_tag, '.eps'];

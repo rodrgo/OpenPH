@@ -8,6 +8,14 @@ LW = 'LineWidth';
 MS = 'MarkerSize';
 markers = '+o*xsd^v><ph.';
 
+% Font size
+fs = [];
+fs.title = 20;
+fs.legend = 17;
+fs.axis = 20;
+fs.ticks = 20;
+
+
 % Explore complexity of Vietoris-Rips complexes
 vr_complexes = {'house', 'random_figure_8', ...
                 'random_torus', 'sphere_product', ...
@@ -337,10 +345,17 @@ for i = 1:length(vr_complexes)
 
     figure(1);
     hold off;
-    legend(handles_1(ind), labels_1(ind), 'Location', 'northeast');
-    xlabel('iteration');
-    ylabel('count of column additions');
-    title(second_line_str);
+    legend(handles_1(ind), labels_1(ind), 'Location', 'northeast', 'FontSize', fs.legend);
+    xlabel('iteration', 'FontSize', fs.axis);
+    ylabel('count of column additions', 'FontSize', fs.axis);
+			% Tick size
+			xt = get(gca, 'XTick');
+			set(gca, 'FontSize', fs.ticks);
+
+			xt = get(gca, 'YTick');
+			set(gca, 'FontSize', fs.ticks);
+
+    title(second_line_str, 'FontSize', fs.title);
     %title({'Number of column additions', second_line_str});
 
     print('-depsc', filepath);
@@ -354,10 +369,17 @@ for i = 1:length(vr_complexes)
 
     figure(2);
     hold off;
-    legend(handles_2(ind), labels_2(ind), 'Location', 'southeast');
-    xlabel('iteration');
-    ylabel('count of XOR operations');
-    title(second_line_str);
+    legend(handles_2(ind), labels_2(ind), 'Location', 'southeast', 'FontSize', fs.legend);
+    xlabel('iteration', 'FontSize', fs.axis);
+    ylabel('count of XOR operations', 'FontSize', fs.axis);
+			% Tick size
+			xt = get(gca, 'XTick');
+			set(gca, 'FontSize', fs.ticks);
+
+			xt = get(gca, 'YTick');
+			set(gca, 'FontSize', fs.ticks);
+
+    title(second_line_str, 'FontSize', fs.title);
     %title({'Number of entries changed in column additions', second_line_str});
 
     print('-depsc', filepath);
@@ -371,10 +393,17 @@ for i = 1:length(vr_complexes)
 
     figure(3);
     hold off;
-    legend(handles_3(ind), labels_3(ind));
-    xlabel('iteration');
-    ylabel('% of unreduced columns');
-    title(second_line_str);
+    legend(handles_3(ind), labels_3(ind), 'FontSize', fs.legend);
+    xlabel('iteration', 'FontSize', fs.axis);
+    ylabel('% of unreduced columns', 'FontSize', fs.axis);
+			% Tick size
+			xt = get(gca, 'XTick');
+			set(gca, 'FontSize', fs.ticks);
+
+			xt = get(gca, 'YTick');
+			set(gca, 'FontSize', fs.ticks);
+
+    title(second_line_str, 'FontSize', fs.title);
     %title({'Percentage of unreduced columns', second_line_str});
 
     print('-depsc', filepath);
@@ -388,10 +417,17 @@ for i = 1:length(vr_complexes)
 
     figure(4);
     hold off;
-    legend(handles_4(ind), labels_4(ind), 'Location', 'southeast');
-    xlabel('iteration');
-    ylabel('count of column additions (cumulative)');
-    title(second_line_str);
+    legend(handles_4(ind), labels_4(ind), 'Location', 'southeast', 'FontSize', fs.legend);
+    xlabel('iteration', 'FontSize', fs.axis);
+    ylabel('count of column additions (cumulative)', 'FontSize', fs.axis);
+			% Tick size
+			xt = get(gca, 'XTick');
+			set(gca, 'FontSize', fs.ticks);
+
+			xt = get(gca, 'YTick');
+			set(gca, 'FontSize', fs.ticks);
+
+    title(second_line_str, 'FontSize', fs.title);
     %title({'Number of column additions (cumulative)', second_line_str});
 
     print('-depsc', filepath);
@@ -405,10 +441,17 @@ for i = 1:length(vr_complexes)
 
     figure(5);
     hold off;
-    legend(handles_5(ind), labels_5(ind), 'Location', 'southeast');
-    xlabel('iteration');
-    ylabel('count of XOR operations (cumulative)');
-    title(second_line_str);
+    legend(handles_5(ind), labels_5(ind), 'Location', 'southeast', 'FontSize', fs.legend);
+    xlabel('iteration', 'FontSize', fs.axis);
+    ylabel('count of XOR operations (cumulative)', 'FontSize', fs.axis);
+			% Tick size
+			xt = get(gca, 'XTick');
+			set(gca, 'FontSize', fs.ticks);
+
+			xt = get(gca, 'YTick');
+			set(gca, 'FontSize', fs.ticks);
+
+    title(second_line_str, 'FontSize', fs.title);
     %title({'Number of entries changed in column additions (cumulative)', second_line_str});
 
     print('-depsc', filepath);
@@ -422,10 +465,17 @@ for i = 1:length(vr_complexes)
 
     figure(6);
     hold off;
-    legend(handles_6(ind), labels_6(ind));
-    xlabel('iteration');
-    ylabel('Positive Predictive Value');
-    title(second_line_str);
+    legend(handles_6(ind), labels_6(ind), 'FontSize', fs.legend);
+    xlabel('iteration', 'FontSize', fs.axis);
+    ylabel('Positive Predictive Value', 'FontSize', fs.axis);
+			% Tick size
+			xt = get(gca, 'XTick');
+			set(gca, 'FontSize', fs.ticks);
+
+			xt = get(gca, 'YTick');
+			set(gca, 'FontSize', fs.ticks);
+
+    title(second_line_str, 'FontSize', fs.title);
     %title({'Positive Predictive Value of Essential Estimation', second_line_str});
 
     print('-depsc', filepath);
@@ -439,10 +489,17 @@ for i = 1:length(vr_complexes)
 
     figure(7);
     hold off;
-    legend(handles_7(ind), labels_7(ind), 'Location', 'southwest');
-    xlabel('iteration');
-    ylabel('$\frac{\|low - low^*\|_1}{\|low^*\|_1}$', 'Interpreter', 'LaTex');
-    title(second_line_str);
+    legend(handles_7(ind), labels_7(ind), 'Location', 'southwest', 'FontSize', fs.legend);
+    xlabel('iteration', 'FontSize', fs.axis);
+    ylabel('$\frac{\|low - low^*\|_1}{\|low^*\|_1}$', 'Interpreter', 'LaTex', 'FontSize', fs.axis);
+			% Tick size
+			xt = get(gca, 'XTick');
+			set(gca, 'FontSize', fs.ticks);
+
+			xt = get(gca, 'YTick');
+			set(gca, 'FontSize', fs.ticks);
+
+    title(second_line_str, 'FontSize', fs.title);
     %title({'||low - low^*||_1/||low^*||_1 per iteration', second_line_str});
 
     print('-depsc', filepath);
