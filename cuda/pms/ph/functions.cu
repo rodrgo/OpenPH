@@ -25,18 +25,25 @@ inline void reduce_col(int j, int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_
     // j = 0, 1, ..., m-1
     int j0 = -1;
     int low_j = d2h(d_low, j); // low_j = -1, 0, 1, ..., m-1
-    int low_j_aux = 0;
     while (low_j > -1 && d2h(d_arglow, low_j) != -1){
         j0 = d2h(d_arglow, low_j);
         // left_to_right also updates low
         left_to_right<<<numBlocks_m, threadsPerBlock_m>>>(j0, j, d_rows_mp, d_aux_mp, d_low, m, p);
         cudaDeviceSynchronize();
-        low_j_aux = low_j;
         low_j = d2h(d_low, j);
     }
     low_j = d2h(d_low, j);
     if (low_j > -1){
         h2d(d_arglow, low_j, j);
     } 
+}
+
+inline void reduce_col_twist(int j, int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int m, int p, dim3 numBlocks_m, dim3 threadsPerBlock_m){
+    reduce_col(j, d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, numBlocks_m, threadsPerBlock_m);
+    int low_j = d2h(d_low, j); // low_j = -1, 0, 1, ..., m-1
+    if (low_j > -1){
+        clear_cols_mp<<<numBlocks_m, threadsPerBlock_m>>>(low_j, d_rows_mp, m, p);
+        cudaDeviceSynchronize();
+    }
 }
 

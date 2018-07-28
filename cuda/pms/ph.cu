@@ -95,7 +95,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         // -------------------------------
         
         // Create output
-        plhs[0] = mxCreateNumericMatrix(m, 1, mxINT32_CLASS, mxREAL);
+        plhs[0] = mxCreateNumericMatrix(1, m, mxINT32_CLASS, mxREAL);
         h_low  = (int*) mxGetData(plhs[0]);  
 
         plhs[1] = mxCreateNumericMatrix((m + 1), 1, mxSINGLE_CLASS, mxREAL);
@@ -181,13 +181,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         h_beta = (int*)malloc( sizeof(int) * m );
         create_beta_h(h_beta, h_rows, h_cols, m, nnz);
 
-        int   iter  = 0;
+        int iter  = 0;
         if (strcmp(algstr, "std")==0){
-            iter = 0;
             standard(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
-        }
-        else if (strcmp(algstr, "serial_l0")==0) 
-            iter = 0;
+        } else if (strcmp(algstr, "twist")==0) 
+            twist(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
             //algorithm2();
         else
             printf("Not recognised");

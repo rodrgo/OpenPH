@@ -37,32 +37,27 @@ rows = double(cell2mat(cell(ccs.get(0).toArray())));
 cols = double(cell2mat(cell(ccs.get(1).toArray())));
 vals = ones(size(rows));
 
+% Create matrix
 R = sparse(rows, cols, vals); 
 [rows, cols, vals] = find(R);
-rowsd = rows - 1;
-colsd = cols - 1;
 
-%disp(rowsd')
-%disp(colsd')
-
-rows = int32(rows);
-cols = int32(cols);
-vals = int32(vals);
-m = int32(m);
-
-%disp(rows)
-%disp(cols)
-%disp(vals)
-%disp(m)
-
-% vals is equal to all ones
-tic;
-[low resRecord timeRecord] = ph('std', rows, cols, vals, m);
-%disp(low)
-display(sprintf('The tests completed after %s seconds.',toc));
-
+% Solve with standard
 [low_test, t] = std_test(R);
 
-disp(low);
-disp(low_test-1);
+% Test CUDA solvers
+tic;
+[low resRecord timeRecord] = ph('std', int32(rows), int32(cols), int32(vals), int32(m));
+display(sprintf('STANDARD: The tests completed after %s seconds.',toc));
+std_ok = isequal(low_test-1, low);
+
+tic;
+[low resRecord timeRecord] = ph('twist', int32(rows), int32(cols), int32(vals), int32(m));
+display(sprintf('TWIST: The tests completed after %s seconds.',toc));
+twist_ok = isequal(low_test-1, low);
+
+if std_ok && twist_ok
+    disp(sprintf('All good :)'));
+else
+    disp(sprintf('Mismatch in one of the algos :)'));
+end
 
