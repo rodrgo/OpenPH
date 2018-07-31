@@ -124,7 +124,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 
         indexShiftDown<<<numBlocks_nnz,threadsPerBlock_nnz>>>(d_rows, nnz);
         indexShiftDown<<<numBlocks_nnz,threadsPerBlock_nnz>>>(d_cols, nnz); 
-
         // d_low, d_arglow
         int *d_low, *d_arglow;
 
@@ -177,17 +176,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         // beta
         // -------------------------------
 
-        int *h_beta;
-        h_beta = (int*)malloc( sizeof(int) * m );
-        create_beta_h(h_beta, h_rows, h_cols, m, nnz);
 
         int iter  = 0;
         if (strcmp(algstr, "std")==0){
             standard(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
-        } else if (strcmp(algstr, "twist")==0) 
+        } else if (strcmp(algstr, "twist")==0){
             twist(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
-            //algorithm2();
-        else
+        } else if (strcmp(algstr, "pms")==0){
+
+            // beta
+            int *d_beta;
+            cudaMalloc((void**)&d_beta, m * sizeof(int));
+            create_beta(d_beta, h_rows, h_cols, m, nnz);
+
+            // simplex dimensions
+
+            pms(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, d_beta, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
+        }else
             printf("Not recognised");
 
         // matrix: device to host
@@ -208,6 +213,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         // CLEANUP
         // free up the allocated memory on the device
 
+        cudaFree(d_beta);
         cudaFree(d_rows);
         cudaFree(d_cols);
         

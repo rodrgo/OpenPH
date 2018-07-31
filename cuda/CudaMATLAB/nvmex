@@ -1,0 +1,1504 @@
+#!/bin/sh
+#
+#     mex    compilation program for MATLAB C and Fortran language MEX-files
+#
+# Copyright 1984-2006 The MathWorks, Inc.
+# $Revision: 1.108.4.19 $  $Date: 2006/06/23 19:04:11 $
+#____________________________________________________________________________
+    arg0_=$0
+
+#
+    abort='rm -rf $files_to_remove $basename.o > /dev/null 2>&1; \
+          echo ""; \
+          echo "    mex:  interrupted."; \
+          echo ""'
+#
+    trap "eval $abort; exit 1" 1 2 3 15
+#
+#========================= archlist.sh (start) ============================
+#
+# usage:        archlist.sh
+#
+# abstract:     This Bourne Shell script creates the variable ARCH_LIST.
+#
+# note(s):      1. This file is always imbedded in another script
+#
+# Copyright 1997-2005 The MathWorks, Inc.
+# $Revision: 1.9.4.5 $  $Date: 2005/10/07 14:01:06 $
+#----------------------------------------------------------------------------
+#
+    ARCH_LIST='sol2 glnx86 glnxa64 mac maci'
+#=======================================================================
+# Functions:
+#   check_archlist ()
+#=======================================================================
+    check_archlist () { # Sets ARCH. If first argument contains a valid
+			# arch then ARCH is set to that value else
+		        # an empty string. If there is a second argument
+			# do not output any warning message. The most
+			# common forms of the first argument are:
+			#
+			#     ARCH=arch
+			#     MATLAB_ARCH=arch
+			#     argument=-arch
+			#
+                        # Always returns a 0 status.
+                        #
+                        # usage: check_archlist arch=[-]value [noprint]
+                        #
+	if [ $# -gt 0 ]; then
+	    arch_in=`expr "$1" : '.*=\(.*\)'`
+	    if [ "$arch_in" != "" ]; then
+	        ARCH=`echo "$ARCH_LIST EOF $arch_in" | awk '
+#-----------------------------------------------------------------------
+	{ for (i = 1; i <= NF; i = i + 1)
+	      if ($i == "EOF")
+		  narch = i - 1
+	  for (i = 1; i <= narch; i = i + 1)
+		if ($i == $NF || "-" $i == $NF) {
+		    print $i
+		    exit
+		}
+	}'`
+#-----------------------------------------------------------------------
+	       if [ "$ARCH" = "" -a $# -eq 1 ]; then
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+echo ' '
+echo "    Warning: $1 does not specify a valid architecture - ignored . . ."
+echo ' '
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	       fi
+	    else
+		ARCH=""
+	    fi
+	else
+	    ARCH=""
+	fi
+#
+	return 0
+    }
+#=======================================================================
+#========================= archlist.sh (end) ==============================
+#
+#========================== version.sh (start) ============================
+#
+# usage:        version [-b | -f | -p]
+#
+# abstract:     This POSIX Shell script function returns the MATLAB
+#               release version. Any bad options are ignored without
+#		warning.
+#
+#		The version is assumed to be of the form:
+#
+#		    R<integer>[<noninteger>]
+#
+#               options:
+#
+#		b       - return just R<integer> or the base version.
+#               f       - return full version, e.g. R14SP5
+#               p       - return previous full version, e.g. R14SP4
+#
+# note(s):      1. This file is always imbedded in another script
+#
+# Copyright 1992-2005 The MathWorks, Inc.
+# $Revision: 1.1.6.4 $  $Date: 2005/12/01 02:16:52 $
+#----------------------------------------------------------------------------
+#
+version () {
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    ver='R2006b'
+    full_ver='R2006b'
+    prev_ver='R2006a'
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    if [ $# -eq 1 ]; then
+        if [ "$1" = '-b' ]; then
+            expr "$ver" : '\(R[0-9]*\).*$'
+	    return $?
+        fi
+        if [ "$1" = '-f' ]; then
+            echo "$full_ver"
+	    return 0
+        fi
+        if [ "$1" = '-p' ]; then
+            echo "$prev_ver"
+	    return 0
+        fi
+    fi
+    echo "$ver"
+    return 0
+}
+#========================== version.sh (end) ==============================
+    REL_VERSION=`version -f`
+#
+#============================================================================
+#  FUNCTION DEFINITIONS
+#============================================================================
+#
+#****************************************************************************
+#
+# NOTE: A call to cleanup MUST precede any call to exit within this script,
+#       except for within trap calls.
+  cleanup () {
+#
+# Clean up temporary and intermediate files (usually in preparation
+# for exiting)
+#
+    trap "eval $abort; exit 1" 1 2 3 15
+    rm -rf $files_to_remove > /dev/null 2>&1
+    }
+#   end cleanup ()
+#
+#****************************************************************************
+#
+  printHelp () {
+      helpTextFileName="$MATLAB/bin/util/mex/mexHelp.txt"
+      cat $helpTextFileName
+      echo ''
+  }
+
+#****************************************************************************
+#
+  describe () {
+#
+    case "$1" in
+        internal_error_1)
+    echo ''
+    echo 'Internal error 1: We could not determine the path of the'
+    echo '                  MATLAB root directory.'
+    echo ''
+    echo "                  original command path = $arg0_"
+    echo "                  current  command path = $filename"
+    echo ''
+    echo '                  Please contact:'
+    echo '' 
+    echo '                      MathWorks Technical Support'
+    echo ''
+    echo '                  for further assistance.'
+    echo ''
+            ;;
+        internal_error_2)
+    echo ''
+    echo 'Internal error 2: Could not determine the path of the'
+    echo '                  MATLAB root directory.'
+    echo ''
+    echo "                  original command path = $filename"
+    echo "                  current  command path = $filename"
+    echo ''
+    echo '                  Please contact:'
+    echo '' 
+    echo '                      MathWorks Technical Support'
+    echo ''
+    echo '                  for further assistance.'
+    echo ''
+            ;;
+        internal_error_3)
+    echo ''
+    echo 'Internal error 3: More than $maxlinks links in path to'
+    echo "                  this script. That's too many!"
+    echo ''
+    echo "                  original command path = $filename"
+    echo "                  current  command path = $filename"
+    echo ''
+    echo '                  Please contact:'
+    echo '' 
+    echo '                      MathWorks Technical Support'
+    echo ''
+    echo '                  for further assistance.'
+    echo ''
+            ;;        
+        unknown_architecture)
+    echo ''
+    echo '    Sorry! We could not determine the machine architecture'
+    echo '           for your host. Please contact:'
+    echo ''
+    echo '               MathWorks Technical Support'
+    echo ''
+    echo '           for further assistance.'
+    echo ''
+            ;;
+        no_util_scripts)
+    echo ''
+    echo '    Sorry! We could not determine the machine architecture'
+    echo '           for your host, because one of the utilities'
+    echo ''
+    echo '               $MATLAB/bin/util/arch.sh'
+    echo ''
+    echo '           or'
+    echo ''
+    echo '               $MATLAB/bin/util/oscheck.sh'
+    echo ''
+    echo '           could not be found. Please make sure that your'
+    echo '           installation is not corrupted.  If you specified'
+    echo '           the value of $MATLAB in the command line, please'
+    echo '           make sure you specified the right value.'
+    echo ''
+    echo '           Here'
+    echo ''
+    echo "               MATLAB = $MATLAB"
+    echo ''
+    echo '           Please contact:'
+    echo ''
+    echo '               MathWorks Technical Support'
+    echo ''
+    echo '           if you need assistance.'
+    echo ''
+            ;;
+        unknown_arch)
+    echo ''
+    echo "    mex:  machine architecture '$Arch' not supported."
+    echo ''
+            ;;
+        invalid_options_file)
+    echo ''
+    echo '    Error: An invalid options file name was specified:'
+    echo "           $2 is not a normal file or does not exist."
+    echo ''
+            ;;
+        no_options_file)
+    echo ''
+    echo '    Sorry! No options file was found for mex.'
+    echo '           The mex script must be able to source'
+    echo '           an options file to define compiler flags'
+    echo '           and other settings.  This options file'
+    echo "           is normally found in MATLAB/bin/$OPTSFILE_NAME."
+    echo '           Please check to make sure that your installation'
+    echo '           is complete and includes this file.'
+    echo ''
+    echo '           Here'
+    echo ''
+    echo "               MATLAB = $MATLAB"
+    echo ''
+    echo '           Please contact:'
+    echo ''
+    echo '               MathWorks Technical Support'
+    echo ''
+    echo '           for further assistance.'
+    echo ''
+            ;;
+        final_options)
+            if [ "$SOURCE_DIR" = "none" ]; then
+    echo '----------------------------------------------------------------'
+    echo "-> options file specified on command line:"
+    echo "   FILE = $OPTIONS_FILE"
+            elif [ "$SOURCE_DIR" != "" ]; then
+    echo "-> $OPTSFILE_NAME sourced from directory (DIR = $SOURCE_DIR)"
+    echo "   FILE = $SOURCE_DIReval/$OPTSFILE_NAME"
+            else
+    echo "-> options file not found ($OPTSFILE_NAME looked for)."
+            fi
+    echo '----------------------------------------------------------------'
+    echo "->    MATLAB                = $MATLAB"
+    echo "->    CC                    = $CC"
+    echo "->    CC flags:"
+    echo "         CFLAGS             = $CFLAGS"
+    echo "         CDEBUGFLAGS        = $CDEBUGFLAGS"
+    echo "         COPTIMFLAGS        = $COPTIMFLAGS"
+    echo "         CLIBS              = $CLIBS"
+    echo "         arguments          = $cc_flags"
+    echo "->    CXX                   = $CXX"
+    echo "->    CXX flags:"
+    echo "         CXXFLAGS           = $CXXFLAGS"
+    echo "         CXXDEBUGFLAGS      = $CXXDEBUGFLAGS"
+    echo "         CXXOPTIMFLAGS      = $CXXOPTIMFLAGS"
+    echo "         CXXLIBS            = $CXXLIBS"
+    echo "         arguments          = $cxx_flags"
+    echo "->    FC                    = $FC"
+    echo "->    FC flags:"
+    echo "         FFLAGS             = $FFLAGS"
+    echo "         FDEBUGFLAGS        = $FDEBUGFLAGS"
+    echo "         FOPTIMFLAGS        = $FOPTIMFLAGS"
+    echo "         FLIBS              = $FLIBS"
+    echo "         arguments          = $fc_flags"
+    echo "->    LD                    = $LD"
+    echo "->    Link flags:"
+    echo "         LDFLAGS            = $LDFLAGS"
+    echo "         LDDEBUGFLAGS       = $LDDEBUGFLAGS"
+    echo "         LDOPTIMFLAGS       = $LDOPTIMFLAGS"
+    echo "         LDEXTENSION        = $LDEXTENSION"
+    echo "         arguments          = $libs"
+    echo "->    LDCXX                 = $LDCXX"
+    echo "->    Link flags:"
+    echo "         LDCXXFLAGS         = $LDCXXFLAGS"
+    echo "         LDCXXDEBUGFLAGS    = $LDCXXDEBUGFLAGS"
+    echo "         LDCXXOPTIMFLAGS    = $LDCXXOPTIMFLAGS"
+    echo "         LDCXXEXTENSION     = $LDCXXEXTENSION"
+    echo "         arguments          = $libs"
+    echo '----------------------------------------------------------------'
+    echo ''
+            ;;
+        assuming_c_source)
+    echo ''
+    echo '    Warning: No source files in argument list.'
+    echo ''
+    echo '      Assuming C source code. To override this assumption, use'
+    echo '      -fortran.'
+    echo '      or'
+    echo '      -cxx'
+    echo ''
+            ;;
+        meaningless_output_flag)
+    echo ''
+    echo '    Warning: -output ignored (no MEX-file is being created).'
+    echo ''
+            ;;
+        assuming_matlab_7)
+    echo '      Assuming MATLAB 7.0 32-bit compatibility mode.'
+    echo '      To override this assumption, use -largeArrayDims.'
+    echo ''
+            ;;
+        status)
+    echo ""
+    echo "    mex:  $stat"
+            ;;
+        usage)
+    cat<<'EOF'
+
+    Usage:
+      MEX [option1 ... optionN] sourcefile1 [... sourcefileN]
+          [objectfile1 ... objectfileN] [libraryfile1 ... libraryfileN]
+
+    or (to build an Ada S-function):
+      MEX [-v] [-g] -ada <sfcn>.ads
+
+    Use the -help option for more information, or consult the MATLAB External Interfaces Guide.
+
+EOF
+            ;;
+        file_not_found)
+    echo ''
+    echo "    mex:  $file not a normal file or does not exist."
+    echo ''
+            ;;
+        compile_stage)
+    echo "-> $compile_command"
+    echo ''
+            ;;
+        failed_compile)
+    echo ''
+    echo "    mex: compile of '$file' failed."
+    echo ''
+            ;;
+        link_stage)
+    echo "-> $LD $LDFLAGS -o $mex_file $libetc"
+    echo ''
+            ;;
+        failed_link)
+    echo ''
+    echo "    mex: link of '$mex_file' failed."
+    echo ''
+            ;;
+        postlink_stage)
+    echo "-> $POSTLINK_CMDS"
+    echo ''
+            ;;
+        invalid_ada_flag)
+    echo ''
+    echo '    Error: An invalid Ada S-function file name was specified:'
+    echo "           $2 is not a normal file or does not exist."
+    echo ''
+            ;;
+	ada_needs_gnu_make)
+    echo ''
+    echo '    Error: Need GNU make properly installed and available on path '
+    echo "           to build Ada S-function '$ada_sfcn'"
+    echo ''
+            ;;
+        ada_build_failure)
+    echo ''
+    echo "    mex: Failed to build Ada S-Function '$ada_sfcn'"
+    echo ''
+            ;;
+        fortran_cannot_change_entrypt)
+    echo ''
+    echo '    Warning: -entrypt ignored (FORTRAN entry point cannot be overridden).'
+    echo ''
+            ;;
+	cannot_create_outdir)
+    echo ''
+    echo "    Error: Could not create OUTDIR = $OUTDIR"
+    echo ''
+	    ;;
+	cannot_create_temp)
+    echo ''
+    echo "    Error: Could not create TEMP = $TEMP"
+    echo ''
+	    ;;
+        *)
+    echo ''
+    echo " Internal error 4: unimplemented message $1"
+    echo ''
+            ;;
+    esac
+  }
+# end describe ()
+#
+#****************************************************************************
+#
+  smart_quote () {
+#
+# Return a quoted version of the input string if it has spaces in it.
+#
+    if [ $# -gt 1 ]; then
+        echo \"$*\"
+    else
+        echo $1
+    fi   
+  }
+# end smart_quote ()
+#
+#****************************************************************************
+#
+  get_root_dir () {
+#
+#   Determine the path of the MATLAB root directory - always one directory
+#   up from the path to this command.
+#
+    filename=$1
+#
+# Now it is either a file or a link to a file.
+#
+    cpath=`pwd`
+#
+# Follow up to 8 links before giving up. Same as BSD 4.3
+#
+    n=1
+    maxlinks=8
+    while [ $n -le $maxlinks ]
+    do
+#
+# Get directory correctly!
+#
+        newdir=`echo "$filename" | awk '
+                        { tail = $0
+                          np = index (tail, "/")
+                          while ( np != 0 ) {
+                             tail = substr (tail, np + 1, length (tail) - np)
+                             if (tail == "" ) break
+                             np = index (tail, "/")
+                          }
+                          head = substr ($0, 1, length ($0) - length (tail))
+                          if ( tail == "." || tail == "..")
+                             print $0
+                          else
+                             print head
+                        }'`
+        if [ ! "$newdir" ]; then
+            newdir="."
+        fi
+        (cd $newdir) > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            describe internal_error_1 >&2
+            cleanup
+            exit 1
+        fi
+        cd $newdir
+#
+# Need the function pwd - not the built in one
+#
+        newdir=`/bin/pwd`
+#
+        newbase=`expr //$filename : '.*/\(.*\)' \| $filename`
+        lscmd=`ls -l $newbase 2>/dev/null`
+        if [ ! "$lscmd" ]; then
+            describe internal_error_2 >&2
+            cleanup
+            exit 1
+        fi
+#
+# Check for link portably
+#
+        if [ `expr "$lscmd" : '.*->.*'` -ne 0 ]; then
+            filename=`echo "$lscmd" | awk '{ print $NF }'`
+        else
+#
+# It's a file
+#
+            dir="$newdir"
+            command="$newbase"
+#
+            cd $dir/..
+            MATLAB=`/bin/pwd`; export MATLAB
+            break
+        fi
+        n=`expr $n + 1`
+    done
+    if [ $n -gt $maxlinks ]; then
+        describe internal_error_3 >&2
+        cleanup
+        exit 1
+    fi
+#       
+    cd $cpath
+  }
+#   end get_root_dir ()
+#
+#****************************************************************************
+#
+  get_entrypt () {
+#
+#   Set up the entry point based on the input argument
+#
+    if [ "$1" = "FORTRAN" ]; then
+#
+#   The gateway routine is in Fortran; use Fortran entry point
+#
+        MAPFILE='fexport.map'
+    else
+#
+#   C, C++ and Ada entry points are the same
+#
+        MAPFILE=$entrypt'.map'
+        ENTRYPOINT=$entrypt
+    fi
+  }
+# end get_entrypt ()
+#
+#****************************************************************************
+#
+  determine_options_file () {
+# Source options file (default is $OPTSFILE_NAME) and get values for the
+# following local variables
+# 
+#       MATLAB                  (MATLAB root directory)
+#       CC                      (C compiler)
+#       CFLAGS                  (C compiler options)
+#       COPTIMFLAGS             (Compiler optimization flags)
+#       CDEBUGFLAGS             (Compiler debugging flags)
+#       CLIBS                   (C libraries for linking)
+#       CXX                     (C++ compiler)
+#       CXXFLAGS                (C++ compiler options)
+#       CXXOPTIMFLAGS           (Compiler optimization flags)
+#       CXXDEBUGFLAGS           (Compiler debugging flags)
+#       CXXLIBS                 (C++ libraries for linking)
+#       FC                      (Fortran compiler)
+#       FFLAGS                  (Fortran options)
+#       FOPTIMFLAGS             (Compiler optimization flags)
+#       FDEBUGFLAGS             (Compiler debugging flags)
+#       FLIBS                   (Fortran libraries for linking)
+#       LD                      (Linker command)
+#       LDFLAGS                 (Linker options)
+#       LDOPTIMFLAGS            (Compiler optimization flags)
+#       LDDEBUGFLAGS            (Compiler debugging flags)
+#       LDEXTENSION             (Extension to add to output filename)
+#
+# The search order for the options file is:
+#
+#  -f optionsfile                    (file specified with -f command line option)
+#  ./$OPTSFILE_NAME                  ($OPTSFILE_NAME in current directory)
+#  $HOME/.matlab/<rel_version>/$OPTSFILE_NAME  ($OPTSFILE_NAME in user's matlab preferences directory)
+#  $MATLAB/bin/$OPTSFILE_NAME        ($OPTSFILE_NAME file in MATLAB bin directory)
+#
+#
+    if [ -f ./$OPTSFILE_NAME ]; then
+        SOURCE_DIR='.'
+        SOURCE_DIReval=`pwd`
+        OPTIONS_FILE="./$OPTSFILE_NAME"
+    elif [ -f $HOME/.matlab/$REL_VERSION/$OPTSFILE_NAME ]; then
+        SOURCE_DIR='$HOME/.matlab/$REL_VERSION'
+        SOURCE_DIReval=$HOME/.matlab/$REL_VERSION
+        OPTIONS_FILE="$HOME/.matlab/$REL_VERSION/$OPTSFILE_NAME"
+    elif [ -f $MATLAB/bin/$OPTSFILE_NAME ]; then
+#
+# NOTE: At this point we will use the MATLAB determined earlier to
+#       source the file. After that the value in that file if not
+#       null will be used.
+#
+        SOURCE_DIR='$MATLAB/bin'
+        SOURCE_DIReval=$MATLAB/bin
+        OPTIONS_FILE="$MATLAB/bin/$OPTSFILE_NAME"
+    else
+        describe no_options_file >&2
+        cleanup
+        exit 1
+    fi
+  }
+# end determine_options_file ()
+#
+#****************************************************************************
+#
+  get_arch () {
+    if [ "$ARCH" = "" ]; then # No command line override given
+	if [ ! -f "$MATLAB"/bin/util/arch.sh ]; then
+	    describe no_util_scripts >&2
+	    cleanup
+	    exit 1
+	fi
+	. "$MATLAB"/bin/util/arch.sh
+	if [ "$Arch" = "unknown" ]; then
+	    describe unknown_architecture >&2
+            cleanup
+	    exit 1
+	fi
+    else # Use command line override
+	Arch=$ARCH
+    fi
+    if [ ! -f "$MATLAB"/bin/util/oscheck.sh ]; then
+        describe no_util_scripts >&2
+        cleanup
+        exit 1
+    fi
+    if [ "$verbose" = "1" ]; then
+        . "$MATLAB"/bin/util/oscheck.sh
+        if [ "$oscheck_status" = "1" ]; then
+            cleanup
+            exit 1
+        fi
+    fi
+  }
+# end get_arch ()
+#
+#****************************************************************************
+#
+  eval_assignments () {
+#
+# eval command line overrides of argument variables, name=[def]
+#
+    eval "$cmd_line_overrides"
+
+#
+# Make sure that LD is fully evaluated to handle LD=$COMPILER assignment
+# Some platforms also use the special LDCXX variable for C++ files
+#
+    LD="`eval echo $LD`"
+    LDCXX="`eval echo $LDCXX`"
+
+#
+# If TEMP is defined be sure that TEMP has been created.
+#
+    if [ "$TEMP" != "" ]; then
+	(cd $TEMP) > /dev/null 2>&1
+	if [ $? -ne 0 ]; then
+	    mkdir -p $TEMP 2>/dev/null
+	    if [ $? -ne 0 ]; then
+		describe cannot_create_temp >&2
+		cleanup
+		exit 1
+	    fi
+	fi
+    fi
+  }
+# end eval_assignments ()
+#
+#****************************************************************************
+#
+  build_ada_s_function () {
+#
+#
+    mex_ext=`expr $LDEXTENSION : '\.\(.*\)'`
+    ada_build_args="MATLAB_ROOT=$MATLAB ARCH=$ARCH MEX_EXT=$mex_ext "
+    ada_build_args="$ada_build_args ADA_SFCN=$ada_sfcn "
+#
+#   Determine GNAT Compiler Version
+#
+    gnatVer=`gnatmake -v 2>&1 | grep GNATMAKE | awk '{print $2}'`
+    ada_build_args="$ada_build_args GNAT_VER=$gnatVer "
+#
+    if [ "$debug" = "1" ]; then
+	ada_build_args="$ada_build_args DEBUG=1 "
+    fi
+#
+    if [ "$verbose" = "1" ]; then
+	ada_build_args="$ada_build_args VERBOSE=1 "
+    fi
+#
+    if [ "$OUTDIR" != "" ]; then
+	ada_build_args="$ada_build_args OUTPUT_DIR=$OUTDIR "
+    fi
+#
+    if [ "$include_dirs" != "" ]; then
+	ada_build_args="$ada_build_args INCLUDES=\"$include_dirs\" "
+    fi
+    makefile="$MATLAB/simulink/ada/interface/gnat_unix.mk"
+#
+#   Verify that make exists and is gnu make
+#
+    makeVer='make --version | paste -s -d" " -'
+    makeOk='expr "$makeVer" : "^GNU Make version .*"'
+    if [ "$makeOk" = "0" ]; then
+	describe ada_needs_gnu_make >&2
+        cleanup
+	exit 1
+    fi
+    echo " "
+    echo "### Starting build for Ada S-function $ada_sfcn"
+    ada_build_cmd="make -f $makefile $ada_build_args"
+    if [ "$verbose" = "1" ]; then
+	echo " "
+	echo "    $ada_build_cmd"
+	echo " "
+    fi
+    eval "$ada_build_cmd"
+    if [ $? -ne 0 ]; then
+        describe ada_build_failure >&2
+        cleanup
+        exit 1
+    else
+	echo "### Successfully built Ada S-function $ada_sfcn"
+	echo " "
+    fi
+  }
+# end build_ada_s_function ()
+#
+#****************************************************************************
+#
+  error_check () {
+#
+#   Check for errors in calling syntax
+#
+    if [ "$argcheck" = "1" -a "$cfiles" != "1" ]; then
+        stat="Argument checking not possible without C source files."
+    fi
+    if [ "$inlined" = "1" -a "$cfiles" != "1" ]; then
+        stat="Inlining not possible without C source files."
+    fi
+    if [ "$argcheck" = "1" -a "$inlined" = "1" ]; then
+        stat="Argument checking and inlining are mutually exclusive."
+    fi
+    if [ "$files" != "" -a "$cfiles" != "1" -a "$cxxfiles" != "1" -a "$ffiles" != "1" ]; then
+        cfiles=1
+	if [ "$verbose" != "" ]; then
+	    describe assuming_c_source
+	    if [ "$v7_compat" = "1" ]; then
+		describe assuming_matlab_7
+	    fi
+	fi
+    fi
+    if [ "$stat" != "OK" ]; then                  # An error occurred.
+        if [ "$stat" != "" ]; then
+            describe status >&2
+        fi
+        describe usage >&2
+        cleanup
+        exit 1
+    fi
+  }
+# end error_check ()
+#
+#****************************************************************************
+#
+  get_name () {
+#
+#   If there is already a mex name, -output was used: supply an appropriate
+#   MEX-file extension if necessary. (Warn if -c was also used.)
+#   Otherwise, use the first file name to determine the MEX-file name.
+#   If there are no files, don't complain (error_check comes later).
+#
+    if [ "$mex_file" != "" ]; then          # This case is if -output was used
+	if [ "$compile_only" = "1" ]; then
+	    describe meaningless_output_flag
+        fi
+        # Keep only the name and ext (not path) if linking and no OUTDIR set
+        if [ "$compile_only" != "1" -a "$OUTDIR" != "" -a \
+             `expr "$mex_file" : '.*\/.*'` != 0 ]; then 
+                  mex_file=`expr "$mex_file" : '.*\/\(.*\)$'`
+	fi
+        ext=`expr "$mex_file" : ".*$LDEXTENSION$"`
+        if [ "$ext" = "0" ]; then
+            mex_file=$mex_file$LDEXTENSION
+        fi
+    elif [ "$1" != "" ]; then              # This case sets mex_file using the SOURCE name from $1
+        ext=`expr "$1" : '\.*[^.].*\.\([^.]*\)$'`
+        mex_file=`expr "//$1" : ".*/\(.*\)\.${ext}$" \| "//$1" : ".*/\(.*\)"`
+	mex_file=$mex_file$LDEXTENSION
+    fi
+    if [ "$OUTDIR" != "" ]; then
+	mex_file="$OUTDIR/$mex_file"
+    fi
+    mex_file=`smart_quote $mex_file`
+  }
+# end get_name ()
+#
+#****************************************************************************
+#
+  get_includes () {
+#
+#   Determine which include directories to specify
+#
+    include_dirs="$include_dirs -I`smart_quote $MEX_INCLUDE_DIR`"
+    if [ -d $MATLAB/simulink ]; then
+        include_dirs="$include_dirs -I`smart_quote $MATLAB/simulink/include`"
+    fi
+    if [ -d $MATLAB/codegen ]; then
+        include_dirs="$include_dirs -I`smart_quote $MATLAB/codegen/external/common`"
+    fi
+  }
+# end get_includes ()
+#
+#****************************************************************************
+#
+  compile () {
+    trap "eval $abort; exit 1" 1 2 3 15
+#
+#   For each file, compile source files and add other files
+#   to the list of link options.
+#
+    file="$1"
+    if [ ! -f "$file" ]; then
+        describe file_not_found >&2
+        cleanup
+        exit 1
+    fi
+#
+# determine extension and basename
+#
+    ext=`expr "$file" : '\.*[^.].*\.\([^.]*\)$'`
+    if [ "$ext" = "" ]; then
+        ext=`expr "$file" : '\.*[^.].*\.\(so\)[.0-9]*$'`
+    fi
+    basename=`expr "//$file" : ".*/\(.*\)\.${ext}$" \| //$file : ".*/\(.*\)"`
+#
+    if [ "$TEMP" != "" -a "$compile_only" != "1" ]; then
+        basename=$TEMP/$basename$$
+    elif [ "$OUTDIR" != "" ]; then
+        basename=$OUTDIR/$basename
+    fi
+
+    basename=`smart_quote $basename`
+#
+# Source file extensions: .c .C .cc .cxx .cpp .f .for .F .f90 .F90
+#
+    case "$ext" in
+        c |cu ) # c source file.
+#
+# determine whether to optimize or debug
+#
+            if [ "$debug" != "1" ]; then
+                flags="$COPTIMFLAGS"
+            elif [ "$optimize" = "1" ]; then
+                flags="$CDEBUGFLAGS $COPTIMFLAGS"
+            else
+                flags="$CDEBUGFLAGS"
+            fi
+#
+# Determine final compile command for C source code.
+#
+            flags="-DMATLAB_MEX_FILE $CFLAGS $cc_flags $flags"
+            compile_command="$CC -c $include_dirs $flags $file"
+            ;;
+	cc | cpp | cxx | C) # C++ source file
+#
+# determine whether to optimize or debug
+#
+            if [ "$debug" != "1" ]; then
+                flags="$CXXOPTIMFLAGS"
+            elif [ "$optimize" = "1" ]; then
+                flags="$CXXDEBUGFLAGS $CXXOPTIMFLAGS"
+            else
+                flags="$CXXDEBUGFLAGS"
+            fi
+#
+# Determine final compile command for C++ source code.
+#
+            flags="-DMATLAB_MEX_FILE $CXXFLAGS $cxx_flags $flags"
+            compile_command="$CXX -c $include_dirs $flags $file"
+            ;;   
+        f | for | F | f90 | F90)            # Fortran source file.
+#
+# determine whether to optimize or debug
+#
+            if [ "$debug" != "1" ]; then
+                flags="$FOPTIMFLAGS"
+            elif [ "$optimize" = "1" ]; then
+                flags="$FDEBUGFLAGS $FOPTIMFLAGS"
+            else
+                flags="$FDEBUGFLAGS"
+            fi
+#
+# Determine final compile command for Fortran source code.
+#
+            flags="$FFLAGS $fc_flags $flags"
+            compile_command="$FC -c $include_dirs $flags $file"
+            ;;
+        *)
+#
+# Object files: Don't need to do anything except add to compiled list
+#
+            objs="$objs $file"
+            return 0
+            ;;
+    esac
+#
+    if [ "$TEMP" != "" -a "$compile_only" != "1" ]; then
+        compile_command="$compile_command -o $basename.o"
+    elif [ "$OUTDIR" != "" ]; then
+        compile_command="$compile_command -o $basename.o"
+    fi
+#
+    if [ "$verbose" = "1" -o "$no_execute" = "true" ]; then
+        describe compile_stage
+    fi
+#
+    if [ "$no_execute" != "true" ]; then eval "$compile_command"; fi
+    if [ $? -ne 0 ]; then
+        describe failed_compile >&2
+	cleanup
+        exit 1
+    fi
+    if [ "$compile_only" != "1" ]; then
+        files_to_remove="$files_to_remove $basename.o"
+    fi
+    objs="$objs $basename.o"
+  }
+# end compile ()
+#
+#****************************************************************************
+#
+  link () {
+    trap "eval $abort; exit 1" 1 2 3 15
+#
+#   Link stage
+#
+    if [ "$cfiles" = "1" ]; then
+        libs="$libs $CLIBS"
+    fi
+    if [ "$cxxfiles" = "1" ]; then
+	libs="$libs $CXXLIBS"
+    fi
+    if [ "$ffiles" = "1" ]; then
+        libs="$libs $FLIBS"
+    fi
+    libetc="$objs $libs"
+
+#
+# determine whether to optimize or debug
+#
+    if [ "$debug" != "1" ]; then
+        LDFLAGS="$LDOPTIMFLAGS $LDFLAGS"
+    elif [ "$optimize" = "1" ]; then
+        LDFLAGS="$LDDEBUGFLAGS $LDOPTIMFLAGS $LDFLAGS"
+    else
+        LDFLAGS="$LDDEBUGFLAGS $LDFLAGS"
+    fi
+    if [ "$verbose" = "1" -o "$no_execute" = "true" ]; then
+        describe link_stage
+    fi
+    if [ "$no_execute" != "true" ]; then eval "$LD $LDFLAGS $ld_flags -o $mex_file $libetc"; fi
+    if [ $? -ne 0 ]; then
+        describe failed_link >&2
+        cleanup
+        exit 1
+    fi
+  }
+# end link ()
+  check_gcc()
+  {
+      perform_check=`echo $CC | awk '
+      BEGIN{
+         isGcc = "no"
+      }
+         /gcc$/{isGcc = "yes";exit 0 }
+         /g\+\+$/{isGcc = "yes";exit 0 }
+      END{
+         print isGcc
+      }
+      '`
+#We have a gcc compiler, so we need to check the version.
+      if [ $perform_check "=" "yes" ];then
+          $CC --version | head -n 1  | awk '
+      BEGIN{
+         allowable_versions[1]="glnx86,3.4.0,3.4.5"
+         allowable_versions[2]="glnxa64,3.4.0,3.4.5"
+      }
+      {
+         # Figure out what version of gcc we are dealing with. 
+         # Set version_number to the version of gcc.
+   
+         for (i = 1; i <= NF; i++)
+         {
+            if ($i ~ /^[0-9]+\./)
+            {
+               version_number=$i
+               exit 0 # This sends you to the end block 
+            }
+         }
+      }
+      END{
+   
+         # Find the array member of allowable_versions that corresponds to the
+         # architecture of the local machine.
+   
+         for(i = 1; i <= 2; i++)
+         {
+            # This uses the shell interpreter to substitute for arch.
+
+            if (allowable_versions[i] ~ /^'"$Arch"'/)
+            {
+               string_of_test_versions = allowable_versions[i]
+               break
+            }
+         }
+   
+         # If there is no match, we are dealing with gcc on 
+         # an architecture not in the table.  Assume it is ok and 
+         # quit checking the version.
+
+         if (string_of_test_versions == "")
+         {
+            exit 0;
+         }
+         split(string_of_test_versions, versions, ",")
+         size_of_min_version = split(versions[2], min_version_array,  ".")
+         number_of_digits = split(version_number, gcc_version_array, ".")
+   
+         # Check if the version is smaller than the minimum version.  If it is,
+         # print a warning message and exit.
+
+         for (i = 1; i <= size_of_min_version; i++)
+         {
+            if ( i > number_of_digits)
+            {
+               curr_num = 0
+            }
+            else
+            {
+               curr_num = gcc_version_array[i]
+            }
+            if (curr_num < min_version_array[i])
+            {
+               printf("Warning: You are using gcc version \"%s\".  The earliest gcc version supported\nwith mex is \"%s\".  The latest version tested for use with mex is \"%s\".\nTo download a different version of gcc, visit http://gcc.gnu.org \n", version_number, versions[2], versions[3]);
+               exit 0
+            }
+            if (curr_num > min_version_array[i])
+            {
+               break
+            }
+         }
+   
+         # If the version is not smaller than the minimum version, check if
+         # it is larger than the maximum version.
+
+         size_of_max_version = split(versions[3], max_version_array, ".")
+         for (i = 1; i <= size_of_max_version; i++)
+         {
+            if (i > number_of_digits)
+            {
+               curr_num = 0
+            }
+            else
+            {
+               curr_num = gcc_version_array[i]
+            }
+            if (curr_num > max_version_array[i])
+            {
+               printf("Warning: You are using gcc version \"%s\".  The earliest gcc version supported\nwith mex is \"%s\".  The latest version tested for use with mex is \"%s\".\nTo download a different version of gcc, visit http://gcc.gnu.org \n", version_number, versions[2], versions[3]);
+               exit 0
+            }
+            if (curr_num < max_version_array[i])
+            {
+               exit 0
+            }
+         }
+      }'
+      fi
+}
+
+#
+#****************************************************************************
+#
+# On sol2 add the C++ Template Repository to the remove list under the
+# right conditions.
+#
+# Sun uses a template repository to store template instances between
+# separate compilations so that template instances are compiled only when
+# necessary.
+#
+# It is controlled by the directory of the output file.
+#
+# Note: if TEMP and OUTDIR are both defined TEMP takes precedence.
+#
+# Necessary conditions for deletion:
+#
+#       1. Must compile at least one C++ file. ($cxxfiles = "1")
+#       2. Must link.                          ($compile_only != "!")
+#
+# case 1: SUNWS_CACHE_NAME is undefined
+#
+#	./SunWS_cache		  - No TEMP or OUTDIR defined
+#       $TEMP/SunWS_cache         - TEMP defined
+#       $OUTDIR/SunWS_cache	  - TEMP not defined but OUTDIR defined
+#
+# case 2: SUNWS_CACHE_NAME is defined
+#
+#	./$SUNWS_CACHE_NAME        - No TEMP or OUTDIR defined
+#       $TEMP/$SUNWS_CACHE_NAME    - TEMP defined
+#       $OUTDIR/$SUNWS_CACHE_NAME  - TEMP not defined but OUTDIR defined
+#
+  add_template_to_rmlist () { # If the conditions are right add the template
+			      # repository to the files_to_remove list.
+			      # Used only on sol2.
+#
+	if [ "$cxxfiles" = "1" -a "$compile_only" != "1" ]; then
+	    if [ "$SUNWS_CACHE_NAME" != "" ]; then
+	        cache_name=$SUNWS_CACHE_NAME
+	    else
+	        cache_name=SunWS_cache
+	    fi
+	    if [ "$TEMP" = "" -a "$OUTDIR" = "" ]; then
+                files_to_remove="$files_to_remove ./$cache_name"
+	    elif [ "$TEMP" != "" ]; then
+                files_to_remove="$files_to_remove $TEMP/$cache_name"
+	    else
+                files_to_remove="$files_to_remove $OUTDIR/$cache_name"
+	    fi
+	fi
+  }
+#****************************************************************************
+#
+# Main routine
+#
+#
+#  Initialize some variables
+#
+    OPTSFILE_NAME='mexopts.sh'
+#
+    MEX_INCLUDE_DIR="$MATLAB/extern/include/"
+#
+    stat="OK"
+#
+    ARCH=
+    Arch='Undetermined'
+    verbose=0
+
+    # Define $MATLAB if it's not defined. 
+    if [ ! "$MATLAB" ]; then            # If no MATLAB='' was used
+        get_root_dir $arg0_
+    fi
+
+#
+#  Use a C entry point by default
+#
+    gateway_lang=C
+    entrypt=mexFunction
+#
+#   Current default is V7 (32-bit)
+    v7_compat=1
+
+    arg_count=$#
+    cmd_line_overrides=":"
+    while [ "$stat" = "OK" -a  $# -gt 0 ]; do
+#
+# Parse input arguments.  The routine may need the next two arguments,
+# as in -f optionsfile and -o mexfilename.
+#
+        case "$1" in
+            -compatibleArrayDims)
+                v7_compat=1
+                ;;
+            -largeArrayDims)
+                v7_compat=0
+                ;;
+            -argcheck)
+                argcheck=1
+                cc_flags="$cc_flags -DARGCHECK"
+                cxx_flags="$cxx_flags -DARGCHECK"
+                ;;
+            -c)
+                compile_only=1
+                ;;
+            -D*)                         # Compiler flags.
+                lhs=`expr "$1" : '\(-D[a-zA-Z0-9_]*\).*'`
+                mid=`expr "$1" : '-D[a-zA-Z0-9_]*\([=\#]\).*$'`
+                rhs=`expr "$1" : '-D[a-zA-Z0-9_]*[=\#]\(.*\)$'`
+                
+                if [ "$mid" != "" ]; then
+                    mid="="
+                fi
+
+                cc_flags="$cc_flags $lhs$mid$rhs"
+                cxx_flags="$cxx_flags $lhs$mid$rhs"
+                fc_flags="$fc_flags $lhs$mid$rhs"
+
+                if [ "$lhs" = "-DV5_COMPAT" ]; then
+                    stat="Please use -V5 rather than directly passing"
+                    stat="$stat -DV5_COMPAT."
+                fi
+                if [ "$lhs" = "-DARRAY_ACCESS_INLINING" ]; then
+                    stat="Please use -inline rather than directly passing"
+                    stat="$stat -DARRAY_ACCESS_INLINING."
+                fi
+                ;;
+            -U*)                         # Compiler flags.
+                cc_flags="$cc_flags $1"
+                cxx_flags="$cxx_flags $1"
+                fc_flags="$fc_flags $1"
+                ;;
+            -I* | -isystem*)             # Include directories
+                include_dirs="$include_dirs `smart_quote $1`"
+                ;;
+            -f)
+                if [ -f "$2" ]; then
+                    OPTIONS_FILE="$2"
+                    SOURCE_DIR='none'
+                else
+                    describe invalid_options_file >& 2
+                    cleanup
+                    exit 1
+                fi
+                shift
+                ;;
+            -cxx)
+                cxxfiles=1
+                gateway_lang=C
+                ;;    
+	    -fortran)
+                ffiles=1
+                gateway_lang=FORTRAN
+                ;;
+            -[g]*)                          # Use debugging flags.
+                debug=1
+                ;;
+            -h | -help)                     # -help: Help option.
+                printHelp
+                cleanup
+                exit 0
+                ;;
+            -inline)
+                cc_flags="$cc_flags -DARRAY_ACCESS_INLINING"
+                cxx_flags="$cxx_flags -DARRAY_ACCESS_INLINING"
+                inlined=1
+                ;;
+            -[Ll]*)
+                libs="$libs $1"
+                ;;
+            -Wl* | -R*)                     # allow other linker options
+                libs="$libs $1"
+                ;;
+            -n)                             # output name
+                no_execute="true"
+                ;;
+            -nohg)                          # ignored for compatibility with mbuild
+                ;;
+            -o | -output)                   # mexfile name
+                mex_file=$2
+                shift
+                ;;
+            -outdir)                        # output directory
+		if [ $# -lt 2 ]; then
+		    describe usage >&2
+                    cleanup
+		    exit 1
+		fi
+                OUTDIR=$2
+		(cd $OUTDIR) > /dev/null 2>&1
+		if [ $? -ne 0 ]; then
+		    mkdir -p $OUTDIR 2>/dev/null
+		    if [ $? -ne 0 ]; then
+			describe cannot_create_outdir >&2
+			cleanup
+			exit 1
+		    fi
+		fi
+                shift
+                ;;
+            -O)                             # Use optimization flags.
+                optimize=1
+                ;;
+            -setup)
+		if [ $arg_count -ne 2 -a $arg_count -ne 1 ]; then
+		    describe usage >&2
+                    cleanup
+		    exit 1
+		else
+		    SETUP_OPTIONS_FILE=$2
+		    TMW_ROOT=$MATLAB
+		    #
+		    # source the setup_options_file finction declaration  
+		    #
+		    . $MATLAB/bin/optsetup.sh
+		    #
+		    setup_options_file $SETUP_OPTIONS_FILE
+                    cleanup
+		    exit 0
+		fi
+                ;;
+            -silent)            # really not verbose - undocumented
+                verbose=
+                ;;
+            -v)
+                verbose=1
+                ;;
+            -v3.5)
+                stat="The -v3.5 option is no longer supported."
+                ;;
+            -v4)
+                stat="The -v4 option is no longer supported."
+                ;;
+            -V5)
+                cc_flags="$cc_flags -DV5_COMPAT"
+                cxx_flags="$cxx_flags -DV5_COMPAT"
+                ;;
+	    -ada)
+		gateway_lang=ADA
+                if [ -f "$2" ]; then
+		    ada_sfcn=$2
+                else
+                    describe invalid_ada_flag >& 2
+                    cleanup
+                    exit 1
+                fi
+                shift
+                ;;
+            -entrypt)
+                if [ "$2" != "mexFunction" -a "$2" != "mexLibrary" ]; then
+                     stat="-entrypt argument must be either 'mexFunction' or 'mexLibrary'"
+                fi
+                entrypt=$2
+                shift
+                ;;
+            -*)
+                check_archlist argument=$1 noprint
+                if [ "$ARCH" = "" ]; then
+                    stat="$1 not a valid option."
+                fi
+                ;;
+            ARCH[=\#]*)
+                rhs=`expr "$1" : '[a-zA-Z0-9_]*[=\#]\(.*\)$'`
+                ARCH="`eval echo $rhs`"
+                ;;
+            MATLAB[=\#]*)
+                mlrhs=`expr "$1" : '[a-zA-Z0-9_]*[=\#]\(.*\)$'`
+                MATLAB="`eval echo $mlrhs`"
+                ;;
+            *[=\#]*)
+                lhs=`expr "$1" : '\([a-zA-Z0-9_]*\)[=\#].*'`
+                rhs=`expr "$1" : '[a-zA-Z0-9_]*[=\#]\(.*\)$'`
+                cmd_line_overrides="$cmd_line_overrides; $lhs="'"'"$rhs"'"'
+                ;;
+            *.c | *.cu) # c source file.
+                cfiles='1'
+                files="$files $1"
+                ;;
+            *.C | *.cc | *.cpp | *.cxx) # C++ source file.
+		cxxfiles='1'
+		files="$files $1"
+                ;;
+            *.f | *.for | *.F | *.f90 | *.F90)      # FORTRAN source file.
+                if [ "$ffiles" != "1" -a "$cfiles" != "1" -a "$cxxfiles" != "1" ]; then
+                    gateway_lang=FORTRAN
+                fi
+                ffiles='1'
+                files="$files $1"
+                ;;
+            *.o)                              # object files
+                files="$files $1"
+                ;;
+            *)                                # other files
+                libs="$libs `smart_quote $1`"
+                ;;
+        esac
+    shift
+    done
+    if [ $v7_compat -eq 1 ] ; then
+	fc_flags="$fc_flags -DMX_COMPAT_32"
+	cc_flags="$cc_flags -DMX_COMPAT_32"
+	cxx_flags="$cxx_flags -DMX_COMPAT_32"
+    fi	
+    if [ $# -eq 0 -a "$files" = "" -a "$stat" = "OK" ]; then
+        stat="no file name given."
+    fi
+    if [ "$gateway_lang" = "FORTRAN" -a "$entrypt" != "mexFunction" ]; then
+        describe fortran_cannot_change_entrypt
+        entrypt=mexFunction
+    fi
+#
+# It is now safe to use functions, since we have parsed all of the
+# input arguments.  (The use of functions corrupts $# and $* on
+# HP-UX 9.0x systems.)
+#
+    if [ ! "$OPTIONS_FILE" ]; then      # If no -f optionsfile was used
+        determine_options_file
+    fi
+#
+    . $OPTIONS_FILE                     # Source file to determine $MATLAB
+    get_arch                            # Call $MATLAB/bin/util/arch.sh
+#
+    get_entrypt $gateway_lang           # Determine MEX-file entry pt
+#
+    if [ "$ffiles" = "1" ]; then
+        COMPILER='$FC'
+    elif [ "$cxxfiles" = "1" ]; then
+        COMPILER='$CXX'
+    else
+        COMPILER='$CC'
+    fi
+#
+    . $OPTIONS_FILE                     # Source options file
+#
+    eval_assignments                    # Evaluate VAR=value arguments
+
+    get_name $files                     # Determine MEX-file name
+
+#
+#   Ada
+#
+    if [ "$gateway_lang" = "ADA" ]; then
+	build_ada_s_function
+        cleanup
+	exit 0
+    fi
+#
+    if [ "$verbose" = "1" ]; then
+        describe final_options
+    fi
+#
+    error_check                         # Check calling syntax errors
+#
+    get_includes                        # Determine include directories
+#
+#    if [ "$compile_only" != "1" ]; then
+#	if [ "$gateway_lang" = "C" ]; then
+#	    files="$files $MATLAB/extern/src/mexversion.c"
+#	else
+#	    files="$files $MATLAB/extern/lib/$Arch/version4.o"
+#	fi
+#    fi
+    if [ "$argcheck" = "1" ]; then
+        files="$files $MATLAB/extern/src/mwdebug.c"
+    fi
+#
+# On sol2 add the C++ template repository to the remove list under
+# the right conditions.
+#
+    if [ "$Arch" = "sol2" ]; then
+	add_template_to_rmlist
+    fi
+# Check the version of gcc if we are using gcc to warn about possible
+# version conflicts
+    check_gcc
+#
+# From this point on, we need to put traps in each function.  The IBM
+# resets traps on entry to each function, so we need to safeguard
+# any functions we call after compiling.  This includes compile(),
+# link(), and cleanup().
+#
+    set $files
+    for file in $*
+    do
+        compile $file                   # Process each file in list
+    done
+#
+    if [ "$compile_only" != "1" ]; then
+        link                            # Perform linking
+
+        # Perform any POSTLINK_CMDS; ":" is the empty/null command which
+        # we initialize POSTLINK_CMDS to in order to allow for concatenation
+        # of multiple postlink commands such as 
+        #
+        # POSTLINK_CMDS='$POSTLINK_CMDS;my_command'
+        #
+        # if POSTLINK_CMDS were initially empty in the above command, the 
+        # result would be ";my_command" which isn't legal.
+        if [ "$POSTLINK_CMDS" != ":" -a "$POSTLINK_CMDS" != "" ]; then
+            if [ "$verbose" = "1" -o "$no_execute" = "true" ]; then
+                describe postlink_stage
+            fi
+            if [ "$no_execute" != "true" ]; then 
+                eval "$POSTLINK_CMDS"; 
+            fi
+        fi
+    fi
+#
+    cleanup
+    exit 0
+#
+#****************************************************************************

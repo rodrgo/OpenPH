@@ -14,6 +14,11 @@ __global__ void zero_vector_float(float *vec, const int n){
   if (xIndex < n) vec[xIndex]=0.0f;
 }
 
+__global__ void init_vector_int(float *vec, int value, int n){
+  unsigned int xIndex = blockDim.x * blockIdx.x + threadIdx.x;
+  if (xIndex < n) vec[xIndex]=value;
+}
+
 __global__ void minusone_vector_int(int *vec, const int n){
   unsigned int xIndex = blockDim.x * blockIdx.x + threadIdx.x;
   if ( xIndex < n ){
