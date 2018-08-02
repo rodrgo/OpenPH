@@ -1,7 +1,7 @@
    
 __device__ int d_lock = 0;
 __device__ int d_pos  = 0;
-__global__ void get_simplices_dim(int *d_simplex_dimensions, int *d_simplices_dim, int dim, int m){
+__global__ void find_simplices_with_dim(int *d_simplex_dimensions, int *d_simplices_dim, int dim, int m){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         // set lock
