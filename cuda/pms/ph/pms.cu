@@ -2,7 +2,9 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, const 
 
     // Auxiliary variables
     int *d_aux;
+    int *d_clear;
     cudaMalloc((void**)&d_aux, m * sizeof(int));
+    cudaMalloc((void**)&d_clear, m * sizeof(int));
 
     // -----------------------
     // Do some pre-processing work
@@ -15,21 +17,19 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, const 
 
     // Compute simplex dimensions (on device)
     // Get maximum dimension (TODO: Change Twist code too)
-    int *d_dims;        // Dimension of simplex j
-    int *d_dims_order;  // j is "d_dims_order[j]"-th simplex in dim_j
     int *d_aux_cdim;    // Auxiliary vector of size cdim 
-    int complex_dim;    // max(d_dims), dimension of complex
 
-    cudaMalloc((void**)&d_dims, m * sizeof(int));
-    cudaMalloc((void**)&d_dim_pos, m * sizeof(int));
-    compute_simplex_dimensions(d_dims, d_dims_order, &complex_dim, 
-            d_rows_mp, m, p, NBm, TPBm);
-
-    int cdim = complex_dim + 1;
+    int cdim = complex_dim + 2; // -1, 0, 1, 2, ..., complex_dim
 
     cudaMalloc((void**)&d_aux_cdim, cdim * sizeof(int));
     compute_dimension_order(d_dims, d_dims_order, d_aux_cdim, 
             cdim, m, NBm, TPBm);
+    cudaDeviceSynchronize();
+    printf("passed compute_dimension_order!!\n");
+
+    printf("cdim = %d\n", cdim);
+    exit(0);
+
 
     // ceilings
     int *d_ceilings;
@@ -46,10 +46,12 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, const 
     // Phase 0
     // -----------------------
 
-    alpha_beta_reduce<<<NBm, TPBm>>>(d_lows, d_beta, d_classes, 
-            d_rows_mp, d_arglow, d_lowstar, m);
+    alpha_beta_reduce<<<NBm, TPBm>>>(d_low, d_beta, d_classes, 
+            d_rows_mp, d_arglow, m, p);
 
-    int converged = is_reduced(d_aux, d_lows, m, NBm, TPBm);
+    int converged = is_reduced(d_aux, d_low, m, NBm, TPBm);
+    printf("converged %d\n", converged);
+
     while (! converged ){
 
         // -----------------------
@@ -70,14 +72,14 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, const 
         // Main iteration : Phase II 
         // -----------------------
 
-        phase_ii<<<NBm, TPBm>>>(d_low, d_arglow, d_rows_mp, 
-                d_aux_mp, m, p);
+        phase_ii<<<NBm, TPBm>>>(d_low, d_beta, d_classes, 
+                d_arglow, d_rows_mp, d_aux_mp, m, p);
 
         // record iteration
-        record_iteration();
+        //record_iteration();
 
         // Check again if its reduced
-        converged = is_reduced(d_aux, d_lows, m, NBm, TPBm);
+        converged = is_reduced(d_aux, d_low, m, NBm, TPBm);
     }
 
     set_unmarked<<<NBm, TPBm>>>(d_classes, d_low, d_arglow, 
@@ -87,7 +89,7 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, const 
     int *d_dim_count;
     cudaMalloc((void**)&d_dim_count, cdim * sizeof(int)); // [0, 1, ..., complex_dim]
     fill<<<NBm, TPBm>>>(d_dim_count, 0, cdim);
-    count_simplices_dim<<<NBm, TPBm>>>(d_dim_count, d_dims);
+    count_simplices_dim<<<NBm, TPBm>>>(d_dim_count, d_dims, m);
     */
 
     cudaFree(d_ceilings);
@@ -96,6 +98,7 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, const 
     cudaFree(d_locks_cdim);
     cudaFree(d_aux_cdim);
     cudaFree(d_aux);
+    cudaFree(d_clear);
     cudaFree(d_classes);
 
 }

@@ -35,7 +35,9 @@ using namespace std;
 
 #include "ph/kernels.cu"
 #include "ph/functions.cu"
+#include "ph/pms_functions.cu"
 #include "ph/standard.cu"
 #include "ph/twist.cu"
+#include "ph/pms.cu"
 
 

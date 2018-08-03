@@ -1,5 +1,5 @@
 
-__device__ int is_reduced = 1;
+__device__ int d_is_reduced = 1;
 void __global__ matrix_is_reduced(int *d_lows, int *d_aux, int m){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
@@ -7,32 +7,34 @@ void __global__ matrix_is_reduced(int *d_lows, int *d_aux, int m){
         if (low_j > -1){
             atomicAdd(d_aux+low_j, 1);
             if (d_aux[low_j] > 1)
-                is_reduced = 0;
+                d_is_reduced = 0;
         }
     }
 } 
 
-void __global__ compute_dims_order(int *d_dims, int *d_dims_order, int *d_last_pos, int m){
+void __global__ compute_dims_order(int *d_dims, int *d_dims_order, int *d_last_pos, int m, int *d_sentinel){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
+    __shared__ int lock;
     if (tid < m){
+        int j = tid;
+        // set lock
+        printf("{tid=%d, lock=%d}, ", tid, lock);
+        do {} while(lock != j);
+        // do stuff
         int dim_j = d_dims[tid];
-        if (tid == 0){
-            int pos = d_last_pos[dim_j]+1;
-            d_dims_order[tid] = pos;
-            d_last_pos[dim_j] = pos;
-        }else{
-            do {} while (d_dims_order[tid-1] == -1);
-            int pos = d_last_pos[dim_j]+1;
-            d_dims_order[tid] = pos;
-            d_last_pos[dim_j] = pos;
-        }
+        d_dims_order[tid] = d_last_pos[dim_j+1]+1;
+        d_last_pos[dim_j+1] += 1;
+        printf("[j=%d, dim_j=%d, lock=%d, d_last_pos=%d], ", j, dim_j, lock, d_last_pos[dim_j+1]);
+        // free lock
+        lock = j+1;
+        __syncthreads();
     }
 }
 
-void __global__ alpha_beta_reduce(int *d_lows, int *d_beta, int *d_classes, int *d_rows_mp, int *d_arglow, int *d_lowstar, int m){
+void __global__ alpha_beta_reduce(int *d_low, int *d_beta, int *d_classes, int *d_rows_mp, int *d_arglow, int m, int p){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
-        int alpha = d_lows[tid];
+        int alpha = d_low[tid];
         int beta  = d_beta[tid];
         if (alpha == beta && beta > -1){
             // tid is "negative"
@@ -40,17 +42,17 @@ void __global__ alpha_beta_reduce(int *d_lows, int *d_beta, int *d_classes, int 
             int pos_pair = d_beta[tid];
             clear_column(pos_pair, d_rows_mp, p);
             d_arglow[pos_pair] = beta;
-            d_lowstar[pos_pair] = -1;
-            d_lowstar[beta] = pos_pair;
+            d_low[pos_pair] = -1;
+            d_low[beta] = pos_pair;
         }
     }
 }
 
-void __global__ count_simplices_dim(int *d_dim_count, int *d_dims){
+void __global__ count_simplices_dim(int *d_dim_count, int *d_dims, int m){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         if (d_dims[tid] > -1){
-            atomicAdd(d_dim_count[d_dims[tid]], 1);
+            atomicAdd(d_dim_count+d_dims[tid], 1);
         }
     }
 }
@@ -61,8 +63,9 @@ void __global__ phase_i(int *d_ceilings, int *d_dims, int *d_dims_order, int *d_
         int dim_j = d_dims[tid];
         int j_ord = d_dims_order[tid]; // 0, 1, ...
         int dim_ceil = d_ceil_cdim[dim_j];
+        int low_j = d_low[tid];
         // set lock
-        do {} while(atomicCAS(d_locks_cdim[dim_j], j_ord, -1) == j_ord);
+        do {} while(atomicCAS(d_locks_cdim+dim_j, j_ord, -1) == j_ord);
         // do stuff
         if (low_j > -1){
             if (d_visited[low_j] == 0){
@@ -81,15 +84,15 @@ void __global__ phase_i(int *d_ceilings, int *d_dims, int *d_dims_order, int *d_
     }
 }
 
-void __global__ phase_ii(int *d_low, int *d_arglow, int *d_rows_mp, int *d_aux_mp, int m, int p){
+void __global__ phase_ii(int *d_low, int *d_beta, int *d_classes, int *d_arglow, int *d_rows_mp, int *d_aux_mp, int m, int p){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         int low_j = d_low[tid];
+        int j = tid;
         if (d_arglow[low_j] > -1){
             int pivot = d_arglow[low_j];
             if (pivot < j){
                 left_to_right_device(pivot, j, d_rows_mp, d_aux_mp, d_low, m, p);
-                d_updated[tid] = 1;
                 // alpha_beta_check 
                 low_j = d_low[tid];
                 if (low_j > -1){
@@ -110,7 +113,7 @@ void __global__ phase_ii(int *d_low, int *d_arglow, int *d_rows_mp, int *d_aux_m
 void __global__ set_unmarked(int *d_classes, int *d_low, int *d_arglow, int *d_rows_mp, int m, int p){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
-        if (d_classes[tid] == 0)
+        if (d_classes[tid] == 0){
             if (d_low[tid] > -1){
                 d_arglow[tid] = tid;
                 d_classes[tid] = -1;
@@ -127,15 +130,26 @@ inline void compute_simplex_dimensions(int *d_dims, int *d_dims_order, int *p_co
     get_simplex_dimensions<<<numBlocks_m, threadsPerBlock_m>>>(d_dims, d_rows_mp, m, p);
     // d_complex_dim
     thrust::device_ptr<int> dev_ptr = thrust::device_pointer_cast(d_dims);
-    thrust::device_ptr<int> max_ptr = thrust::max_element(dev_ptr, dev_ptr + m);
-    *p_complex_dimension = max_ptr[0];
+    p_complex_dimension[0] = *(thrust::max_element(dev_ptr, dev_ptr + m));
+    // d_dims_order
+    // This one we compute on the host for the moment
+    int *h_dims_order;
+    h_dims_order = (int*)malloc( sizeof(int) * m );
+    free(h_dims_order);
 }
 
 inline void compute_dimension_order(int *d_dims, int *d_dims_order, int *d_last_pos, int cdim, int m, dim3 numBlocks_m, dim3 threadsPerBlock_m){
     fill<<<numBlocks_m, threadsPerBlock_m>>>(d_last_pos, -1, cdim);
     fill<<<numBlocks_m, threadsPerBlock_m>>>(d_dims_order, -1, m);
-    compute_dims_order<<<numBlocks_m, threadsPerBlock_m>>>(d_dims, d_dims_order, d_last_pos, m);
+    int zero = 0;
+    int *d_sentinel;
+    cudaMalloc((void**)&d_sentinel, sizeof(int));
+    //cudaMemcpyToSymbol("d_sentinel", &zero, sizeof(int));
+    cudaMemcpy(d_sentinel, &zero, sizeof(int), cudaMemcpyHostToDevice);
+    cudaDeviceSynchronize();
+    compute_dims_order<<<numBlocks_m, threadsPerBlock_m>>>(d_dims, d_dims_order, d_last_pos, m, d_sentinel);
     fill<<<numBlocks_m, threadsPerBlock_m>>>(d_last_pos, -1, cdim);
+    cudaFree(d_sentinel);
 }
 
 int is_reduced(int *d_aux, int *d_lows, int m, dim3 numBlocks_m, dim3 threadsPerBlock_m){
@@ -156,5 +170,4 @@ inline void create_beta(int *d_beta, int *h_rows, int *h_cols, int m, int nnz){
     free(h_beta);
 }
 
-in
 

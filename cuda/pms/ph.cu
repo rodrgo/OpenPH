@@ -173,9 +173,34 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         cudaEventRecord(startIHT,0);
 
         // -------------------------------
-        // beta
+        // simplex dimensions, complex dimension, dimension order
         // -------------------------------
 
+        int *d_dims;        // Dimension of simplex j (-1, 0, 1, ..., complex_dim)
+        int *d_dims_order;  // j is "d_dims_order[j]"-th simplex in dim_j
+        int complex_dim;    // max(d_dims), dimension of complex
+
+        cudaMalloc((void**)&d_dims, m * sizeof(int));
+        cudaMalloc((void**)&d_dims_order, m * sizeof(int));
+
+        compute_simplex_dimensions(d_dims, d_dims_order, &complex_dim, 
+                d_rows_mp, m, p, numBlocks_m, threadsPerBlock_m);
+        cudaDeviceSynchronize();
+        printf("passed compute_simplex_dimension\n");
+
+        int dim;
+        int dim_order;
+        for(int i = 0; i < m; i++){
+            cudaMemcpy(&dim, d_dims+i, sizeof(int), cudaMemcpyDeviceToHost);
+            cudaMemcpy(&dim_order, d_dims_order+i, sizeof(int), cudaMemcpyDeviceToHost);
+            printf("(%d, %d), ", dim, dim_order);
+        }
+        printf("\n");
+        printf("complex_dim = %d\n", complex_dim);
+
+        // -------------------------------
+        // Algorithms
+        // -------------------------------
 
         int iter  = 0;
         if (strcmp(algstr, "std")==0){
@@ -189,9 +214,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             cudaMalloc((void**)&d_beta, m * sizeof(int));
             create_beta(d_beta, h_rows, h_cols, m, nnz);
 
-            // simplex dimensions
-
+            // pms
             pms(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, d_beta, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
+
+            // clear beta
+            cudaFree(d_beta);
         }else
             printf("Not recognised");
 
@@ -213,9 +240,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         // CLEANUP
         // free up the allocated memory on the device
 
-        cudaFree(d_beta);
         cudaFree(d_rows);
         cudaFree(d_cols);
+        cudaFree(d_dims);
+        cudaFree(d_dims_order);
         
         cudaFree(d_rows_mp);
         cudaFree(d_aux_mp);

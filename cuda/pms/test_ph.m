@@ -55,7 +55,12 @@ tic;
 display(sprintf('TWIST: The tests completed after %s seconds.',toc));
 twist_ok = isequal(low_test-1, low);
 
-if std_ok && twist_ok
+tic;
+[low resRecord timeRecord] = ph('pms', int32(rows), int32(cols), int32(vals), int32(m));
+display(sprintf('PMS: The tests completed after %s seconds.',toc));
+pms_ok = isequal(low_test-1, low);
+
+if std_ok && twist_ok && pms_ok
     disp(sprintf('All good :)'));
 else
     disp(sprintf('Mismatch in one of the algos :)'));
