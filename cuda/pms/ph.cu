@@ -176,15 +176,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         // simplex dimensions, complex dimension, dimension order
         // -------------------------------
 
-        int *d_dims;        // Dimension of simplex j (-1, 0, 1, ..., complex_dim)
+        int *d_dims;        // Dime of simplex j (-1, 0, 1, ..., complex_dim)
         int *d_dims_order;  // j is "d_dims_order[j]"-th simplex in dim_j
         int complex_dim;    // max(d_dims), dimension of complex
 
         cudaMalloc((void**)&d_dims, m * sizeof(int));
         cudaMalloc((void**)&d_dims_order, m * sizeof(int));
 
-        compute_simplex_dimensions(d_dims, d_dims_order, &complex_dim, 
-                d_rows_mp, m, p, numBlocks_m, threadsPerBlock_m);
+        compute_simplex_dimensions_h(h_rows, h_cols, m, p, nnz,
+                d_dims, d_dims_order, &complex_dim);
         cudaDeviceSynchronize();
         printf("passed compute_simplex_dimension\n");
 
@@ -197,6 +197,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         }
         printf("\n");
         printf("complex_dim = %d\n", complex_dim);
+        exit(0);
 
         // -------------------------------
         // Algorithms

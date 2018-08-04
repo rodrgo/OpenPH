@@ -132,9 +132,39 @@ inline void compute_simplex_dimensions(int *d_dims, int *d_dims_order, int *p_co
     thrust::device_ptr<int> dev_ptr = thrust::device_pointer_cast(d_dims);
     p_complex_dimension[0] = *(thrust::max_element(dev_ptr, dev_ptr + m));
     // d_dims_order
+}
+
+inline void compute_simplex_dimensions_h(int *h_rows, int *h_cols, int m, int p, int nnz, int *d_dims, int *d_dims_order, int *p_complex_dimension){
     // This one we compute on the host for the moment
+    int *h_dims;
     int *h_dims_order;
+    int complex_dim;
+    h_dims = (int*)malloc( sizeof(int) * m );
     h_dims_order = (int*)malloc( sizeof(int) * m );
+    // Get simplex dimensions
+    for (int i = 0; i < m; i++)
+        h_dims[i] = -1;
+    for (int i = 0; i < nnz; i++)
+        h_dims[h_cols[i]] += 1;
+    for (int i = 0; i < m; i++)
+        complex_dim = h_dims[i] > complex_dim ? h_dims[i] : complex_dim;
+    *p_complex_dim = complex_dim;
+
+    int *h_dims_order_aux; // Dimensions are {-1, 0, 1, ..., complex_dim}
+    int cdim = complex_dim + 2;
+    h_dims_order_aux = (int*)malloc( sizeof(int) * cdim );
+    for (int i = 0; i < cdim; i++)
+        h_dims[i] = 0;
+    for (int i = 0; i < nnz; i++){
+        h_dims_order[i] = h_dims_order_aux[h_dims[i]+1];
+        h_dims_order_aux[h_dims[i]+1] += 1;
+    }
+    // Copy to device
+    cudaMemcpy(d_dims, h_dims, m*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_dims_order, h_dims_order, m*sizeof(int), cudaMemcpyHostToDevice);
+    // free
+    free(h_dims_order_aux);
+    free(h_dims);
     free(h_dims_order);
 }
 
