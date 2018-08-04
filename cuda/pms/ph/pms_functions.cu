@@ -14,19 +14,18 @@ void __global__ matrix_is_reduced(int *d_lows, int *d_aux, int m){
 
 void __global__ compute_dims_order(int *d_dims, int *d_dims_order, int *d_last_pos, int m, int *d_sentinel){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
-    __shared__ int lock;
     if (tid < m){
         int j = tid;
         // set lock
-        printf("{tid=%d, lock=%d}, ", tid, lock);
-        do {} while(lock != j);
+        //printf("{tid=%d, lock=%d}, ", tid, lock);
+        do {} while(d_lock != j);
         // do stuff
         int dim_j = d_dims[tid];
         d_dims_order[tid] = d_last_pos[dim_j+1]+1;
         d_last_pos[dim_j+1] += 1;
-        printf("[j=%d, dim_j=%d, lock=%d, d_last_pos=%d], ", j, dim_j, lock, d_last_pos[dim_j+1]);
+        //printf("[j=%d, dim_j=%d, lock=%d, d_last_pos=%d], ", j, dim_j, lock, d_last_pos[dim_j+1]);
         // free lock
-        lock = j+1;
+        d_lock = j+1;
         __syncthreads();
     }
 }
@@ -136,38 +135,40 @@ inline void compute_simplex_dimensions(int *d_dims, int *d_dims_order, int *p_co
 
 inline void compute_simplex_dimensions_h(int *h_rows, int *h_cols, int m, int p, int nnz, int *d_dims, int *d_dims_order, int *p_complex_dimension){
     // This one we compute on the host for the moment
-    int *h_dims;
-    int *h_dims_order;
-    int complex_dim;
-    h_dims = (int*)malloc( sizeof(int) * m );
-    h_dims_order = (int*)malloc( sizeof(int) * m );
+    int *h_dims = (int*)malloc( sizeof(int) * m );
+    int *h_dims_order = (int*)malloc( sizeof(int) * m );
     // Get simplex dimensions
     for (int i = 0; i < m; i++)
         h_dims[i] = -1;
     for (int i = 0; i < nnz; i++)
         h_dims[h_cols[i]] += 1;
+
+    int complex_dim = -1;
     for (int i = 0; i < m; i++)
         complex_dim = h_dims[i] > complex_dim ? h_dims[i] : complex_dim;
-    *p_complex_dim = complex_dim;
+    *p_complex_dimension = complex_dim;
 
-    int *h_dims_order_aux; // Dimensions are {-1, 0, 1, ..., complex_dim}
+    // Dimensions are {-1, 0, 1, ..., complex_dim}
     int cdim = complex_dim + 2;
-    h_dims_order_aux = (int*)malloc( sizeof(int) * cdim );
+    int *h_dims_order_aux = (int*)malloc( sizeof(int) * cdim );
     for (int i = 0; i < cdim; i++)
-        h_dims[i] = 0;
-    for (int i = 0; i < nnz; i++){
+        h_dims_order_aux[i] = 0;
+    for (int i = 0; i < m; i++){
         h_dims_order[i] = h_dims_order_aux[h_dims[i]+1];
         h_dims_order_aux[h_dims[i]+1] += 1;
     }
     // Copy to device
     cudaMemcpy(d_dims, h_dims, m*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_dims_order, h_dims_order, m*sizeof(int), cudaMemcpyHostToDevice);
+    cudaDeviceSynchronize();
+
     // free
     free(h_dims_order_aux);
     free(h_dims);
     free(h_dims_order);
 }
 
+/*
 inline void compute_dimension_order(int *d_dims, int *d_dims_order, int *d_last_pos, int cdim, int m, dim3 numBlocks_m, dim3 threadsPerBlock_m){
     fill<<<numBlocks_m, threadsPerBlock_m>>>(d_last_pos, -1, cdim);
     fill<<<numBlocks_m, threadsPerBlock_m>>>(d_dims_order, -1, m);
@@ -181,6 +182,7 @@ inline void compute_dimension_order(int *d_dims, int *d_dims_order, int *d_last_
     fill<<<numBlocks_m, threadsPerBlock_m>>>(d_last_pos, -1, cdim);
     cudaFree(d_sentinel);
 }
+*/
 
 int is_reduced(int *d_aux, int *d_lows, int m, dim3 numBlocks_m, dim3 threadsPerBlock_m){
     int one = 1;
@@ -193,8 +195,7 @@ int is_reduced(int *d_aux, int *d_lows, int m, dim3 numBlocks_m, dim3 threadsPer
 }
 
 inline void create_beta(int *d_beta, int *h_rows, int *h_cols, int m, int nnz){
-    int *h_beta;
-    h_beta = (int*)malloc( sizeof(int) * m );
+    int *h_beta = (int*)malloc( sizeof(int) * m );
     create_beta_h(h_beta, h_rows, h_cols, m, nnz);
     cudaMemcpy(d_beta, h_beta, m*sizeof(int), cudaMemcpyHostToDevice);
     free(h_beta);

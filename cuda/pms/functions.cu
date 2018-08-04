@@ -3,8 +3,7 @@ inline int get_max_nnz(int *h_index, int m, int nnz){
     // Get maximum nnz in rows/columns from row/column index.
     // h_index_dim is either h_rows or h_cols
 
-    int *h_nnz_index;
-    h_nnz_index = (int*)malloc( sizeof(int) * m );
+    int *h_nnz_index = (int*)malloc( sizeof(int) * m );
 
     for(int l=0; l<m; l++)   h_nnz_index[l] = 0;
     for(int l=0; l<nnz; l++) h_nnz_index[h_index[l]] += 1;

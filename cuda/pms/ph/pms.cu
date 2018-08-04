@@ -1,4 +1,4 @@
-inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, const int m, const int p, int *d_beta, float *resRecord, float *timeRecord, int *p_iter, dim3 NBm, dim3 TPBm){
+inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d_dims, int *d_dims_order, const int m, const int p, int complex_dimension, int *d_beta, float *resRecord, float *timeRecord, int *p_iter, dim3 NBm, dim3 TPBm){
 
     // Auxiliary variables
     int *d_aux;
@@ -17,19 +17,11 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, const 
 
     // Compute simplex dimensions (on device)
     // Get maximum dimension (TODO: Change Twist code too)
+    int cdim = complex_dimension + 2; // -1, 0, 1, 2, ..., complex_dim
     int *d_aux_cdim;    // Auxiliary vector of size cdim 
-
-    int cdim = complex_dim + 2; // -1, 0, 1, 2, ..., complex_dim
-
     cudaMalloc((void**)&d_aux_cdim, cdim * sizeof(int));
-    compute_dimension_order(d_dims, d_dims_order, d_aux_cdim, 
-            cdim, m, NBm, TPBm);
-    cudaDeviceSynchronize();
     printf("passed compute_dimension_order!!\n");
-
     printf("cdim = %d\n", cdim);
-    exit(0);
-
 
     // ceilings
     int *d_ceilings;
@@ -51,6 +43,7 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, const 
 
     int converged = is_reduced(d_aux, d_low, m, NBm, TPBm);
     printf("converged %d\n", converged);
+    exit(0);
 
     while (! converged ){
 
@@ -93,8 +86,6 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, const 
     */
 
     cudaFree(d_ceilings);
-    cudaFree(d_dims);
-    cudaFree(d_dims_order);
     cudaFree(d_locks_cdim);
     cudaFree(d_aux_cdim);
     cudaFree(d_aux);

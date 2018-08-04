@@ -59,7 +59,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         printf("max_nnz_rows : %d\n", max_nnz_rows);
         printf("max_nnz_cols : %d\n", max_nnz_cols);
           
-        int p = 3*max_nnz_cols;
+        int p = 1*max_nnz_cols;
         int mp = m * p;
 
         printf("p = %d\n", p);
@@ -175,17 +175,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         // -------------------------------
         // simplex dimensions, complex dimension, dimension order
         // -------------------------------
+        
+        // d_dims: Dim of simplex j (-1, 0, 1, ..., complex_dim)
+        // j is "d_dims_order[j]"-th simplex in dim_j
+        // max(d_dims), dimension of complex
 
-        int *d_dims;        // Dime of simplex j (-1, 0, 1, ..., complex_dim)
-        int *d_dims_order;  // j is "d_dims_order[j]"-th simplex in dim_j
-        int complex_dim;    // max(d_dims), dimension of complex
-
-        cudaMalloc((void**)&d_dims, m * sizeof(int));
+        int *d_dims, *d_dims_order; 
+        int complex_dim = -1;
         cudaMalloc((void**)&d_dims_order, m * sizeof(int));
+        cudaMalloc((void**)&d_dims, m * sizeof(int));
 
         compute_simplex_dimensions_h(h_rows, h_cols, m, p, nnz,
                 d_dims, d_dims_order, &complex_dim);
-        cudaDeviceSynchronize();
         printf("passed compute_simplex_dimension\n");
 
         int dim;
@@ -197,7 +198,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         }
         printf("\n");
         printf("complex_dim = %d\n", complex_dim);
-        exit(0);
 
         // -------------------------------
         // Algorithms
@@ -216,7 +216,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             create_beta(d_beta, h_rows, h_cols, m, nnz);
 
             // pms
-            pms(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, d_beta, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
+            pms(d_rows_mp, d_aux_mp, d_low, d_arglow, d_dims, d_dims_order, m, p, complex_dim, d_beta, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
 
             // clear beta
             cudaFree(d_beta);
