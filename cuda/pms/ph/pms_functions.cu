@@ -56,7 +56,7 @@ void __global__ count_simplices_dim(int *d_dim_count, int *d_dims, int m){
     }
 }
 
-void __global__ phase_i(int *d_ceilings, int *d_dims, int *d_dims_order, int *d_low, int *d_arglow, int *d_classes, int *d_clear, int *d_visited, int *d_ceil_cdim, int *d_locks_cdim, int m){
+void __global__ phase_i(int *d_dims, int *d_dims_order, int *d_low, int *d_arglow, int *d_classes, int *d_clear, int *d_visited, int *d_ceil_cdim, int *d_locks_cdim, int m){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         int dim_j = d_dims[tid];
@@ -64,16 +64,14 @@ void __global__ phase_i(int *d_ceilings, int *d_dims, int *d_dims_order, int *d_
         int dim_ceil = d_ceil_cdim[dim_j];
         int low_j = d_low[tid];
         // set lock
-        do {} while(atomicCAS(d_locks_cdim+dim_j, j_ord, -1) == j_ord);
+        do {} while(atomicCAS(d_locks_cdim+dim_j, j_ord, -1) != j_ord);
         // do stuff
         if (low_j > -1){
             if (d_visited[low_j] == 0){
                 d_arglow[low_j] = tid;
                 d_classes[tid] = -1;
                 d_clear[low_j] = 1;
-                d_ceilings[tid] = dim_ceil;
             }else{
-                d_ceilings[tid] = dim_ceil;
                 d_ceil_cdim[dim_j] = low_j > dim_ceil ? low_j : dim_ceil;
             }
         }

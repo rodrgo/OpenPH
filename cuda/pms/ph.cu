@@ -59,7 +59,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         printf("max_nnz_rows : %d\n", max_nnz_rows);
         printf("max_nnz_cols : %d\n", max_nnz_cols);
           
-        int p = 1*max_nnz_cols;
+        int p = 2*max_nnz_cols;
         int mp = m * p;
 
         printf("p = %d\n", p);

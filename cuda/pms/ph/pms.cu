@@ -23,11 +23,6 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
     printf("passed compute_dimension_order!!\n");
     printf("cdim = %d\n", cdim);
 
-    // ceilings
-    int *d_ceilings;
-    cudaMalloc((void**)&d_ceilings, m * sizeof(int));
-    fill<<<NBm, TPBm>>>(d_ceilings, 0, m);
-
     // locks
     int *d_locks_cdim;
     cudaMalloc((void**)&d_locks_cdim, cdim * sizeof(int));
@@ -43,7 +38,6 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
 
     int converged = is_reduced(d_aux, d_low, m, NBm, TPBm);
     printf("converged %d\n", converged);
-    exit(0);
 
     while (! converged ){
 
@@ -57,7 +51,7 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
         fill<<<NBm, TPBm>>>(d_aux, 0, m);
         fill<<<NBm, TPBm>>>(d_locks_cdim, 0, cdim);
         fill<<<NBm, TPBm>>>(d_aux_cdim, 0, cdim);
-        phase_i<<<NBm, TPBm>>>(d_ceilings, d_dims, d_dims_order, 
+        phase_i<<<NBm, TPBm>>>(d_dims, d_dims_order, 
                 d_low, d_arglow, d_classes, d_clear,   
                 d_aux, d_aux_cdim, d_locks_cdim, m);
 
@@ -78,14 +72,6 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
     set_unmarked<<<NBm, TPBm>>>(d_classes, d_low, d_arglow, 
             d_rows_mp, m, p);
 
-    /*
-    int *d_dim_count;
-    cudaMalloc((void**)&d_dim_count, cdim * sizeof(int)); // [0, 1, ..., complex_dim]
-    fill<<<NBm, TPBm>>>(d_dim_count, 0, cdim);
-    count_simplices_dim<<<NBm, TPBm>>>(d_dim_count, d_dims, m);
-    */
-
-    cudaFree(d_ceilings);
     cudaFree(d_locks_cdim);
     cudaFree(d_aux_cdim);
     cudaFree(d_aux);
