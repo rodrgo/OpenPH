@@ -73,6 +73,16 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
                 d_aux, d_aux_cdim, d_locks_cdim, m);
         */
         cudaDeviceSynchronize();
+        printf("================AFTRER ====N\n");
+        printvec(d_dims, m, "d_dims");
+        printvec(d_dims_order, m, "d_dims_order");
+        printvec(d_low, m, "d_low");
+        printvec(d_arglow, m, "d_arglow");
+        printvec(d_classes, m, "d_classes");
+        printvec(d_locks_cdim, cdim, "d_next_cdim");
+        printvec(d_aux_cdim, cdim, "d_ceil");
+        printvec(d_clear, m, "d_clear");
+        cudaDeviceSynchronize();
         exit(0);
 
         // -----------------------

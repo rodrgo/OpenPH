@@ -48,10 +48,11 @@ void __global__ alpha_beta_reduce(int *d_low, int *d_beta, int *d_classes, int *
     }
 }
 
-void __global__ get_dims_order_start(int *d_dims, int *d_dims_order_start, int m){
+
+void __global__ get_dims_order_start(int *d_dims, int *d_dims_order, int *d_dims_order_start, int m){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
-        if (d_dims_order_next[tid] == 1){
+        if (d_dims_order[tid] == 0){
             int cdim_pos = d_dims[tid] + 1;
             d_dims_order_start[cdim_pos] = tid;
         }
@@ -72,7 +73,7 @@ void __global__ phase_i_cdim(int *d_dims, int *d_dims_order, int *d_dims_order_n
     if (tid < cdim){
         int iterate = 1;
         int dim_j; // -1, 0, 1, ..., complex_dim
-        int cdim_pos = dim_j + 1;
+        int cdim_pos;
         int dim_ceil; // initialized at -1 
         int low_j;
         int j = d_dims_order_start[tid];
@@ -206,6 +207,8 @@ inline void compute_simplex_dimensions_h(int *h_rows, int *h_cols, int m, int p,
 
     for (int i = 0; i < cdim; i++)
         h_dims_order_aux[i] = 0;
+    for (int i = 0; i < m; i++)
+        h_dims_order_next[i] = -1;
     for (int i = 0; i < cdim; i++)
         h_past_cdim[i] = -1;
     int cdim_pos;
@@ -213,7 +216,7 @@ inline void compute_simplex_dimensions_h(int *h_rows, int *h_cols, int m, int p,
         cdim_pos = h_dims[i]+1;
         h_dims_order[i] = h_dims_order_aux[cdim_pos];
         h_dims_order_aux[cdim_pos] += 1;
-        if (h_dims_order[i] > 0){
+        if (h_past_cdim[cdim_pos] > -1){
             h_dims_order_next[h_past_cdim[cdim_pos]] = i;
         }
         h_past_cdim[cdim_pos] = i;

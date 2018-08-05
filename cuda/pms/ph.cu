@@ -190,20 +190,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         printf("passed compute_simplex_dimension\n");
 
         int cdim = complex_dim + 2;
+        int threads_perblock_cdim = min(cdim, threads_perblock_m);
+        dim3 threadsPerBlock_cdim(threads_perblock_cdim);
+        int num_blocks_cdim = (int)ceil((float)cdim/(float)threads_perblock_cdim);
+        dim3 numBlocks_cdim(num_blocks_cdim);
+
         int *d_dims_order_start;
         cudaMalloc((void**)&d_dims_order_start, cdim * sizeof(int));
-        get_dims_order_start<<<numBlocks_m, threadsPerBlock_m>>>(d_dims, d_dims_order_start, m);
+        fill<<<numBlocks_cdim, threadsPerBlock_cdim>>>(d_dims_order_start, -1, cdim);
+        get_dims_order_start<<<numBlocks_m, threadsPerBlock_m>>>(d_dims, d_dims_order, d_dims_order_start, m);
+        cudaDeviceSynchronize();
 
         printvec(d_dims, m, "d_dims");
         printvec(d_dims_order, m, "d_dims_order");
         printvec(d_dims_order_next, m, "d_dims_order_next");
         printvec(d_dims_order_start, cdim, "d_dims_order_start");
         printf("complex_dim = %d\n", complex_dim);
-
-        int threads_perblock_cdim = min(cdim, threads_perblock_m);
-        dim3 threadsPerBlock_cdim(threads_perblock_cdim);
-        int num_blocks_cdim = (int)ceil((float)cdim/(float)threads_perblock_cdim);
-        dim3 numBlocks_cdim(num_blocks_cdim);
 
         // -------------------------------
         // Algorithms
