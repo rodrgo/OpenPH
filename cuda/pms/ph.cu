@@ -150,10 +150,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 
         //DEBUG
         if (1 == 0){
-            printf("ARGLOW\n");
-            printvec(d_arglow, m);
-            printf("LOW\n");
-            printvec(d_low, m);
+            printvec(d_arglow, m, "ARGLOW");
+            printvec(d_low, m, "LOW");
         }
 
         // DEBUG
@@ -182,12 +180,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 
         int *d_dims, *d_dims_order; 
         int complex_dim = -1;
+        int *d_dims_order_next;
         cudaMalloc((void**)&d_dims_order, m * sizeof(int));
         cudaMalloc((void**)&d_dims, m * sizeof(int));
+        cudaMalloc((void**)&d_dims_order_next, m * sizeof(int));
 
         compute_simplex_dimensions_h(h_rows, h_cols, m, p, nnz,
-                d_dims, d_dims_order, &complex_dim);
+                d_dims, d_dims_order, d_dims_order_next, &complex_dim);
         printf("passed compute_simplex_dimension\n");
+
+        int cdim = complex_dim + 2;
+        int *d_dims_order_start;
+        cudaMalloc((void**)&d_dims_order_next, m * sizeof(int));
+        cudaMalloc((void**)&d_dims_order_start, cdim * sizeof(int));
 
         int dim;
         int dim_order;
@@ -245,6 +250,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         cudaFree(d_cols);
         cudaFree(d_dims);
         cudaFree(d_dims_order);
+        cudaFree(d_dims_order_next);
         
         cudaFree(d_rows_mp);
         cudaFree(d_aux_mp);

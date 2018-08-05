@@ -42,6 +42,7 @@ void __global__ alpha_beta_reduce(int *d_low, int *d_beta, int *d_classes, int *
             clear_column(pos_pair, d_rows_mp, p);
             d_arglow[pos_pair] = beta;
             d_low[pos_pair] = -1;
+            d_classes[pos_pair] = 1;
             d_low[beta] = pos_pair;
         }
     }
@@ -56,15 +57,22 @@ void __global__ count_simplices_dim(int *d_dim_count, int *d_dims, int m){
     }
 }
 
-void __global__ phase_i(int *d_dims, int *d_dims_order, int *d_low, int *d_arglow, int *d_classes, int *d_clear, int *d_visited, int *d_ceil_cdim, int *d_locks_cdim, int m){
+void __global__ phase_i(int *d_dims, int *d_dims_order, int *d_low, int *d_arglow, int *d_classes, int *d_clear, int *d_visited, int *d_ceil_cdim, int *d_next_cdim, int m){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
-        int dim_j = d_dims[tid];
+        int dim_j = d_dims[tid]; // -1, 0, 1, ..., complex_dim
+        int cdim_pos = dim_j + 1;
         int j_ord = d_dims_order[tid]; // 0, 1, ...
-        int dim_ceil = d_ceil_cdim[dim_j];
+        int dim_ceil = d_ceil_cdim[cdim_pos]; // initialized at 0
         int low_j = d_low[tid];
         // set lock
-        do {} while(atomicCAS(d_locks_cdim+dim_j, j_ord, -1) != j_ord);
+        int curr = -1;
+        //printf("Entering do-while %d, cdim_pos=%d, j_ord = %d\n", tid, cdim_pos, j_ord);
+        do{
+            curr = atomicCAS(d_next_cdim+cdim_pos, j_ord, -1);
+        } while(curr != j_ord);
+        //do {} while(atomicCAS(d_locks_cdim+cdim_pos, j_ord, -1) != j_ord);
+        printf("j_ord=%d, ", j_ord);
         // do stuff
         if (low_j > -1){
             if (d_visited[low_j] == 0){
@@ -72,12 +80,13 @@ void __global__ phase_i(int *d_dims, int *d_dims_order, int *d_low, int *d_arglo
                 d_classes[tid] = -1;
                 d_clear[low_j] = 1;
             }else{
-                d_ceil_cdim[dim_j] = low_j > dim_ceil ? low_j : dim_ceil;
+                d_ceil_cdim[cdim_pos] = low_j > dim_ceil ? low_j : dim_ceil;
             }
+            d_visited[low_j] = 1;
         }
+        __threadfence();
         // free lock
-        //d_lock = tid+1;
-        d_locks_cdim[dim_j] = j_ord + 1;
+        d_next_cdim[cdim_pos] = curr+1;
     }
 }
 
@@ -131,7 +140,7 @@ inline void compute_simplex_dimensions(int *d_dims, int *d_dims_order, int *p_co
     // d_dims_order
 }
 
-inline void compute_simplex_dimensions_h(int *h_rows, int *h_cols, int m, int p, int nnz, int *d_dims, int *d_dims_order, int *p_complex_dimension){
+inline void compute_simplex_dimensions_h(int *h_rows, int *h_cols, int m, int p, int nnz, int *d_dims, int *d_dims_order, int *d_dims_order_next, int *p_complex_dimension){
     // This one we compute on the host for the moment
     int *h_dims = (int*)malloc( sizeof(int) * m );
     int *h_dims_order = (int*)malloc( sizeof(int) * m );
@@ -192,10 +201,23 @@ int is_reduced(int *d_aux, int *d_lows, int m, dim3 numBlocks_m, dim3 threadsPer
     return is_reduced;
 }
 
+inline void create_beta_h(int *h_beta, int *h_rows, int *h_cols, int m, int nnz){
+    int *h_visited = (int*)malloc( sizeof(int) * m );
+    for(int i=0; i<m; i++) h_visited[i] = 0;
+    for(int i=0; i<m; i++) h_beta[i] = -1;
+    for(int l=0; l<nnz; l++)
+        if (h_visited[h_rows[l]] == 0){
+            h_beta[h_cols[l]] = h_beta[h_cols[l]] > h_rows[l] ? h_beta[h_cols[l]] : h_rows[l];
+            h_visited[h_rows[l]] = 1;
+        }
+    free(h_visited);
+}
+
 inline void create_beta(int *d_beta, int *h_rows, int *h_cols, int m, int nnz){
     int *h_beta = (int*)malloc( sizeof(int) * m );
     create_beta_h(h_beta, h_rows, h_cols, m, nnz);
     cudaMemcpy(d_beta, h_beta, m*sizeof(int), cudaMemcpyHostToDevice);
+    cudaDeviceSynchronize();
     free(h_beta);
 }
 

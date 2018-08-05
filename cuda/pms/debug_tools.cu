@@ -1,10 +1,12 @@
 
-inline void printvec(int *d_v, int m){
+inline void printvec(int *d_v, int m, char* s){
     int val = 0;
+    printf("%s\n",s);
     for (int i = 0; i < m; i++){
         cudaMemcpy(&val, d_v+i, sizeof(int), cudaMemcpyDeviceToHost);
-        printf("%d: %d\n", i, val);
+        printf("[%d: %d], ", i, val);
     }
+    printf("\n\n");
 }
 
 inline void print_matrix_cols_mp(int *d_rows_mp, int m, int p){

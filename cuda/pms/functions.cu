@@ -20,14 +20,6 @@ inline int get_max_nnz(int *h_index, int m, int nnz){
     return max_nnz_index;
 } 
 
-inline void create_beta_h(int *h_beta, int *h_rows, int *h_cols, int m, int nnz){
-    for(int i=0; i<m; i++) h_beta[i] = -1;
-    for(int l=0; l<nnz; l++)
-        if (h_beta[h_rows[l]] != -1)
-            if (h_beta[h_rows[l]] > h_cols[l])
-                h_beta[h_rows[l]] = h_cols[l];
-}
-
 inline int assert_col_order(int *h_cols, int m, int nnz){
     int is_col_order = 1;
     for (int l=1; l<nnz; l++)

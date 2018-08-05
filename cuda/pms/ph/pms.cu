@@ -33,8 +33,14 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
     // Phase 0
     // -----------------------
 
+    printvec(d_low, m, "d_low");
+    printvec(d_beta, m, "d_beta");
+
     alpha_beta_reduce<<<NBm, TPBm>>>(d_low, d_beta, d_classes, 
             d_rows_mp, d_arglow, m, p);
+
+    printvec(d_classes, m, "d_classes");
+    printvec(d_arglow, m, "d_arglow");
 
     int converged = is_reduced(d_aux, d_low, m, NBm, TPBm);
     printf("converged %d\n", converged);
@@ -45,15 +51,23 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
         // Main iteration : Phase I 
         // -----------------------
 
-        // TODO: In get_ceilings, atomicCAS needs pointer in first
-        // argument. Check if this is being given correctly
-        // TODO: atomicMAX?
         fill<<<NBm, TPBm>>>(d_aux, 0, m);
-        fill<<<NBm, TPBm>>>(d_locks_cdim, 0, cdim);
-        fill<<<NBm, TPBm>>>(d_aux_cdim, 0, cdim);
+        fill<<<NBm, TPBm>>>(d_locks_cdim, 0, cdim); // d_next_cdim
+        fill<<<NBm, TPBm>>>(d_aux_cdim, -1, cdim); // d_ceil
+
+        printvec(d_dims, m, "d_dims");
+        printvec(d_dims_order, m, "d_dims_order");
+        printvec(d_low, m, "d_low");
+        printvec(d_arglow, m, "d_arglow");
+        printvec(d_classes, m, "d_classes");
+        printvec(d_locks_cdim, cdim, "d_next_cdim");
+        printvec(d_aux_cdim, cdim, "d_ceil");
+
         phase_i<<<NBm, TPBm>>>(d_dims, d_dims_order, 
                 d_low, d_arglow, d_classes, d_clear,   
                 d_aux, d_aux_cdim, d_locks_cdim, m);
+        cudaDeviceSynchronize();
+        exit(0);
 
         // -----------------------
         // Main iteration : Phase II 
