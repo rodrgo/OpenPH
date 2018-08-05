@@ -134,7 +134,7 @@ void __global__ phase_i(int *d_dims, int *d_dims_order, int *d_low, int *d_arglo
     }
 }
 
-void __global__ phase_ii(int *d_low, int *d_beta, int *d_classes, int *d_arglow, int *d_rows_mp, int *d_aux_mp, int m, int p){
+void __global__ phase_ii(int *d_low, int *d_left, int *d_classes, int *d_arglow, int *d_rows_mp, int *d_aux_mp, int m, int p){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         int low_j = d_low[tid];
@@ -146,11 +146,12 @@ void __global__ phase_ii(int *d_low, int *d_beta, int *d_classes, int *d_arglow,
                 // alpha_beta_check 
                 low_j = d_low[tid];
                 if (low_j > -1){
-                    if (d_beta[low_j] == tid){
+                    if (d_left[low_j] == tid){
                         // is lowstar, do a twist clearing
                         d_arglow[low_j] = tid;
                         d_classes[tid] = -1;
                         clear_column(low_j, d_rows_mp, p);
+                        d_classes[low_j] = 1;
                     }
                 }else{
                     d_classes[tid] = 1;
@@ -272,24 +273,29 @@ int is_reduced(int *d_aux, int *d_lows, int m, dim3 numBlocks_m, dim3 threadsPer
     return is_reduced;
 }
 
-inline void create_beta_h(int *h_beta, int *h_rows, int *h_cols, int m, int nnz){
+inline void create_beta_h(int *h_beta, int *h_left, int *h_rows, int *h_cols, int m, int nnz){
     int *h_visited = (int*)malloc( sizeof(int) * m );
+    for(int i=0; i<m; i++) h_left[i] = -1;
     for(int i=0; i<m; i++) h_visited[i] = 0;
     for(int i=0; i<m; i++) h_beta[i] = -1;
     for(int l=0; l<nnz; l++)
         if (h_visited[h_rows[l]] == 0){
             h_beta[h_cols[l]] = h_beta[h_cols[l]] > h_rows[l] ? h_beta[h_cols[l]] : h_rows[l];
             h_visited[h_rows[l]] = 1;
+            h_left[h_rows[l]] = h_cols[l];
         }
     free(h_visited);
 }
 
 inline void create_beta(int *d_beta, int *h_rows, int *h_cols, int m, int nnz){
     int *h_beta = (int*)malloc( sizeof(int) * m );
-    create_beta_h(h_beta, h_rows, h_cols, m, nnz);
+    int *h_left = (int*)malloc( sizeof(int) * m );
+    create_beta_h(h_beta, h_left, h_rows, h_cols, m, nnz);
     cudaMemcpy(d_beta, h_beta, m*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_left, h_left, m*sizeof(int), cudaMemcpyHostToDevice);
     cudaDeviceSynchronize();
     free(h_beta);
+    free(h_left);
 }
 
 

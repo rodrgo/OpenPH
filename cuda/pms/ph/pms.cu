@@ -1,4 +1,4 @@
-inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d_dims, int *d_dims_order, int *d_dims_order_next, int *d_dims_order_start, const int m, const int p, int complex_dimension, int *d_beta, float *resRecord, float *timeRecord, int *p_iter, dim3 NBm, dim3 TPBm, dim3 NBcdim, dim3 TPBcdim){
+inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d_dims, int *d_dims_order, int *d_dims_order_next, int *d_dims_order_start, const int m, const int p, int complex_dimension, int *d_left, int *d_beta, float *resRecord, float *timeRecord, int *p_iter, dim3 NBm, dim3 TPBm, dim3 NBcdim, dim3 TPBcdim){
 
     // Auxiliary variables
     int *d_aux;
@@ -67,11 +67,6 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
                 d_dims_order_next, d_dims_order_start, 
                 d_low, d_arglow, d_classes, d_clear,   
                 d_aux, d_aux_cdim, d_locks_cdim, m, cdim);
-        /*
-        phase_i<<<NBm, TPBm>>>(d_dims, d_dims_order, 
-                d_low, d_arglow, d_classes, d_clear,   
-                d_aux, d_aux_cdim, d_locks_cdim, m);
-        */
         cudaDeviceSynchronize();
 
         clear_pos<<<NBm, TPBm>>>(d_low, d_classes, int *d_rows_mp, d_clear, m, p);
@@ -92,7 +87,7 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
         // Main iteration : Phase II 
         // -----------------------
 
-        phase_ii<<<NBm, TPBm>>>(d_low, d_beta, d_classes, 
+        phase_ii<<<NBm, TPBm>>>(d_low, d_left, d_classes, 
                 d_arglow, d_rows_mp, d_aux_mp, m, p);
         cudaDeviceSynchronize();
 

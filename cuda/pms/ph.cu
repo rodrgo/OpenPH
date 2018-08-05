@@ -224,7 +224,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             create_beta(d_beta, h_rows, h_cols, m, nnz);
 
             // pms
-            pms(d_rows_mp, d_aux_mp, d_low, d_arglow, d_dims, d_dims_order, d_dims_order_next, d_dims_order_start, m, p, complex_dim, d_beta, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m, numBlocks_cdim, threadsPerBlock_cdim);
+            pms(d_rows_mp, d_aux_mp, d_low, d_arglow, d_dims, d_dims_order, d_dims_order_next, d_dims_order_start, m, p, complex_dim, d_left, d_beta, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m, numBlocks_cdim, threadsPerBlock_cdim);
 
             // clear beta
             cudaFree(d_beta);
