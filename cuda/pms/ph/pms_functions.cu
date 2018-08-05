@@ -48,11 +48,54 @@ void __global__ alpha_beta_reduce(int *d_low, int *d_beta, int *d_classes, int *
     }
 }
 
+void __global__ get_dims_order_start(int *d_dims, int *d_dims_order_start, int m){
+    int tid = threadIdx.x + blockDim.x*blockIdx.x;
+    if (tid < m){
+        if (d_dims_order_next[tid] == 1){
+            int cdim_pos = d_dims[tid] + 1;
+            d_dims_order_start[cdim_pos] = tid;
+        }
+    }
+}
+
 void __global__ count_simplices_dim(int *d_dim_count, int *d_dims, int m){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         if (d_dims[tid] > -1){
             atomicAdd(d_dim_count+d_dims[tid], 1);
+        }
+    }
+}
+
+void __global__ phase_i_cdim(int *d_dims, int *d_dims_order, int *d_dims_order_next, int *d_dims_order_start, int *d_low, int *d_arglow, int *d_classes, int *d_clear, int *d_visited, int *d_ceil_cdim, int *d_next_cdim, int m, int cdim){
+    int tid = threadIdx.x + blockDim.x*blockIdx.x;
+    if (tid < cdim){
+        int iterate = 1;
+        int dim_j; // -1, 0, 1, ..., complex_dim
+        int cdim_pos = dim_j + 1;
+        int dim_ceil; // initialized at -1 
+        int low_j;
+        int j = d_dims_order_start[tid];
+        while (iterate){
+            dim_j = d_dims[j];
+            cdim_pos = dim_j + 1; 
+            dim_ceil = d_ceil_cdim[cdim_pos];
+            low_j = d_low[j];
+            if (low_j > -1){
+                if (d_visited[low_j] == 0){
+                    d_arglow[low_j] = tid;
+                    d_classes[tid] = -1;
+                    d_clear[low_j] = 1;
+                }else{
+                    d_ceil_cdim[cdim_pos] = low_j > dim_ceil ? low_j : dim_ceil;
+                }
+                d_visited[low_j] = 1;
+            }
+            if (d_dims_order_next[j] == -1){
+                iterate = 0;
+            }else{
+                j = d_dims_order_next[j];
+            }
         }
     }
 }
@@ -158,19 +201,33 @@ inline void compute_simplex_dimensions_h(int *h_rows, int *h_cols, int m, int p,
     // Dimensions are {-1, 0, 1, ..., complex_dim}
     int cdim = complex_dim + 2;
     int *h_dims_order_aux = (int*)malloc( sizeof(int) * cdim );
+    int *h_dims_order_next = (int*)malloc( sizeof(int) * m );
+    int *h_past_cdim = (int*)malloc( sizeof(int) * cdim );
+
     for (int i = 0; i < cdim; i++)
         h_dims_order_aux[i] = 0;
+    for (int i = 0; i < cdim; i++)
+        h_past_cdim[i] = -1;
+    int cdim_pos;
     for (int i = 0; i < m; i++){
-        h_dims_order[i] = h_dims_order_aux[h_dims[i]+1];
-        h_dims_order_aux[h_dims[i]+1] += 1;
+        cdim_pos = h_dims[i]+1;
+        h_dims_order[i] = h_dims_order_aux[cdim_pos];
+        h_dims_order_aux[cdim_pos] += 1;
+        if (h_dims_order[i] > 0){
+            h_dims_order_next[h_past_cdim[cdim_pos]] = i;
+        }
+        h_past_cdim[cdim_pos] = i;
     }
     // Copy to device
     cudaMemcpy(d_dims, h_dims, m*sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_dims_order, h_dims_order, m*sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_dims_order_next, h_dims_order_next, m*sizeof(int), cudaMemcpyHostToDevice);
     cudaDeviceSynchronize();
 
     // free
+    free(h_past_cdim);
     free(h_dims_order_aux);
+    free(h_dims_order_next);
     free(h_dims);
     free(h_dims_order);
 }

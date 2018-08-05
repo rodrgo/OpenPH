@@ -179,10 +179,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         // max(d_dims), dimension of complex
 
         int *d_dims, *d_dims_order; 
-        int complex_dim = -1;
         int *d_dims_order_next;
-        cudaMalloc((void**)&d_dims_order, m * sizeof(int));
+        int complex_dim = -1;
         cudaMalloc((void**)&d_dims, m * sizeof(int));
+        cudaMalloc((void**)&d_dims_order, m * sizeof(int));
         cudaMalloc((void**)&d_dims_order_next, m * sizeof(int));
 
         compute_simplex_dimensions_h(h_rows, h_cols, m, p, nnz,
@@ -191,18 +191,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 
         int cdim = complex_dim + 2;
         int *d_dims_order_start;
-        cudaMalloc((void**)&d_dims_order_next, m * sizeof(int));
         cudaMalloc((void**)&d_dims_order_start, cdim * sizeof(int));
+        get_dims_order_start<<<numBlocks_m, threadsPerBlock_m>>>(d_dims, d_dims_order_start, m);
 
-        int dim;
-        int dim_order;
-        for(int i = 0; i < m; i++){
-            cudaMemcpy(&dim, d_dims+i, sizeof(int), cudaMemcpyDeviceToHost);
-            cudaMemcpy(&dim_order, d_dims_order+i, sizeof(int), cudaMemcpyDeviceToHost);
-            printf("(%d, %d), ", dim, dim_order);
-        }
-        printf("\n");
+        printvec(d_dims, m, "d_dims");
+        printvec(d_dims_order, m, "d_dims_order");
+        printvec(d_dims_order_next, m, "d_dims_order_next");
+        printvec(d_dims_order_start, cdim, "d_dims_order_start");
         printf("complex_dim = %d\n", complex_dim);
+
+        int threads_perblock_cdim = min(cdim, threads_perblock_m);
+        dim3 threadsPerBlock_cdim(threads_perblock_cdim);
+        int num_blocks_cdim = (int)ceil((float)cdim/(float)threads_perblock_cdim);
+        dim3 numBlocks_cdim(num_blocks_cdim);
 
         // -------------------------------
         // Algorithms
@@ -221,7 +222,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             create_beta(d_beta, h_rows, h_cols, m, nnz);
 
             // pms
-            pms(d_rows_mp, d_aux_mp, d_low, d_arglow, d_dims, d_dims_order, m, p, complex_dim, d_beta, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
+            pms(d_rows_mp, d_aux_mp, d_low, d_arglow, d_dims, d_dims_order, d_dims_order_next, d_dims_order_start, m, p, complex_dim, d_beta, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m, numBlocks_cdim, threadsPerBlock_cdim);
 
             // clear beta
             cudaFree(d_beta);
@@ -251,6 +252,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         cudaFree(d_dims);
         cudaFree(d_dims_order);
         cudaFree(d_dims_order_next);
+        cudaFree(d_dims_order_start);
         
         cudaFree(d_rows_mp);
         cudaFree(d_aux_mp);
