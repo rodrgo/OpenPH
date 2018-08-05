@@ -20,7 +20,6 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
     int cdim = complex_dimension + 2; // -1, 0, 1, 2, ..., complex_dim
     int *d_aux_cdim;    // Auxiliary vector of size cdim 
     cudaMalloc((void**)&d_aux_cdim, cdim * sizeof(int));
-    printf("passed compute_dimension_order!!\n");
     printf("cdim = %d\n", cdim);
 
     // locks
@@ -54,6 +53,7 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
         fill<<<NBm, TPBm>>>(d_aux, 0, m);
         fill<<<NBm, TPBm>>>(d_locks_cdim, 0, cdim); // d_next_cdim
         fill<<<NBm, TPBm>>>(d_aux_cdim, -1, cdim); // d_ceil
+        fill<<<NBm, TPBm>>>(d_clear, 0, m);
 
         printvec(d_dims, m, "d_dims");
         printvec(d_dims_order, m, "d_dims_order");
@@ -73,7 +73,11 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
                 d_aux, d_aux_cdim, d_locks_cdim, m);
         */
         cudaDeviceSynchronize();
-        printf("================AFTRER ====N\n");
+
+        clear_pos<<<NBm, TPBm>>>(d_low, d_classes, int *d_rows_mp, d_clear, m, p);
+        cudaDeviceSynchronize();
+
+        printf("================AFTRER PHASE I ====N\n");
         printvec(d_dims, m, "d_dims");
         printvec(d_dims_order, m, "d_dims_order");
         printvec(d_low, m, "d_low");
@@ -83,7 +87,6 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
         printvec(d_aux_cdim, cdim, "d_ceil");
         printvec(d_clear, m, "d_clear");
         cudaDeviceSynchronize();
-        exit(0);
 
         // -----------------------
         // Main iteration : Phase II 
@@ -91,12 +94,27 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
 
         phase_ii<<<NBm, TPBm>>>(d_low, d_beta, d_classes, 
                 d_arglow, d_rows_mp, d_aux_mp, m, p);
+        cudaDeviceSynchronize();
+
+        printf("================AFTRER PHASE II ====N\n");
+        printvec(d_dims, m, "d_dims");
+        printvec(d_dims_order, m, "d_dims_order");
+        printvec(d_low, m, "d_low");
+        printvec(d_arglow, m, "d_arglow");
+        printvec(d_classes, m, "d_classes");
+        printvec(d_locks_cdim, cdim, "d_next_cdim");
+        printvec(d_aux_cdim, cdim, "d_ceil");
+        printvec(d_clear, m, "d_clear");
 
         // record iteration
         //record_iteration();
 
         // Check again if its reduced
         converged = is_reduced(d_aux, d_low, m, NBm, TPBm);
+        printf("converged %d\n", converged);
+
+        exit(0);
+
     }
 
     set_unmarked<<<NBm, TPBm>>>(d_classes, d_low, d_arglow, 

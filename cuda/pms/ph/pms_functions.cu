@@ -175,6 +175,17 @@ void __global__ set_unmarked(int *d_classes, int *d_low, int *d_arglow, int *d_r
     }
 }
 
+void __global__ clear_phase_i(int *d_low, int *d_classes, int *d_rows_mp, int *d_clear, int m, int p){
+    int tid = threadIdx.x + blockDim.x*blockIdx.x;
+    if (tid < m){
+        if (d_clear[tid] == 1){
+            d_low[tid] = -1;
+            d_classes[tid] = 1;
+            clear_column(tid, d_rows_mp, p);
+        }
+    }
+}
+
 inline void compute_simplex_dimensions(int *d_dims, int *d_dims_order, int *p_complex_dimension, int *d_rows_mp, int m, int p, dim3 numBlocks_m, dim3 threadsPerBlock_m){
     // d_dims
     get_simplex_dimensions<<<numBlocks_m, threadsPerBlock_m>>>(d_dims, d_rows_mp, m, p);
