@@ -32,9 +32,6 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
     // Phase 0
     // -----------------------
 
-    printvec(d_low, m, "d_low");
-    printvec(d_beta, m, "d_beta");
-
     alpha_beta_reduce<<<NBm, TPBm>>>(d_low, d_beta, d_classes, 
             d_rows_mp, d_arglow, m, p);
 
@@ -43,6 +40,11 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
 
     int converged = is_reduced(d_aux, d_low, m, NBm, TPBm);
     printf("converged %d\n", converged);
+
+    int iter = 0;
+    thrust::device_ptr<int> d_classes_ptr = thrust::device_pointer_cast(d_classes);
+    int num_zeros = thrust::count(d_classes_ptr, d_classes_ptr + m, 0);
+    printf("num_zeros=%d\n", num_zeros);
 
     while (! converged ){
 
@@ -54,14 +56,7 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
         fill<<<NBm, TPBm>>>(d_locks_cdim, 0, cdim); // d_next_cdim
         fill<<<NBm, TPBm>>>(d_aux_cdim, -1, cdim); // d_ceil
         fill<<<NBm, TPBm>>>(d_clear, 0, m);
-
-        printvec(d_dims, m, "d_dims");
-        printvec(d_dims_order, m, "d_dims_order");
-        printvec(d_low, m, "d_low");
-        printvec(d_arglow, m, "d_arglow");
-        printvec(d_classes, m, "d_classes");
-        printvec(d_locks_cdim, cdim, "d_next_cdim");
-        printvec(d_aux_cdim, cdim, "d_ceil");
+        cudaDeviceSynchronize();
 
         phase_i_cdim<<<NBcdim, TPBcdim>>>(d_dims, d_dims_order,
                 d_dims_order_next, d_dims_order_start, 
@@ -69,18 +64,7 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
                 d_aux, d_aux_cdim, d_locks_cdim, m, cdim);
         cudaDeviceSynchronize();
 
-        clear_pos<<<NBm, TPBm>>>(d_low, d_classes, int *d_rows_mp, d_clear, m, p);
-        cudaDeviceSynchronize();
-
-        printf("================AFTRER PHASE I ====N\n");
-        printvec(d_dims, m, "d_dims");
-        printvec(d_dims_order, m, "d_dims_order");
-        printvec(d_low, m, "d_low");
-        printvec(d_arglow, m, "d_arglow");
-        printvec(d_classes, m, "d_classes");
-        printvec(d_locks_cdim, cdim, "d_next_cdim");
-        printvec(d_aux_cdim, cdim, "d_ceil");
-        printvec(d_clear, m, "d_clear");
+        clear_phase_i<<<NBm, TPBm>>>(d_low, d_classes, d_rows_mp, d_clear, m, p);
         cudaDeviceSynchronize();
 
         // -----------------------
@@ -91,24 +75,22 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
                 d_arglow, d_rows_mp, d_aux_mp, m, p);
         cudaDeviceSynchronize();
 
-        printf("================AFTRER PHASE II ====N\n");
-        printvec(d_dims, m, "d_dims");
-        printvec(d_dims_order, m, "d_dims_order");
-        printvec(d_low, m, "d_low");
-        printvec(d_arglow, m, "d_arglow");
-        printvec(d_classes, m, "d_classes");
-        printvec(d_locks_cdim, cdim, "d_next_cdim");
-        printvec(d_aux_cdim, cdim, "d_ceil");
-        printvec(d_clear, m, "d_clear");
-
-        // record iteration
-        //record_iteration();
-
         // Check again if its reduced
         converged = is_reduced(d_aux, d_low, m, NBm, TPBm);
         printf("converged %d\n", converged);
 
-        exit(0);
+        count_nonzeros<<<NBm, TPBm>>>(d_classes, m);
+        cudaDeviceSynchronize();
+
+        num_zeros = thrust::count(d_classes_ptr, d_classes_ptr + m, 0);
+        //cudaMemcpyFromSymbol(&num_zeros, "d_atomicsum", sizeof(int), 0, cudaMemcpyDeviceToHost);
+        
+        printf("num_zeros = %d\n", num_zeros);
+        // record iteration
+        //record_iteration();
+        iter++;
+        if (iter > 4)
+            converged = 1;
 
     }
 

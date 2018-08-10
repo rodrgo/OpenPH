@@ -68,15 +68,25 @@ void __global__ count_simplices_dim(int *d_dim_count, int *d_dims, int m){
     }
 }
 
+__device__ int d_atomicsum;
+void __global__ count_nonzeros(int *d_vec, int m){
+    int tid = threadIdx.x + blockDim.x*blockIdx.x;
+    if (tid < m){
+        if (d_vec[tid] != 0){
+            atomicAdd(&d_atomicsum, 1);
+        }
+    }
+}
+
 void __global__ phase_i_cdim(int *d_dims, int *d_dims_order, int *d_dims_order_next, int *d_dims_order_start, int *d_low, int *d_arglow, int *d_classes, int *d_clear, int *d_visited, int *d_ceil_cdim, int *d_next_cdim, int m, int cdim){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < cdim){
-        int iterate = 1;
         int dim_j; // -1, 0, 1, ..., complex_dim
         int cdim_pos;
         int dim_ceil; // initialized at -1 
         int low_j;
         int j = d_dims_order_start[tid];
+        int iterate = 1;
         while (iterate){
             dim_j = d_dims[j];
             cdim_pos = dim_j + 1; 
@@ -84,9 +94,11 @@ void __global__ phase_i_cdim(int *d_dims, int *d_dims_order, int *d_dims_order_n
             low_j = d_low[j];
             if (low_j > -1){
                 if (d_visited[low_j] == 0){
-                    d_arglow[low_j] = tid;
-                    d_classes[tid] = -1;
-                    d_clear[low_j] = 1;
+                    if (d_classes[tid] == 0 && low_j > dim_ceil){
+                        d_arglow[low_j] = tid;
+                        d_classes[tid] = -1;
+                        d_clear[low_j] = 1;
+                    }
                 }else{
                     d_ceil_cdim[cdim_pos] = low_j > dim_ceil ? low_j : dim_ceil;
                 }
@@ -186,6 +198,8 @@ void __global__ clear_phase_i(int *d_low, int *d_classes, int *d_rows_mp, int *d
         }
     }
 }
+
+
 
 inline void compute_simplex_dimensions(int *d_dims, int *d_dims_order, int *p_complex_dimension, int *d_rows_mp, int m, int p, dim3 numBlocks_m, dim3 threadsPerBlock_m){
     // d_dims
@@ -287,7 +301,7 @@ inline void create_beta_h(int *h_beta, int *h_left, int *h_rows, int *h_cols, in
     free(h_visited);
 }
 
-inline void create_beta(int *d_beta, int *h_rows, int *h_cols, int m, int nnz){
+inline void create_beta(int *d_beta, int *d_left, int *h_rows, int *h_cols, int m, int nnz){
     int *h_beta = (int*)malloc( sizeof(int) * m );
     int *h_left = (int*)malloc( sizeof(int) * m );
     create_beta_h(h_beta, h_left, h_rows, h_cols, m, nnz);

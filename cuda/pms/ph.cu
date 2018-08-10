@@ -219,15 +219,26 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         } else if (strcmp(algstr, "pms")==0){
 
             // beta
-            int *d_beta;
+            int *d_beta, *d_left;
             cudaMalloc((void**)&d_beta, m * sizeof(int));
-            create_beta(d_beta, h_rows, h_cols, m, nnz);
+            cudaMalloc((void**)&d_left, m * sizeof(int));
+            create_beta(d_beta, d_left, h_rows, h_cols, m, nnz);
+
+            printvec(d_low, m, "d_low");
+            printvec(d_beta, m, "d_beta");
+            printvec(d_left, m, "d_left");
+
+            for (int i = 0; i < nnz; i++){
+                printf("(%d, %d) ", h_rows[i], h_cols[i]);
+            }
+            exit(0);
 
             // pms
             pms(d_rows_mp, d_aux_mp, d_low, d_arglow, d_dims, d_dims_order, d_dims_order_next, d_dims_order_start, m, p, complex_dim, d_left, d_beta, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m, numBlocks_cdim, threadsPerBlock_cdim);
 
             // clear beta
             cudaFree(d_beta);
+            cudaFree(d_left);
         }else
             printf("Not recognised");
 
