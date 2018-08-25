@@ -124,6 +124,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 
         indexShiftDown<<<numBlocks_nnz,threadsPerBlock_nnz>>>(d_rows, nnz);
         indexShiftDown<<<numBlocks_nnz,threadsPerBlock_nnz>>>(d_cols, nnz); 
+
         // d_low, d_arglow
         int *d_low, *d_arglow;
 
@@ -185,7 +186,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         cudaMalloc((void**)&d_dims_order, m * sizeof(int));
         cudaMalloc((void**)&d_dims_order_next, m * sizeof(int));
 
-        compute_simplex_dimensions_h(h_rows, h_cols, m, p, nnz,
+        compute_simplex_dimensions_h(h_cols, m, p, nnz,
                 d_dims, d_dims_order, d_dims_order_next, &complex_dim);
         printf("passed compute_simplex_dimension\n");
 
@@ -201,11 +202,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         get_dims_order_start<<<numBlocks_m, threadsPerBlock_m>>>(d_dims, d_dims_order, d_dims_order_start, m);
         cudaDeviceSynchronize();
 
-        printvec(d_dims, m, "d_dims");
-        printvec(d_dims_order, m, "d_dims_order");
-        printvec(d_dims_order_next, m, "d_dims_order_next");
-        printvec(d_dims_order_start, cdim, "d_dims_order_start");
-        printf("complex_dim = %d\n", complex_dim);
+        //DEBUG
+        if (1 == 0){
+            printvec(d_dims, m, "d_dims");
+            printvec(d_dims_order, m, "d_dims_order");
+            printvec(d_dims_order_next, m, "d_dims_order_next");
+            printvec(d_dims_order_start, cdim, "d_dims_order_start");
+            printf("complex_dim = %d\n", complex_dim);
+        }
 
         // -------------------------------
         // Algorithms
@@ -224,14 +228,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             cudaMalloc((void**)&d_left, m * sizeof(int));
             create_beta(d_beta, d_left, h_rows, h_cols, m, nnz);
 
-            printvec(d_low, m, "d_low");
-            printvec(d_beta, m, "d_beta");
-            printvec(d_left, m, "d_left");
+            //DEBUG
+            if (1 == 0){
+                printvec(d_low, m, "d_low");
+                printvec(d_beta, m, "d_beta");
+                printvec(d_left, m, "d_left");
+            }
 
             for (int i = 0; i < nnz; i++){
                 printf("(%d, %d) ", h_rows[i], h_cols[i]);
             }
-            exit(0);
 
             // pms
             pms(d_rows_mp, d_aux_mp, d_low, d_arglow, d_dims, d_dims_order, d_dims_order_next, d_dims_order_start, m, p, complex_dim, d_left, d_beta, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m, numBlocks_cdim, threadsPerBlock_cdim);

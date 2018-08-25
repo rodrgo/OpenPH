@@ -12,11 +12,7 @@ void __global__ matrix_is_reduced(int *d_lows, int *d_aux, int m){
     }
 } 
 
-// Break up alpha_beta_reduce in two:
-//  Find pivots
-//  Reduce
-
-void __global__ mark_pivots(int *d_low, int *d_beta, int *d_classes, int *d_rows_mp, int *d_arglow, int m, int p){
+void __global__ mark_pivots_and_clear(int *d_low, int *d_beta, int *d_classes, int *d_rows_mp, int *d_arglow, int m, int p){
     int j = threadIdx.x + blockDim.x*blockIdx.x;
     if (j < m){
         int low_j = d_low[j]; 
@@ -30,7 +26,6 @@ void __global__ mark_pivots(int *d_low, int *d_beta, int *d_classes, int *d_rows
             d_low[low_j] = -1;
             d_classes[low_j] = 1;
             // Record j as pivot
-            d_pivots[j] = 1;
             d_arglow[low_j] = j;
         }
     }
@@ -74,17 +69,7 @@ void __global__ count_simplices_dim(int *d_dim_count, int *d_dims, int m){
     }
 }
 
-__device__ int d_atomicsum;
-void __global__ count_nonzeros(int *d_vec, int m){
-    int tid = threadIdx.x + blockDim.x*blockIdx.x;
-    if (tid < m){
-        if (d_vec[tid] != 0){
-            atomicAdd(&d_atomicsum, 1);
-        }
-    }
-}
-
-void __global__ phase_i_cdim(int *d_dims, int *d_dims_order, int *d_dims_order_next, int *d_dims_order_start, int *d_low, int *d_arglow, int *d_classes, int *d_clear, int *d_visited, int *d_ceil_cdim, int *d_next_cdim, int m, int cdim){
+void __global__ transverse_dimensions(int *d_dims, int *d_dims_order, int *d_dims_order_next, int *d_dims_order_start, int *d_low, int *d_arglow, int *d_classes, int *d_clear, int *d_visited, int *d_ceil_cdim, int cdim){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < cdim){
         int dim_j; // -1, 0, 1, ..., complex_dim
@@ -93,16 +78,16 @@ void __global__ phase_i_cdim(int *d_dims, int *d_dims_order, int *d_dims_order_n
         int low_j;
         int j = d_dims_order_start[tid];
         int iterate = 1;
-        while (iterate){
+        while (iterate && j > -1){
             dim_j = d_dims[j];
             cdim_pos = dim_j + 1; 
             dim_ceil = d_ceil_cdim[cdim_pos];
             low_j = d_low[j];
             if (low_j > -1){
                 if (d_visited[low_j] == 0){
-                    if (d_classes[tid] == 0 && low_j > dim_ceil){
-                        d_arglow[low_j] = tid;
-                        d_classes[tid] = -1;
+                    if (d_classes[j] == 0 && low_j > dim_ceil){
+                        d_arglow[low_j] = j;
+                        d_classes[j] = -1;
                         d_clear[low_j] = 1;
                     }
                 }else{
@@ -110,6 +95,7 @@ void __global__ phase_i_cdim(int *d_dims, int *d_dims_order, int *d_dims_order_n
                 }
                 d_visited[low_j] = 1;
             }
+            // Iterator
             if (d_dims_order_next[j] == -1){
                 iterate = 0;
             }else{
@@ -153,27 +139,24 @@ void __global__ phase_i(int *d_dims, int *d_dims_order, int *d_low, int *d_arglo
 }
 
 void __global__ phase_ii(int *d_low, int *d_left, int *d_classes, int *d_arglow, int *d_rows_mp, int *d_aux_mp, int m, int p){
-    int tid = threadIdx.x + blockDim.x*blockIdx.x;
-    if (tid < m){
-        int low_j = d_low[tid];
-        int j = tid;
-        if (d_arglow[low_j] > -1){
-            int pivot = d_arglow[low_j];
-            if (pivot < j){
-                left_to_right_device(pivot, j, d_rows_mp, d_aux_mp, d_low, m, p);
-                // alpha_beta_check 
-                low_j = d_low[tid];
-                if (low_j > -1){
-                    if (d_left[low_j] == tid){
-                        // is lowstar, do a twist clearing
-                        d_arglow[low_j] = tid;
-                        d_classes[tid] = -1;
-                        clear_column(low_j, d_rows_mp, p);
-                        d_classes[low_j] = 1;
-                    }
-                }else{
-                    d_classes[tid] = 1;
+    int j = threadIdx.x + blockDim.x*blockIdx.x;
+    if (j < m){
+        int low_j = d_low[j];
+        int pivot = d_arglow[low_j];
+        if (-1 < pivot && pivot < j && d_classes[j] == 0){
+            left_to_right_device(pivot, j, d_rows_mp, d_aux_mp, d_low, m, p);
+            // alpha_beta_check 
+            low_j = d_low[j];
+            if (low_j > -1){
+                if (d_left[low_j] == j){
+                    // is lowstar, do a twist clearing
+                    d_arglow[low_j] = j;
+                    d_classes[j] = -1;
+                    clear_column(low_j, d_rows_mp, p);
+                    d_classes[low_j] = 1;
                 }
+            }else{
+                d_classes[j] = 1;
             }
         }
     }
@@ -216,7 +199,8 @@ inline void compute_simplex_dimensions(int *d_dims, int *d_dims_order, int *p_co
     // d_dims_order
 }
 
-inline void compute_simplex_dimensions_h(int *h_rows, int *h_cols, int m, int p, int nnz, int *d_dims, int *d_dims_order, int *d_dims_order_next, int *p_complex_dimension){
+inline void compute_simplex_dimensions_h(int *h_cols, int m, int p, int nnz, int *d_dims, int *d_dims_order, int *d_dims_order_next, int *p_complex_dimension){
+    // h_rows, h_cols are MATLAB vectors, so are supported on [m] 
     // This one we compute on the host for the moment
     int *h_dims = (int*)malloc( sizeof(int) * m );
     int *h_dims_order = (int*)malloc( sizeof(int) * m );
@@ -224,7 +208,7 @@ inline void compute_simplex_dimensions_h(int *h_rows, int *h_cols, int m, int p,
     for (int i = 0; i < m; i++)
         h_dims[i] = -1;
     for (int i = 0; i < nnz; i++)
-        h_dims[h_cols[i]] += 1;
+        h_dims[h_cols[i]-1] += 1;
 
     int complex_dim = -1;
     for (int i = 0; i < m; i++)
@@ -267,22 +251,6 @@ inline void compute_simplex_dimensions_h(int *h_rows, int *h_cols, int m, int p,
     free(h_dims_order);
 }
 
-/*
-inline void compute_dimension_order(int *d_dims, int *d_dims_order, int *d_last_pos, int cdim, int m, dim3 numBlocks_m, dim3 threadsPerBlock_m){
-    fill<<<numBlocks_m, threadsPerBlock_m>>>(d_last_pos, -1, cdim);
-    fill<<<numBlocks_m, threadsPerBlock_m>>>(d_dims_order, -1, m);
-    int zero = 0;
-    int *d_sentinel;
-    cudaMalloc((void**)&d_sentinel, sizeof(int));
-    //cudaMemcpyToSymbol("d_sentinel", &zero, sizeof(int));
-    cudaMemcpy(d_sentinel, &zero, sizeof(int), cudaMemcpyHostToDevice);
-    cudaDeviceSynchronize();
-    compute_dims_order<<<numBlocks_m, threadsPerBlock_m>>>(d_dims, d_dims_order, d_last_pos, m, d_sentinel);
-    fill<<<numBlocks_m, threadsPerBlock_m>>>(d_last_pos, -1, cdim);
-    cudaFree(d_sentinel);
-}
-*/
-
 int is_reduced(int *d_aux, int *d_lows, int m, dim3 numBlocks_m, dim3 threadsPerBlock_m){
     int one = 1;
     int is_reduced;
@@ -294,15 +262,16 @@ int is_reduced(int *d_aux, int *d_lows, int m, dim3 numBlocks_m, dim3 threadsPer
 }
 
 inline void create_beta_h(int *h_beta, int *h_left, int *h_rows, int *h_cols, int m, int nnz){
+    // Note: Index in h_rows and h_cols starts at 1
     int *h_visited = (int*)malloc( sizeof(int) * m );
     for(int i=0; i<m; i++) h_left[i] = -1;
     for(int i=0; i<m; i++) h_visited[i] = 0;
     for(int i=0; i<m; i++) h_beta[i] = -1;
     for(int l=0; l<nnz; l++)
-        if (h_visited[h_rows[l]] == 0){
-            h_beta[h_cols[l]] = h_beta[h_cols[l]] > h_rows[l] ? h_beta[h_cols[l]] : h_rows[l];
-            h_visited[h_rows[l]] = 1;
-            h_left[h_rows[l]] = h_cols[l];
+        if (h_visited[h_rows[l]-1] == 0){
+            h_beta[h_cols[l]-1] = h_beta[h_cols[l]-1] > h_rows[l]-1 ? h_beta[h_cols[l]-1] : h_rows[l]-1;
+            h_visited[h_rows[l]-1] = 1;
+            h_left[h_rows[l]-1] = h_cols[l]-1;
         }
     free(h_visited);
 }

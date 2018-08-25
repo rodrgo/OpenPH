@@ -89,6 +89,8 @@ __device__ void left_to_right_device(int j0, int j1, int *d_rows_mp, int *d_aux_
             }else{
                 idx0++;
                 idx1++;
+                if (idx0 == idx0_MAX-1 || idx1 == idx1_MAX-1)
+                    printf("WARNING: Column reaching memalloc limit\n");
             }
         }else{
             if (idx0_ok){

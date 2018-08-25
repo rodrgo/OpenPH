@@ -49,16 +49,29 @@ tic;
 [low resRecord timeRecord] = ph('std', int32(rows), int32(cols), int32(vals), int32(m));
 display(sprintf('STANDARD: The tests completed after %s seconds.',toc));
 std_ok = isequal(low_test-1, low);
+if ~isequal(low_test-1, low)
+    display(low_test-1);
+    display(low);
+end
 
 tic;
 [low resRecord timeRecord] = ph('twist', int32(rows), int32(cols), int32(vals), int32(m));
 display(sprintf('TWIST: The tests completed after %s seconds.',toc));
 twist_ok = isequal(low_test-1, low);
+if ~isequal(low_test-1, low)
+    display(low_test-1);
+    display(low);
+end
+
 
 tic;
 [low resRecord timeRecord] = ph('pms', int32(rows), int32(cols), int32(vals), int32(m));
 display(sprintf('PMS: The tests completed after %s seconds.',toc));
 pms_ok = isequal(low_test-1, low);
+if ~isequal(low_test-1, low)
+    display(low_test-1);
+    display(low);
+end
 
 if std_ok && twist_ok && pms_ok
     disp(sprintf('All good :)'));
