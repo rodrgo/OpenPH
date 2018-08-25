@@ -8,4 +8,5 @@
 *.tex
 *.mexa64
 *.tar
+.DS_Store
 

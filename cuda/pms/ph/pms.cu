@@ -1,4 +1,5 @@
 inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d_dims, int *d_dims_order, int *d_dims_order_next, int *d_dims_order_start, const int m, const int p, int complex_dimension, int *d_left, int *d_beta, float *resRecord, float *timeRecord, int *p_iter, dim3 NBm, dim3 TPBm, dim3 NBcdim, dim3 TPBcdim){
+    //  d_pivots[j] = 1  <=> d_arglow[d_low[j]] = j 
 
     // Auxiliary variables
     int *d_aux;
@@ -9,6 +10,11 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
     // -----------------------
     // Do some pre-processing work
     // -----------------------
+
+    // d_pivots (Binary)
+    int *d_pivots;
+    cudaMalloc((void**)&d_pivots, m * sizeof(int));
+    fill<<<NBm, TPBm>>>(d_pivots, 0, m);
 
     // d_classes
     int *d_classes;
@@ -26,13 +32,12 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
     int *d_locks_cdim;
     cudaMalloc((void**)&d_locks_cdim, cdim * sizeof(int));
 
-    // updated
-
     // -----------------------
     // Phase 0
     // -----------------------
 
-    alpha_beta_reduce<<<NBm, TPBm>>>(d_low, d_beta, d_classes, 
+    // only mark pivots. Do clearing in next routine
+    mark_pivots<<<NBm, TPBm>>>(d_pivots, d_low, d_beta, d_classes, 
             d_rows_mp, d_arglow, m, p);
 
     printvec(d_classes, m, "d_classes");
@@ -102,6 +107,7 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
     cudaFree(d_aux);
     cudaFree(d_clear);
     cudaFree(d_classes);
+    cudaFree(d_pivots);
 
 }
 

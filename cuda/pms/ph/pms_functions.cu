@@ -12,6 +12,30 @@ void __global__ matrix_is_reduced(int *d_lows, int *d_aux, int m){
     }
 } 
 
+// Break up alpha_beta_reduce in two:
+//  Find pivots
+//  Reduce
+
+void __global__ mark_pivots(int *d_low, int *d_beta, int *d_classes, int *d_rows_mp, int *d_arglow, int m, int p){
+    int j = threadIdx.x + blockDim.x*blockIdx.x;
+    if (j < m){
+        int low_j = d_low[j]; 
+        int beta_j = d_beta[j];
+        // Check if is pivot
+        if (low_j == beta_j && beta_j > -1){
+            // j is "negative"
+            d_classes[j] = -1;
+            // low_j is positive
+            clear_column(low_j, d_rows_mp, p);
+            d_low[low_j] = -1;
+            d_classes[low_j] = 1;
+            // Record j as pivot
+            d_pivots[j] = 1;
+            d_arglow[low_j] = j;
+        }
+    }
+}
+
 void __global__ compute_dims_order(int *d_dims, int *d_dims_order, int *d_last_pos, int m, int *d_sentinel){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
@@ -27,24 +51,6 @@ void __global__ compute_dims_order(int *d_dims, int *d_dims_order, int *d_last_p
         // free lock
         d_lock = j+1;
         __syncthreads();
-    }
-}
-
-void __global__ alpha_beta_reduce(int *d_low, int *d_beta, int *d_classes, int *d_rows_mp, int *d_arglow, int m, int p){
-    int tid = threadIdx.x + blockDim.x*blockIdx.x;
-    if (tid < m){
-        int alpha = d_low[tid];
-        int beta  = d_beta[tid];
-        if (alpha == beta && beta > -1){
-            // tid is "negative"
-            d_classes[tid] = -1;
-            int pos_pair = d_beta[tid];
-            clear_column(pos_pair, d_rows_mp, p);
-            d_arglow[pos_pair] = beta;
-            d_low[pos_pair] = -1;
-            d_classes[pos_pair] = 1;
-            d_low[beta] = pos_pair;
-        }
     }
 }
 
