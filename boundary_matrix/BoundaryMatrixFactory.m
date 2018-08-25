@@ -17,6 +17,8 @@ function D = BoundaryMatrixFactory(stream, algorithm, as_dense, true_lowstar)
         D = ReductionC8(stream);
     elseif any(ismember(algorithm, {'alpha_beta_parallel'}))
         D = ReductionParallel(stream);
+    elseif any(ismember(algorithm, {'ph_row'}))
+        D = BoundaryMatrix(stream);
     else
         error('Algorithm not identified\n');
     end

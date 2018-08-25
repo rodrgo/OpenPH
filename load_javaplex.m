@@ -4,7 +4,7 @@ clc; clear all; close all;
 
 % Set javaplex directory
 
-JAVAPLEX_DIR = '/home/mendozasmith/src/javaplex/';
+JAVAPLEX_DIR = '/home/rodrigo/workspace/persistent_homology/javaplex';
 
 % Build matlab javaplex directory 
 

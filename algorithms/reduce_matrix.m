@@ -38,6 +38,9 @@ function [lows, t] = reduce_matrix(D, algorithm)
     % Twist reduction
     elseif strcmp(algorithm, 'alpha_beta_parallel')
         [lows, t] = alpha_beta_parallel(D);
+    % ph_row
+    elseif strcmp(algorithm, 'ph_row')
+        [lows, t] = ph_row(D);
     else
         error('Algorithm not identified\n');
     end

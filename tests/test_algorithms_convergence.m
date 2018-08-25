@@ -17,9 +17,9 @@ vr_complexes = {'house', 'random_figure_8', ...
 
 % Algorithms to test
 algorithms = {'std', 'twist', ...
-        'alpha_beta_std', 'rho_std', 'c8_std', ...
-        'alpha_beta_twist', 'rho_twist', 'c8_twist', ...
-	'alpha_beta_parallel'};
+    'alpha_beta_std', 'rho_std', 'c8_std', ...
+    'alpha_beta_twist', 'rho_twist', 'c8_twist', ...
+    'alpha_beta_parallel', 'ph_row'};
 
 % Matrix dense?
 as_dense = true;
@@ -58,6 +58,10 @@ for i = 1:length(vr_complexes)
                 [lows, t] = reduce_stream(stream, algo, as_dense);
 
                 fprintf('\t\t\t%s... ', algo);
+                if ~all(lows == lows_test)
+                    display(lows);
+                    display(lows_test);
+                end
                 assert(all(lows == lows_test), 'Output incorrect!');
                 fprintf('\t\tsuccess in %g secs!\n', t);
 
