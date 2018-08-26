@@ -50,19 +50,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 
         // Assert col order
         int is_col_order = assert_col_order(h_cols, m, nnz);
-        printf("is_col_order = %d\n", is_col_order);
+        // printf("is_col_order = %d\n", is_col_order);
 
         // Count nonzeros in columns and rows
         int max_nnz_rows = get_max_nnz(h_rows, m, nnz);
         int max_nnz_cols = get_max_nnz(h_cols, m, nnz);
 
-        printf("max_nnz_rows : %d\n", max_nnz_rows);
-        printf("max_nnz_cols : %d\n", max_nnz_cols);
+        //DEBUG
+        if (1 == 0){
+            printf("max_nnz_rows : %d\n", max_nnz_rows);
+            printf("max_nnz_cols : %d\n", max_nnz_cols);
+        }
           
-        int p = 2*max_nnz_cols;
+        int p = 3*max_nnz_cols;
         int mp = m * p;
 
-        printf("p = %d\n", p);
+        //DEBUG
+        if (1 == 0){
+            printf("p = %d\n", p);
+        }
 
         // -------------------------------
         // GPU
@@ -74,9 +80,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         int threads_perblock_mp = 0;
         set_gpu_device(gpu_number, &threads_perblock_m, &threads_perblock_nnz, &threads_perblock_mp, m, nnz, p);
 
-        printf("threads_perblock_m:   %d\n", threads_perblock_m);
-        printf("threads_perblock_nnz: %d\n", threads_perblock_nnz);
-        printf("threads_perblock_mp:  %d\n", threads_perblock_mp);
+        //DEBUG
+        if (1 == 0){
+            printf("threads_perblock_m:   %d\n", threads_perblock_m);
+            printf("threads_perblock_nnz: %d\n", threads_perblock_nnz);
+            printf("threads_perblock_mp:  %d\n", threads_perblock_mp);
+        }
 
         dim3 threadsPerBlock_nnz(threads_perblock_nnz);
         int num_blocks_nnz = (int)ceil((float)(nnz)/(float)threads_perblock_nnz);
@@ -188,8 +197,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 
         compute_simplex_dimensions_h(h_cols, m, p, nnz,
                 d_dims, d_dims_order, d_dims_order_next, &complex_dim);
-        printf("passed compute_simplex_dimension\n");
-
         int cdim = complex_dim + 2;
         int threads_perblock_cdim = min(cdim, threads_perblock_m);
         dim3 threadsPerBlock_cdim(threads_perblock_cdim);
@@ -220,6 +227,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             standard(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
         } else if (strcmp(algstr, "twist")==0){
             twist(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
+        } else if (strcmp(algstr, "ph_row")==0){
+            ph_row(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
         } else if (strcmp(algstr, "pms")==0){
 
             // beta
@@ -234,9 +243,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
                 printvec(d_beta, m, "d_beta");
                 printvec(d_left, m, "d_left");
             }
-
-            for (int i = 0; i < nnz; i++){
-                printf("(%d, %d) ", h_rows[i], h_cols[i]);
+            if (1 == 0){
+                for (int i = 0; i < nnz; i++){
+                    printf("(%d, %d) ", h_rows[i], h_cols[i]);
+                }
             }
 
             // pms

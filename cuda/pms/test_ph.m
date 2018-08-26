@@ -63,6 +63,14 @@ if ~isequal(low_test-1, low)
     display(low);
 end
 
+tic;
+[low resRecord timeRecord] = ph('ph_row', int32(rows), int32(cols), int32(vals), int32(m));
+display(sprintf('PH_ROW: The tests completed after %s seconds.',toc));
+pms_ok = isequal(low_test-1, low);
+if ~isequal(low_test-1, low)
+    display(low_test-1);
+    display(low);
+end
 
 tic;
 [low resRecord timeRecord] = ph('pms', int32(rows), int32(cols), int32(vals), int32(m));

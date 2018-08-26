@@ -22,7 +22,7 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
     int cdim = complex_dimension + 2; // -1, 0, 1, 2, ..., complex_dim
     int *d_aux_cdim;    // Auxiliary vector of size cdim 
     cudaMalloc((void**)&d_aux_cdim, cdim * sizeof(int));
-    printf("cdim = %d\n", cdim);
+    // printf("cdim = %d\n", cdim);
 
     // -----------------------
     // Phase 0
@@ -42,7 +42,7 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
 
     while (! converged ){
 
-        printf("iter=%d\n", iter);
+        // printf("iter=%d\n", iter);
 
         // -----------------------
         // Main iteration : Phase I 

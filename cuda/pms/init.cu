@@ -38,6 +38,7 @@ using namespace std;
 #include "ph/pms_functions.cu"
 #include "ph/standard.cu"
 #include "ph/twist.cu"
+#include "ph/ph_row.cu"
 #include "ph/pms.cu"
 
 
