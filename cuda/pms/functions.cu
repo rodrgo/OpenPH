@@ -6,7 +6,7 @@ inline int get_max_nnz(int *h_index, int m, int nnz){
     int *h_nnz_index = (int*)malloc( sizeof(int) * m );
 
     for(int l=0; l<m; l++)   h_nnz_index[l] = 0;
-    for(int l=0; l<nnz; l++) h_nnz_index[h_index[l]] += 1;
+    for(int l=0; l<nnz; l++) h_nnz_index[h_index[l]-1] += 1;
 
     int max_nnz_index = 0;
 

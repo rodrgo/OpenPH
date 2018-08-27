@@ -1,6 +1,6 @@
 
 __device__ int d_lock = 0;
-void __global__ compute_dims_order(int *d_dims, int *d_dims_order, int *d_last_pos, int m, int *d_sentinel){
+__global__ void compute_dims_order(int *d_dims, int *d_dims_order, int *d_last_pos, int m, int *d_sentinel){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         int j = tid;
@@ -18,7 +18,7 @@ void __global__ compute_dims_order(int *d_dims, int *d_dims_order, int *d_last_p
     }
 }
 
-void __global__ get_dims_order_start(int *d_dims, int *d_dims_order, int *d_dims_order_start, int m){
+__global__ void get_dims_order_start(int *d_dims, int *d_dims_order, int *d_dims_order_start, int m){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         if (d_dims_order[tid] == 0){
@@ -28,7 +28,7 @@ void __global__ get_dims_order_start(int *d_dims, int *d_dims_order, int *d_dims
     }
 }
 
-void __global__ count_simplices_dim(int *d_dim_count, int *d_dims, int m){
+__global__ void count_simplices_dim(int *d_dim_count, int *d_dims, int m){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         if (d_dims[tid] > -1){
@@ -37,7 +37,7 @@ void __global__ count_simplices_dim(int *d_dim_count, int *d_dims, int m){
     }
 }
 
- __global__ void get_simplex_dimensions(int *d_simplex_dimensions, int *d_rows_mp, int m, int p){
+__global__ void get_simplex_dimensions(int *d_simplex_dimensions, int *d_rows_mp, int m, int p){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if(tid < m){
         int idx = tid*p;
@@ -49,15 +49,6 @@ void __global__ count_simplices_dim(int *d_dim_count, int *d_dims, int m){
         }
         d_simplex_dimensions[tid] = dim;
     }
-}
-
-inline void compute_simplex_dimensions(int *d_dims, int *d_dims_order, int *p_complex_dimension, int *d_rows_mp, int m, int p, dim3 numBlocks_m, dim3 threadsPerBlock_m){
-    // d_dims
-    get_simplex_dimensions<<<numBlocks_m, threadsPerBlock_m>>>(d_dims, d_rows_mp, m, p);
-    // d_complex_dim
-    thrust::device_ptr<int> dev_ptr = thrust::device_pointer_cast(d_dims);
-    p_complex_dimension[0] = *(thrust::max_element(dev_ptr, dev_ptr + m));
-    // d_dims_order
 }
 
 inline void compute_simplex_dimensions_h(int *h_cols, int m, int p, int nnz, int *d_dims, int *d_dims_order, int *d_dims_order_next, int *p_complex_dimension){
@@ -78,9 +69,9 @@ inline void compute_simplex_dimensions_h(int *h_cols, int m, int p, int nnz, int
 
     // Dimensions are {-1, 0, 1, ..., complex_dim}
     int cdim = complex_dim + 2;
-    int *h_dims_order_aux = (int*)malloc( sizeof(int) * cdim );
     int *h_dims_order_next = (int*)malloc( sizeof(int) * m );
     int *h_past_cdim = (int*)malloc( sizeof(int) * cdim );
+    int *h_dims_order_aux = (int*)malloc( sizeof(int) * cdim );
 
     for (int i = 0; i < cdim; i++)
         h_dims_order_aux[i] = 0;

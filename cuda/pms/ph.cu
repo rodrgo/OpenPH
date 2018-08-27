@@ -62,7 +62,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             printf("max_nnz_cols : %d\n", max_nnz_cols);
         }
           
-        int p = 10*max_nnz_cols;
+        int p = 5*max_nnz_cols;
         int mp = m * p;
 
         //DEBUG
@@ -133,6 +133,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 
         indexShiftDown<<<numBlocks_nnz,threadsPerBlock_nnz>>>(d_rows, nnz);
         indexShiftDown<<<numBlocks_nnz,threadsPerBlock_nnz>>>(d_cols, nnz); 
+        cudaDeviceSynchronize();
 
         // d_low, d_arglow
         int *d_low, *d_arglow;
@@ -218,6 +219,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             printf("complex_dim = %d\n", complex_dim);
         }
 
+        // beta
+        int *d_beta, *d_left;
+        cudaMalloc((void**)&d_beta, m * sizeof(int));
+        cudaMalloc((void**)&d_left, m * sizeof(int));
+
+        create_beta(d_beta, d_left, h_rows, h_cols, m, nnz);
+
+        //DEBUG
+        if (1 == 0){
+            printvec(d_low, m, "d_low");
+            printvec(d_beta, m, "d_beta");
+            printvec(d_left, m, "d_left");
+            for (int i = 0; i < nnz; i++){
+                printf("(%d, %d) ", h_rows[i], h_cols[i]);
+            }
+        }
+
         // -------------------------------
         // Algorithms
         // -------------------------------
@@ -230,40 +248,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         } else if (strcmp(algstr, "ph_row")==0){
             ph_row(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
         } else if (strcmp(algstr, "pms")==0){
-
-            // beta
-            int *d_beta, *d_left;
-            cudaMalloc((void**)&d_beta, m * sizeof(int));
-            cudaMalloc((void**)&d_left, m * sizeof(int));
-            create_beta(d_beta, d_left, h_rows, h_cols, m, nnz);
-
-            //DEBUG
-            if (1 == 0){
-                printvec(d_low, m, "d_low");
-                printvec(d_beta, m, "d_beta");
-                printvec(d_left, m, "d_left");
-            }
-            if (1 == 0){
-                for (int i = 0; i < nnz; i++){
-                    printf("(%d, %d) ", h_rows[i], h_cols[i]);
-                }
-            }
-
-            // pms
             pms(d_rows_mp, d_aux_mp, d_low, d_arglow, d_dims, d_dims_order, d_dims_order_next, d_dims_order_start, m, p, complex_dim, d_left, d_beta, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m, numBlocks_cdim, threadsPerBlock_cdim);
-
-            // clear beta
-            cudaFree(d_beta);
-            cudaFree(d_left);
         }else
             printf("Not recognised");
 
         // matrix: device to host
-        indexShiftUp<<<numBlocks_nnz,threadsPerBlock_nnz>>>(d_rows, nnz);
-        indexShiftUp<<<numBlocks_nnz,threadsPerBlock_nnz>>>(d_cols, nnz); 
-
-        cudaMemcpy(h_rows, d_rows, sizeof(int)*m, cudaMemcpyDeviceToHost);
-        cudaMemcpy(h_cols, d_cols, sizeof(int)*m, cudaMemcpyDeviceToHost);
         cudaMemcpy(h_low,  d_low,  sizeof(int)*m, cudaMemcpyDeviceToHost);
 
         cudaThreadSynchronize();
@@ -276,16 +265,25 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         // CLEANUP
         // free up the allocated memory on the device
 
-        cudaFree(d_rows);
+        // clear beta
+
+        cudaFree(d_low);
+        cudaFree(d_arglow);
+
+        cudaFree(d_beta);
+        cudaFree(d_left);
+
         cudaFree(d_cols);
+        cudaFree(d_rows);
+        cudaFree(d_rows_mp);
+        cudaFree(d_aux_mp);
+
         cudaFree(d_dims);
         cudaFree(d_dims_order);
         cudaFree(d_dims_order_next);
         cudaFree(d_dims_order_start);
-        
-        cudaFree(d_rows_mp);
-        cudaFree(d_aux_mp);
 
+        cudaDeviceSynchronize();
         cublasShutdown();
 
     }  //closes the else ensuring a correct number of input and output arguments

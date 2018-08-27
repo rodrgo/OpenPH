@@ -3,12 +3,12 @@
 // Generic
 // -------------------
 
-void __global__ indexShiftDown(int *d_rows, const int m){
+__global__ void indexShiftDown(int *d_rows, const int m){
   unsigned int xIndex = blockDim.x * blockIdx.x + threadIdx.x;
   if (xIndex < m) d_rows[xIndex] = d_rows[xIndex]-1;
 }
 
-void __global__ indexShiftUp(int *d_rows, const int m){
+__global__ void indexShiftUp(int *d_rows, const int m){
   unsigned int xIndex = blockDim.x * blockIdx.x + threadIdx.x;
   if (xIndex < m) d_rows[xIndex] = d_rows[xIndex]+1;
 }

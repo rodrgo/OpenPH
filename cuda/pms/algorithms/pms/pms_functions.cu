@@ -4,7 +4,7 @@
 // -----------------------
 
 __device__ int d_is_reduced = 1;
-void __global__ matrix_is_reduced(int *d_lows, int *d_aux, int m){
+__global__ void matrix_is_reduced(int *d_lows, int *d_aux, int m){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         int low_j = d_lows[tid];
@@ -16,7 +16,7 @@ void __global__ matrix_is_reduced(int *d_lows, int *d_aux, int m){
     }
 } 
 
-int is_reduced(int *d_aux, int *d_lows, int m, dim3 numBlocks_m, dim3 threadsPerBlock_m){
+inline int is_reduced(int *d_aux, int *d_lows, int m, dim3 numBlocks_m, dim3 threadsPerBlock_m){
     int one = 1;
     int is_reduced;
     cudaMemcpyToSymbol(d_is_reduced, &one, sizeof(int));
@@ -30,7 +30,7 @@ int is_reduced(int *d_aux, int *d_lows, int m, dim3 numBlocks_m, dim3 threadsPer
 // Phase 0
 // -----------------------
 
-void __global__ mark_pivots_and_clear(int *d_low, int *d_beta, int *d_classes, int *d_rows_mp, int *d_arglow, int m, int p){
+__global__ void mark_pivots_and_clear(int *d_low, int *d_beta, int *d_classes, int *d_rows_mp, int *d_arglow, int m, int p){
     int j = threadIdx.x + blockDim.x*blockIdx.x;
     if (j < m){
         int low_j = d_low[j]; 
@@ -49,7 +49,7 @@ void __global__ mark_pivots_and_clear(int *d_low, int *d_beta, int *d_classes, i
     }
 }
 
-void __global__ transverse_dimensions(int *d_dims, int *d_dims_order, int *d_dims_order_next, int *d_dims_order_start, int *d_low, int *d_arglow, int *d_classes, int *d_clear, int *d_visited, int *d_ceil_cdim, int cdim){
+__global__ void transverse_dimensions(int *d_dims, int *d_dims_order, int *d_dims_order_next, int *d_dims_order_start, int *d_low, int *d_arglow, int *d_classes, int *d_clear, int *d_visited, int *d_ceil_cdim, int cdim){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < cdim){
         int dim_j; // -1, 0, 1, ..., complex_dim
@@ -85,7 +85,7 @@ void __global__ transverse_dimensions(int *d_dims, int *d_dims_order, int *d_dim
     }
 }
 
-void __global__ phase_ii(int *d_low, int *d_left, int *d_classes, int *d_arglow, int *d_rows_mp, int *d_aux_mp, int m, int p){
+__global__ void phase_ii(int *d_low, int *d_left, int *d_classes, int *d_arglow, int *d_rows_mp, int *d_aux_mp, int m, int p){
     int j = threadIdx.x + blockDim.x*blockIdx.x;
     if (j < m){
         int low_j = d_low[j];
@@ -109,7 +109,7 @@ void __global__ phase_ii(int *d_low, int *d_left, int *d_classes, int *d_arglow,
     }
 }
 
-void __global__ set_unmarked(int *d_classes, int *d_low, int *d_arglow, int *d_rows_mp, int m, int p){
+__global__ void set_unmarked(int *d_classes, int *d_low, int *d_arglow, int *d_rows_mp, int m, int p){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         if (d_classes[tid] == 0){
@@ -124,7 +124,7 @@ void __global__ set_unmarked(int *d_classes, int *d_low, int *d_arglow, int *d_r
     }
 }
 
-void __global__ clear_positives(int *d_clear, int *d_low, int *d_classes, int *d_rows_mp, int m, int p){
+__global__ void clear_positives(int *d_clear, int *d_low, int *d_classes, int *d_rows_mp, int m, int p){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         if (d_clear[tid] == 1){
