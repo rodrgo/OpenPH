@@ -3,9 +3,9 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
 
     // Auxiliary variables
     int *d_aux;
-    int *d_clear;
+    int *d_is_positive;
     cudaMalloc((void**)&d_aux, m * sizeof(int));
-    cudaMalloc((void**)&d_clear, m * sizeof(int));
+    cudaMalloc((void**)&d_is_positive, m * sizeof(int));
 
     // -----------------------
     // Do some pre-processing work
@@ -22,7 +22,6 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
     int cdim = complex_dimension + 2; // -1, 0, 1, 2, ..., complex_dim
     int *d_aux_cdim;    // Auxiliary vector of size cdim 
     cudaMalloc((void**)&d_aux_cdim, cdim * sizeof(int));
-    // printf("cdim = %d\n", cdim);
 
     // -----------------------
     // Phase 0
@@ -36,13 +35,11 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
     int converged = is_reduced(d_aux, d_low, m, NBm, TPBm);
 
     int iter = 0;
-    thrust::device_ptr<int> d_classes_ptr = thrust::device_pointer_cast(d_classes);
+    //thrust::device_ptr<int> d_classes_ptr = thrust::device_pointer_cast(d_classes);
     //int num_zeros = thrust::count(d_classes_ptr, d_classes_ptr + m, 0);
     //printf("num_zeros=%d\n", num_zeros);
 
     while (! converged ){
-
-        // printf("iter=%d\n", iter);
 
         // -----------------------
         // Main iteration : Phase I 
@@ -50,16 +47,17 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
 
         fill<<<NBm, TPBm>>>(d_aux, 0, m);
         fill<<<NBm, TPBm>>>(d_aux_cdim, -1, cdim); // d_ceil
-        fill<<<NBm, TPBm>>>(d_clear, 0, m);
+        fill<<<NBm, TPBm>>>(d_is_positive, 0, m);
         cudaDeviceSynchronize();
 
-        transverse_dimensions<<<NBcdim, TPBcdim>>>(d_dims, d_dims_order,
-                d_dims_order_next, d_dims_order_start, 
-                d_low, d_arglow, d_classes, d_clear,   
+        transverse_dimensions<<<NBcdim, TPBcdim>>>(d_dims, 
+                d_dims_order, d_dims_order_next, d_dims_order_start, 
+                d_low, d_arglow, d_classes, d_is_positive,   
                 d_aux, d_aux_cdim, cdim);
         cudaDeviceSynchronize();
 
-        clear_phase_i<<<NBm, TPBm>>>(d_low, d_classes, d_rows_mp, d_clear, m, p);
+        clear_positives<<<NBm, TPBm>>>(d_is_positive, 
+                d_low, d_classes, d_rows_mp, m, p);
         cudaDeviceSynchronize();
 
         // -----------------------
@@ -76,18 +74,13 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
         // iter
         iter++;
 
-        //num_zeros = thrust::count(d_classes_ptr, d_classes_ptr + m, 0);
-
-        // record iteration
-        //record_iteration();
-
     }
 
     set_unmarked<<<NBm, TPBm>>>(d_classes, d_low, d_arglow, d_rows_mp, m, p);
 
     cudaFree(d_aux_cdim);
     cudaFree(d_aux);
-    cudaFree(d_clear);
+    cudaFree(d_is_positive);
     cudaFree(d_classes);
 
 }

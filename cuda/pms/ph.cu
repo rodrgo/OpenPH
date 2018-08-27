@@ -140,8 +140,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         cudaMalloc((void**)&d_low,    m * sizeof(int));
         cudaMalloc((void**)&d_arglow, m * sizeof(int));
 
-        minusone_vector_int<<< numBlocks_m, threadsPerBlock_m >>>((int*)d_low, m);
-        minusone_vector_int<<< numBlocks_m, threadsPerBlock_m >>>((int*)d_arglow, m);
+        fill<<< numBlocks_m, threadsPerBlock_m >>>(d_low, -1, m);
+        fill<<< numBlocks_m, threadsPerBlock_m >>>(d_arglow, -1, m);
         cudaDeviceSynchronize();
 
         // d_aux_mp, d_rows_mp
@@ -150,8 +150,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         cudaMalloc((void**)&d_aux_mp,   mp * sizeof(int));
         cudaMalloc((void**)&d_rows_mp,  mp * sizeof(int));
 
-        minusone_vector_int<<< numBlocks_mp, threadsPerBlock_mp >>>((int*)d_aux_mp, mp);
-        minusone_vector_int<<< numBlocks_mp, threadsPerBlock_mp >>>((int*)d_rows_mp, mp);
+        fill<<< numBlocks_mp, threadsPerBlock_mp >>>(d_aux_mp, -1, mp);
+        fill<<< numBlocks_mp, threadsPerBlock_mp >>>(d_rows_mp, -1, mp);
         create_rows_mp<<< numBlocks_nnz, threadsPerBlock_nnz>>>(d_rows, d_cols, d_rows_mp, m, p, nnz);
         cudaDeviceSynchronize();
 
@@ -226,7 +226,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         if (strcmp(algstr, "std")==0){
             standard(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
         } else if (strcmp(algstr, "twist")==0){
-            twist(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
+            twist(d_rows_mp, d_aux_mp, d_low, d_arglow, d_dims, complex_dim, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
         } else if (strcmp(algstr, "ph_row")==0){
             ph_row(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
         } else if (strcmp(algstr, "pms")==0){

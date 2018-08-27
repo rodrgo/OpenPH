@@ -34,7 +34,8 @@ using namespace std;
 #include "debug_tools.cu"
 
 #include "ph/kernels.cu"
-#include "ph/functions.cu"
+#include "ph/dimensions.cu"
+#include "ph/beta.cu"
 #include "ph/pms_functions.cu"
 #include "ph/standard.cu"
 #include "ph/twist.cu"
