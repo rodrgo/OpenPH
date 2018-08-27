@@ -1,5 +1,5 @@
 
-__device__ void left_to_right_device(int j0, int j1, int *d_rows_mp, int *d_aux_mp, int *d_low, int m, int p){
+__device__ void left_to_right(int j0, int j1, int *d_rows_mp, int *d_aux_mp, int *d_low, int m, int p){
     // Compute symmetric difference of supp(j0) and supp(j1) and store in d_aux
     // If rows are initially sorted, this returns a sorted list
     int idx0 = j0*p; 
@@ -58,7 +58,7 @@ __global__ void reduce_col(int j, int *d_rows_mp, int *d_aux_mp, int *d_low, int
         int low_j = d_low[j]; // low_j = -1, 0, 1, ..., m-1
         while (low_j > -1 && d_arglow[low_j] != -1){
             j0 = d_arglow[low_j];
-            left_to_right_device(j0, j, d_rows_mp, d_aux_mp, d_low, m, p);
+            left_to_right(j0, j, d_rows_mp, d_aux_mp, d_low, m, p);
             low_j = d_low[j];
         }
         low_j = d_low[j];

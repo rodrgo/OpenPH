@@ -91,7 +91,7 @@ void __global__ phase_ii(int *d_low, int *d_left, int *d_classes, int *d_arglow,
         int low_j = d_low[j];
         int pivot = d_arglow[low_j];
         if (-1 < pivot && pivot < j && d_classes[j] == 0){
-            left_to_right_device(pivot, j, d_rows_mp, d_aux_mp, d_low, m, p);
+            left_to_right(pivot, j, d_rows_mp, d_aux_mp, d_low, m, p);
             // alpha_beta_check 
             low_j = d_low[j];
             if (low_j > -1){

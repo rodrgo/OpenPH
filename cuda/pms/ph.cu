@@ -62,7 +62,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             printf("max_nnz_cols : %d\n", max_nnz_cols);
         }
           
-        int p = 3*max_nnz_cols;
+        int p = 10*max_nnz_cols;
         int mp = m * p;
 
         //DEBUG
@@ -226,7 +226,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         if (strcmp(algstr, "std")==0){
             standard(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
         } else if (strcmp(algstr, "twist")==0){
-            twist(d_rows_mp, d_aux_mp, d_low, d_arglow, d_dims, complex_dim, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
+            twist(d_rows_mp, d_aux_mp, d_low, d_arglow, d_dims, d_dims_order, d_dims_order_next, d_dims_order_start, complex_dim, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
         } else if (strcmp(algstr, "ph_row")==0){
             ph_row(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
         } else if (strcmp(algstr, "pms")==0){

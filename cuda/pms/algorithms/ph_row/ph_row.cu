@@ -13,7 +13,7 @@ __global__ void mark_neighbours(int i, int *d_is_neighbour, int *d_low, int m){
 __global__ void left_to_right_neighbours(int *d_is_neighbour, int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int m, int p){
     int j = threadIdx.x + blockDim.x*blockIdx.x;
     if (j < m && j > d_pivot && d_is_neighbour[j] == 1 ){
-        left_to_right_device(d_pivot, j, d_rows_mp, d_aux_mp, d_low, m, p);
+        left_to_right(d_pivot, j, d_rows_mp, d_aux_mp, d_low, m, p);
     }
 }
 
