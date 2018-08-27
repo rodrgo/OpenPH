@@ -1,4 +1,17 @@
 
+inline void h2d(int *d_v, int j, int v){
+    cudaMemcpy(d_v+j, &v, sizeof(int), cudaMemcpyHostToDevice);
+    cudaDeviceSynchronize();
+    return;
+}
+
+inline int d2h(int *d_v, int j){
+    int v_j = 0;
+    cudaMemcpy(&v_j, d_v+j, sizeof(int), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
+    return v_j;
+}
+
 inline void printvec(int *d_v, int m, char* s){
     int val = 0;
     printf("%s\n",s);

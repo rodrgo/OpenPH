@@ -32,14 +32,14 @@ using namespace std;
 #include "kernels.cu"
 #include "functions.cu"
 #include "debug_tools.cu"
+#include "dimensions.cu"
 
-#include "ph/kernels.cu"
-#include "ph/dimensions.cu"
-#include "ph/beta.cu"
-#include "ph/pms_functions.cu"
-#include "ph/standard.cu"
-#include "ph/twist.cu"
-#include "ph/ph_row.cu"
-#include "ph/pms.cu"
+#include "algorithms/kernels.cu"
+#include "algorithms/standard/standard.cu"
+#include "algorithms/twist/twist.cu"
+#include "algorithms/ph_row/ph_row.cu"
+#include "algorithms/pms/beta.cu"
+#include "algorithms/pms/pms_functions.cu"
+#include "algorithms/pms/pms.cu"
 
 

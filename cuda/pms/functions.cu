@@ -1,17 +1,4 @@
 
-inline void h2d(int *d_v, int j, int v){
-    cudaMemcpy(d_v+j, &v, sizeof(int), cudaMemcpyHostToDevice);
-    cudaDeviceSynchronize();
-    return;
-}
-
-inline int d2h(int *d_v, int j){
-    int v_j = 0;
-    cudaMemcpy(&v_j, d_v+j, sizeof(int), cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
-    return v_j;
-}
-
 inline int get_max_nnz(int *h_index, int m, int nnz){
     // Get maximum nnz in rows/columns from row/column index.
     // h_index_dim is either h_rows or h_cols
