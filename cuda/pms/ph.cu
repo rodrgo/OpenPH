@@ -18,7 +18,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         // -------------------------------
 
         // inputs
-        int *h_rows, *h_cols, *h_vals;
+        int *h_rows, *h_cols;
         int m;
 
         // outputs
@@ -37,12 +37,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         // Read data
         h_rows = (int*)mxGetData(prhs[1]);
         h_cols = (int*)mxGetData(prhs[2]);
-        h_vals = (int*)mxGetData(prhs[3]);   // Ignore h_vals
-        m      = (int)mxGetScalar(prhs[4]);
+        m      = (int)mxGetScalar(prhs[3]);
 
         // number of non-zeros
         int nnz;
-        nnz = mxGetM(prhs[3]);
+        nnz = mxGetM(prhs[1]);
 
         // -------------------------------
         // Set value of p
