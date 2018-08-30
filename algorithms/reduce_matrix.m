@@ -41,6 +41,15 @@ function [lows, t] = reduce_matrix(D, algorithm)
     % ph_row
     elseif strcmp(algorithm, 'ph_row')
         [lows, t] = ph_row(D);
+    % standard_cuda
+    elseif strcmp(algorithm, 'standard_cuda')
+        [lows, t] = cuda_wrapper(D, 'std');
+    elseif strcmp(algorithm, 'twist_cuda')
+        [lows, t] = cuda_wrapper(D, 'twist');
+    elseif strcmp(algorithm, 'ph_row_cuda')
+        [lows, t] = cuda_wrapper(D, 'ph_row');
+    elseif strcmp(algorithm, 'pms_cuda')
+        [lows, t] = cuda_wrapper(D, 'pms');
     else
         error('Algorithm not identified\n');
     end

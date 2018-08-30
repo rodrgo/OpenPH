@@ -1,5 +1,5 @@
 % PH_ROW.M
-% Standard reduction algorithm
+% Row reduction algorithm
 
 function [lows, t] = ph_row(D)
     t0 = tic;
