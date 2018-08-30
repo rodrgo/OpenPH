@@ -5,7 +5,7 @@ inline void h2d(int *d_v, int j, int v){
     return;
 }
 
-inline int d2h(int *d_v, int j){
+int d2h(int *d_v, int j){
     int v_j = 0;
     cudaMemcpy(&v_j, d_v+j, sizeof(int), cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();

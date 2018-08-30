@@ -253,6 +253,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
             printf("Not recognised");
 
         // matrix: device to host
+        indexShiftUp<<<numBlocks_m,threadsPerBlock_m>>>(d_low, m); 
         cudaMemcpy(h_low,  d_low,  sizeof(int)*m, cudaMemcpyDeviceToHost);
 
         cudaThreadSynchronize();

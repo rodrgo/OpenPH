@@ -85,7 +85,7 @@ __global__ void transverse_dimensions(int *d_dims, int *d_dims_order, int *d_dim
     }
 }
 
-__global__ void phase_ii(int *d_low, int *d_left, int *d_classes, int *d_arglow, int *d_rows_mp, int *d_aux_mp, int m, int p){
+__global__ void phase_ii(int *d_low, int *d_left, int *d_classes, int *d_clear, int *d_arglow, int *d_rows_mp, int *d_aux_mp, int m, int p){
     int j = threadIdx.x + blockDim.x*blockIdx.x;
     if (j < m){
         int low_j = d_low[j];
@@ -99,8 +99,7 @@ __global__ void phase_ii(int *d_low, int *d_left, int *d_classes, int *d_arglow,
                     // is lowstar, do a twist clearing
                     d_arglow[low_j] = j;
                     d_classes[j] = -1;
-                    clear_column(low_j, d_rows_mp, p);
-                    d_classes[low_j] = 1;
+                    d_clear[low_j] = 1;
                 }
             }else{
                 d_classes[j] = 1;
@@ -114,12 +113,14 @@ __global__ void set_unmarked(int *d_classes, int *d_low, int *d_arglow, int *d_r
     if (tid < m){
         if (d_classes[tid] == 0){
             if (d_low[tid] > -1){
-                d_arglow[tid] = tid;
+                d_arglow[d_low[tid]] = tid;
                 d_classes[tid] = -1;
-                clear_column(tid, d_rows_mp, p);
+                clear_column(d_low[tid], d_rows_mp, p);
+                d_low[d_low[tid]] = -1;
+                d_classes[d_low[tid]] = 1;
+            }else{
+                d_classes[tid] = 2;
             }
-        }else{
-            d_classes[tid] = 2; 
         }
     }
 }
@@ -128,9 +129,9 @@ __global__ void clear_positives(int *d_clear, int *d_low, int *d_classes, int *d
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         if (d_clear[tid] == 1){
+            clear_column(tid, d_rows_mp, p);
             d_low[tid] = -1;
             d_classes[tid] = 1;
-            clear_column(tid, d_rows_mp, p);
         }
     }
 }

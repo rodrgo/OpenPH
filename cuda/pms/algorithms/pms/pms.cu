@@ -33,11 +33,7 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
     cudaDeviceSynchronize();
 
     int converged = is_reduced(d_aux, d_low, m, NBm, TPBm);
-
     int iter = 0;
-    //thrust::device_ptr<int> d_classes_ptr = thrust::device_pointer_cast(d_classes);
-    //int num_zeros = thrust::count(d_classes_ptr, d_classes_ptr + m, 0);
-    //printf("num_zeros=%d\n", num_zeros);
 
     while (! converged ){
 
@@ -64,8 +60,15 @@ inline void pms(int *d_rows_mp, int *d_aux_mp, int *d_low, int *d_arglow, int *d
         // Main iteration : Phase II 
         // -----------------------
 
+        fill<<<NBm, TPBm>>>(d_is_positive, 0, m);
+        cudaDeviceSynchronize();
+
         phase_ii<<<NBm, TPBm>>>(d_low, d_left, d_classes, 
-                d_arglow, d_rows_mp, d_aux_mp, m, p);
+                d_is_positive, d_arglow, d_rows_mp, d_aux_mp, m, p);
+        cudaDeviceSynchronize();
+
+        clear_positives<<<NBm, TPBm>>>(d_is_positive, 
+                d_low, d_classes, d_rows_mp, m, p);
         cudaDeviceSynchronize();
 
         // Check again if its reduced
