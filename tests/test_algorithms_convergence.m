@@ -20,6 +20,8 @@ vr_complexes = {'house', ...
                 'random_trefoil_knot', ...
                 'random_gaussian'};
 
+%vr_complexes = {'random_gaussian'};
+
 % Algorithms to test
 algorithms = {  'std', ...
                 'twist', ...
@@ -39,6 +41,8 @@ algorithms = {  'std', ...
                 'ph_row', ...
                 'ph_row_cuda', ...
                 'pms_cuda'};
+
+algorithms = { 'standard_cuda' };
 
 % Matrix dense?
 as_dense = true;
@@ -74,7 +78,7 @@ for i = 1:length(vr_complexes)
 
                 algo = algorithms{l};
 
-                [lows, t] = reduce_stream(stream, algo, as_dense);
+                [lows, t] = reduce_stream(stream, algo, as_dense, lows_test);
 
                 fprintf('\t\t\t%s... ', algo);
                 if ~all(lows == lows_test)

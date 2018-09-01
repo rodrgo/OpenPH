@@ -1,5 +1,5 @@
 
-inline int get_max_nnz(int *h_index, int m, int nnz){
+inline int max_nnz(int *h_index, int m, int nnz){
     // Get maximum nnz in rows/columns from row/column index.
     // h_index_dim is either h_rows or h_cols
 
@@ -20,7 +20,11 @@ inline int get_max_nnz(int *h_index, int m, int nnz){
     return max_nnz_index;
 } 
 
-inline int assert_col_order(int *h_cols, int m, int nnz){
+inline int num_blocks(int m, int threads_perblock){
+    return (int)ceil((float)m/(float)threads_perblock);
+}
+
+inline int assert_col_order(int *h_cols, int nnz){
     int is_col_order = 1;
     for (int l=1; l<nnz; l++)
         if (h_cols[l] < h_cols[l-1]){
@@ -58,5 +62,30 @@ inline void set_gpu_device(int gpuNumber, int *p_threads_perblock_m, int *p_thre
     *p_threads_perblock_m   = min(m, max_threads_per_block); 
     *p_threads_perblock_nnz = min(nnz, max_threads_per_block);
     *p_threads_perblock_mp  = min(mp, max_threads_per_block);
+
+}
+
+inline void create_rows(int *h_rows, int *h_cols, int* d_rows_mp, int m, int p, int nnz, dim3 NBnnz, dim3 TPBnnz, dim3 NBmp, dim3 TPBmp){
+
+    int *d_rows_in, *d_cols_in;
+
+    cudaMalloc((void**)&d_rows_in, nnz * sizeof(int));
+    cudaMalloc((void**)&d_cols_in, nnz * sizeof(int));
+
+    cudaMemcpy(d_rows_in, h_rows, sizeof(int)*nnz, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_cols_in, h_cols, sizeof(int)*nnz, cudaMemcpyHostToDevice);
+
+    indexShiftDown<<<NBnnz, TPBnnz>>>(d_rows_in, nnz);
+    indexShiftDown<<<NBnnz, TPBnnz>>>(d_cols_in, nnz); 
+    cudaDeviceSynchronize();
+
+    int mp = m * p;
+
+    fill<<<NBmp, TPBmp>>>(d_rows_mp, -1, mp);
+    create_rows_mp<<<NBnnz, TPBnnz>>>(d_rows_in, d_cols_in, d_rows_mp, m, p, nnz);
+    cudaDeviceSynchronize();
+
+    cudaFree(d_cols_in);
+    cudaFree(d_rows_in);
 
 }

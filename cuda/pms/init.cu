@@ -35,11 +35,13 @@ using namespace std;
 #include "dimensions.cu"
 
 #include "algorithms/kernels.cu"
+#include "algorithms/tracker.cu"
 #include "algorithms/standard/standard.cu"
 #include "algorithms/twist/twist.cu"
 #include "algorithms/ph_row/ph_row.cu"
 #include "algorithms/pms/beta.cu"
 #include "algorithms/pms/pms_functions.cu"
 #include "algorithms/pms/pms.cu"
+#include "algorithms/algorithm_factory.cu"
 
 

@@ -68,3 +68,26 @@ __global__ void reduce_col(int j, int *d_rows_mp, int *d_aux_mp, int *d_low, int
     }
 }
 
+__global__ void update_classes(int *d_classes, int *d_low, int *d_arglow, int m){
+    int tid = threadIdx.x + blockDim.x*blockIdx.x;
+    if(tid < m){
+        if (d_arglow[tid] > -1){
+            d_classes[d_arglow[tid]] = -1;
+            d_classes[tid] = 1;
+        }
+    }
+}
+
+// TODO: Complete
+__global__ void ess_hat(int *d_essential_hat, int *d_low, int *d_arglow, int m){
+    int j = threadIdx.x + blockDim.x*blockIdx.x;
+    if(j < m){
+        if (d_low[j] > -1){
+            d_essential_hat[d_low[j]] = 0;
+        }
+        if (d_arglow[j] > -1){
+            d_essential_hat[d_arglow[j]] = 0;
+            d_essential_hat[j] = 0;
+        }
+    }
+}

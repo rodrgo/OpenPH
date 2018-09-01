@@ -43,7 +43,7 @@ function [lows, t] = reduce_matrix(D, algorithm)
         [lows, t] = ph_row(D);
     % standard_cuda
     elseif strcmp(algorithm, 'standard_cuda')
-        [lows, t] = cuda_wrapper(D, 'std');
+        [lows, t] = cuda_wrapper(D, 'standard');
     elseif strcmp(algorithm, 'twist_cuda')
         [lows, t] = cuda_wrapper(D, 'twist');
     elseif strcmp(algorithm, 'ph_row_cuda')

@@ -103,3 +103,10 @@ inline void compute_simplex_dimensions_h(int *h_cols, int m, int p, int nnz, int
     free(h_dims_order);
 }
 
+inline void create_dim_start(int *d_dim, int *d_dim_order, int *d_dim_start, int cdim, int m, dim3 NBm, dim3 TPBm, dim3 NBcdim, dim3 TPBcdim){
+
+    fill<<<NBcdim, TPBcdim>>>(d_dim_start, -1, cdim);
+    get_dims_order_start<<<NBm, TPBm>>>(d_dim, d_dim_order, d_dim_start, m);
+    cudaDeviceSynchronize();
+
+}

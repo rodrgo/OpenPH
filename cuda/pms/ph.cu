@@ -9,25 +9,19 @@
 // Host function
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 
-    if ( nlhs!=3 & nrhs != 5)
-        printf("[Error nlhs not 3]");
+    if ( nlhs!=3 & nrhs!=6 )
+        printf("[Error in number of inputs or number of outputs]");
     else {
-
-        // -------------------------------
-        // Define I/O
-        // -------------------------------
-
-        // inputs
-        int *h_rows, *h_cols;
-        int m;
-
-        // outputs
-        int *h_low;
-        float *resRecord, *timeRecord;
 
         // -------------------------------
         // Read Inputs
         // -------------------------------
+
+        // inputs
+        int *h_rows_in, *h_cols_in;
+        int m;
+        int col_scale;
+        int *h_low_true;
 
         // reading in the string to determine the algorithm
         int strlen = mxGetN(prhs[0])+1;
@@ -35,38 +29,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         int algerr = mxGetString(prhs[0], algstr, strlen);
 
         // Read data
-        h_rows = (int*)mxGetData(prhs[1]);
-        h_cols = (int*)mxGetData(prhs[2]);
-        m      = (int)mxGetScalar(prhs[3]);
-
-        // number of non-zeros
-        int nnz;
-        nnz = mxGetM(prhs[1]);
+        h_rows_in  = (int*)mxGetData(prhs[1]);
+        h_cols_in  = (int*)mxGetData(prhs[2]);
+        m          = (int)mxGetScalar(prhs[3]);
+        col_scale  = (int)mxGetScalar(prhs[4]);  
+        h_low_true = (int*)mxGetData(prhs[5]);  
 
         // -------------------------------
-        // Set value of p
+        // Get nnz and p
         // -------------------------------
 
-        // Assert col order
-        int is_col_order = assert_col_order(h_cols, m, nnz);
-        // printf("is_col_order = %d\n", is_col_order);
+        int nnz = mxGetM(prhs[1]);
+        int p   = col_scale * max_nnz(h_cols_in, m, nnz);
+        int mp  = m * p;
 
-        // Count nonzeros in columns and rows
-        int max_nnz_rows = get_max_nnz(h_rows, m, nnz);
-        int max_nnz_cols = get_max_nnz(h_cols, m, nnz);
-
-        //DEBUG
-        if (1 == 0){
-            printf("max_nnz_rows : %d\n", max_nnz_rows);
-            printf("max_nnz_cols : %d\n", max_nnz_cols);
-        }
-          
-        int p = 5*max_nnz_cols;
-        int mp = m * p;
-
-        //DEBUG
-        if (1 == 0){
-            printf("p = %d\n", p);
+        if (assert_col_order(h_cols_in, nnz) == 0){
+            printf("WARNING: Matrix incorrect!\n");
         }
 
         // -------------------------------
@@ -74,214 +52,198 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         // -------------------------------
 
         int gpu_number = 3;
-        int threads_perblock_m  = 0;
-        int threads_perblock_nnz = 0;
-        int threads_perblock_mp = 0;
-        set_gpu_device(gpu_number, &threads_perblock_m, &threads_perblock_nnz, &threads_perblock_mp, m, nnz, p);
 
-        //DEBUG
-        if (1 == 0){
-            printf("threads_perblock_m:   %d\n", threads_perblock_m);
-            printf("threads_perblock_nnz: %d\n", threads_perblock_nnz);
-            printf("threads_perblock_mp:  %d\n", threads_perblock_mp);
-        }
+        int tpb_m   = 0; // threads per block (m)
+        int tpb_nnz = 0; // threads per block (nnz)
+        int tpb_mp  = 0; // threads per block (mp)
 
-        dim3 threadsPerBlock_nnz(threads_perblock_nnz);
-        int num_blocks_nnz = (int)ceil((float)(nnz)/(float)threads_perblock_nnz);
-        dim3 numBlocks_nnz(num_blocks_nnz);
+        set_gpu_device(gpu_number, &tpb_m, &tpb_nnz, &tpb_mp, m, nnz, p);
 
-        dim3 threadsPerBlock_m(threads_perblock_m);
-        int num_blocks_m = (int)ceil((float)m/(float)threads_perblock_m);
-        dim3 numBlocks_m(num_blocks_m);
+        dim3 TPBnnz(tpb_nnz);
+        dim3 NBnnz(num_blocks(nnz, tpb_nnz));
 
-        dim3 threadsPerBlock_mp(threads_perblock_mp);
-        int num_blocks_mp = (int)ceil((float)mp/(float)threads_perblock_mp);
-        dim3 numBlocks_mp(num_blocks_mp);
+        dim3 TPBm(tpb_m);
+        dim3 NBm(num_blocks(m, tpb_m));
+
+        dim3 TPBmp(tpb_mp);
+        dim3 NBmp(num_blocks(mp, tpb_mp));
 
         // -------------------------------
         // Outputs
         // -------------------------------
+
+        // outputs
+        int *h_low;
+        float *error_linf, *error_lone, *error_redu, *error_ess;
+        float *time_track; 
+        int *h_ess;
         
-        // Create output
         plhs[0] = mxCreateNumericMatrix(1, m, mxINT32_CLASS, mxREAL);
-        h_low  = (int*) mxGetData(plhs[0]);  
+        plhs[1] = mxCreateNumericMatrix(1, m, mxINT32_CLASS, mxREAL);
+        plhs[2] = mxCreateNumericMatrix(1, m+1, mxSINGLE_CLASS, mxREAL);
+        plhs[3] = mxCreateNumericMatrix(1, m+1, mxSINGLE_CLASS, mxREAL);
+        plhs[4] = mxCreateNumericMatrix(1, m+1, mxSINGLE_CLASS, mxREAL);
+        plhs[5] = mxCreateNumericMatrix(1, m+1, mxSINGLE_CLASS, mxREAL);
+        plhs[6] = mxCreateNumericMatrix(1, m+1, mxSINGLE_CLASS, mxREAL);
 
-        plhs[1] = mxCreateNumericMatrix((m + 1), 1, mxSINGLE_CLASS, mxREAL);
-        resRecord = (float*) mxGetData(plhs[1]);
+        h_low      = (int*) mxGetData(plhs[0]);  
+        h_ess      = (int*) mxGetData(plhs[1]);
+        error_linf = (float*) mxGetData(plhs[2]);
+        error_lone = (float*) mxGetData(plhs[3]);
+        error_redu = (float*) mxGetData(plhs[4]);
+        error_ess  = (float*) mxGetData(plhs[5]); 
+        time_track = (float*) mxGetData(plhs[6]);
 
-        plhs[2] = mxCreateNumericMatrix((m + 1), 1, mxSINGLE_CLASS, mxREAL);
-        timeRecord = (float*) mxGetData(plhs[2]);
+        // Initialise
 
-        // initialise options at default values
-        unsigned int seed = clock();
+        for (int i=0; i<m  ; i++) h_low[i]      = -1;
+        for (int i=0; i<m  ; i++) h_ess[i]      = -1;
+        for (int i=0; i<m+1; i++) error_linf[i] = -1;
+        for (int i=0; i<m+1; i++) error_lone[i] = -1;
+        for (int i=0; i<m+1; i++) error_redu[i] = -1;
+        for (int i=0; i<m+1; i++) error_ess[i]  = -1;
+        for (int i=0; i<m+1; i++) time_track[i] = -1;
 
         // -------------------------------
         // Create data on device
         // -------------------------------
 
         // d_rows, d_cols
-        int *d_rows, *d_cols;
+        int *d_rows; 
+        cudaMalloc((void**)&d_rows, mp * sizeof(int));
+        create_rows(h_rows_in, h_cols_in, d_rows, m, p, nnz, NBnnz, TPBnnz, NBmp, TPBmp);
 
-        cudaMalloc((void**)&d_rows, nnz * sizeof(int));
-        cudaMalloc((void**)&d_cols, nnz * sizeof(int));
+        // device vectors
+        int *d_low, *d_arglow, *d_classes, *d_ess;
+        int *d_aux_mp;
 
-        cudaMemcpy(d_rows, h_rows, sizeof(int)*nnz, cudaMemcpyHostToDevice);
-        cudaDeviceSynchronize();
-        cudaMemcpy(d_cols, h_cols, sizeof(int)*nnz, cudaMemcpyHostToDevice);
-        cudaDeviceSynchronize();
-
-        indexShiftDown<<<numBlocks_nnz,threadsPerBlock_nnz>>>(d_rows, nnz);
-        indexShiftDown<<<numBlocks_nnz,threadsPerBlock_nnz>>>(d_cols, nnz); 
-        cudaDeviceSynchronize();
-
-        // d_low, d_arglow
-        int *d_low, *d_arglow;
-
-        cudaMalloc((void**)&d_low,    m * sizeof(int));
+        cudaMalloc((void**)&d_low, m * sizeof(int));
         cudaMalloc((void**)&d_arglow, m * sizeof(int));
+        cudaMalloc((void**)&d_classes, m * sizeof(int));
+        cudaMalloc((void**)&d_ess, m * sizeof(int));
+        cudaMalloc((void**)&d_aux_mp, mp * sizeof(int));
 
-        fill<<< numBlocks_m, threadsPerBlock_m >>>(d_low, -1, m);
-        fill<<< numBlocks_m, threadsPerBlock_m >>>(d_arglow, -1, m);
+        fill<<<NBm, TPBm>>>(d_low, -1, m);
+        fill<<<NBm, TPBm>>>(d_arglow, -1, m);
+        fill<<<NBm, TPBm>>>(d_classes, 0, m);
+        fill<<<NBm, TPBm>>>(d_ess, 1, m);
+        fill<<<NBmp,TPBmp>>>(d_aux_mp, -1, mp);
         cudaDeviceSynchronize();
 
-        // d_aux_mp, d_rows_mp
-        int *d_rows_mp, *d_aux_mp;
-
-        cudaMalloc((void**)&d_aux_mp,   mp * sizeof(int));
-        cudaMalloc((void**)&d_rows_mp,  mp * sizeof(int));
-
-        fill<<< numBlocks_mp, threadsPerBlock_mp >>>(d_aux_mp, -1, mp);
-        fill<<< numBlocks_mp, threadsPerBlock_mp >>>(d_rows_mp, -1, mp);
-        create_rows_mp<<< numBlocks_nnz, threadsPerBlock_nnz>>>(d_rows, d_cols, d_rows_mp, m, p, nnz);
+        compute_low<<<NBm, TPBm>>>(d_rows, d_low, m, p);
         cudaDeviceSynchronize();
 
-        compute_low_mp<<<numBlocks_m,threadsPerBlock_m>>>(d_rows_mp, d_low, m, p);
+        // d_low_true
+        int *d_low_true;
+        cudaMalloc((void**)&d_low_true, m * sizeof(int));
+        cudaMemcpy(d_low_true, h_low_true, sizeof(int)*m, cudaMemcpyHostToDevice);
         cudaDeviceSynchronize();
 
-        //DEBUG
-        if (1 == 0){
-            printvec(d_arglow, m, "ARGLOW");
-            printvec(d_low, m, "LOW");
-        }
+        indexShiftDown<<<NBm, TPBm>>>(d_low_true, m);
+        cudaDeviceSynchronize();
 
-        // DEBUG
-        if (1 == 0){
-            print_matrix_cols(d_rows, d_cols, nnz);
-            print_matrix_cols_mp(d_rows_mp, m, p);
-        }
+        // d_ess_true
+        int *d_ess_true;
+        cudaMalloc((void**)&d_ess_true, m * sizeof(int));
+
+        fill<<<NBm, TPBm>>>(d_ess_true, 0, m);
+        cudaDeviceSynchronize();
+
+        compute_ess_true<<<NBm, TPBm>>>(d_low_true, d_ess_true, m);
+        cudaDeviceSynchronize();
 
         // -------------------------------
         // Get PH vectors
         // -------------------------------
 
-        cudaEvent_t startIHT, stopIHT;
-        float timeIHT;
-        cudaEventCreate(&startIHT);
-        cudaEventCreate(&stopIHT);
-        cudaEventRecord(startIHT,0);
+        float time;
+        cudaEvent_t start, stop;
+        cudaEventCreate(&start);
+        cudaEventCreate(&stop);
+        cudaEventRecord(start, 0);
 
         // -------------------------------
-        // simplex dimensions, complex dimension, dimension order
+        // Dimensions
         // -------------------------------
         
-        // d_dims: Dim of simplex j (-1, 0, 1, ..., complex_dim)
-        // j is "d_dims_order[j]"-th simplex in dim_j
-        // max(d_dims), dimension of complex
+        // d_dim:           Dim of simplex j (-1, 0, 1, ..., complex_dim)
+        // d_dim_order[j]:  Order of simplex j in dimension d_dim[j]
+        // d_dim_start[d]:  Position of first simplex in dimension "d" in d_dim
+        // d_dim_next[j]:   Simplex of dimension d_dim[j] after "j"
 
-        int *d_dims, *d_dims_order; 
-        int *d_dims_order_next;
+        int *d_dim, *d_dim_order, *d_dim_next, *d_dim_start;
         int complex_dim = -1;
-        cudaMalloc((void**)&d_dims, m * sizeof(int));
-        cudaMalloc((void**)&d_dims_order, m * sizeof(int));
-        cudaMalloc((void**)&d_dims_order_next, m * sizeof(int));
 
-        compute_simplex_dimensions_h(h_cols, m, p, nnz,
-                d_dims, d_dims_order, d_dims_order_next, &complex_dim);
+        cudaMalloc((void**)&d_dim, m * sizeof(int));
+        cudaMalloc((void**)&d_dim_order, m * sizeof(int));
+        cudaMalloc((void**)&d_dim_next, m * sizeof(int));
+
+        compute_simplex_dimensions_h(h_cols_in, m, p, nnz, d_dim, d_dim_order, d_dim_next, &complex_dim);
+
         int cdim = complex_dim + 2;
-        int threads_perblock_cdim = min(cdim, threads_perblock_m);
-        dim3 threadsPerBlock_cdim(threads_perblock_cdim);
-        int num_blocks_cdim = (int)ceil((float)cdim/(float)threads_perblock_cdim);
-        dim3 numBlocks_cdim(num_blocks_cdim);
+        cudaMalloc((void**)&d_dim_start, cdim * sizeof(int));
 
-        int *d_dims_order_start;
-        cudaMalloc((void**)&d_dims_order_start, cdim * sizeof(int));
-        fill<<<numBlocks_cdim, threadsPerBlock_cdim>>>(d_dims_order_start, -1, cdim);
-        get_dims_order_start<<<numBlocks_m, threadsPerBlock_m>>>(d_dims, d_dims_order, d_dims_order_start, m);
-        cudaDeviceSynchronize();
+        int threads_perblock_cdim = min(cdim, tpb_m);
+        dim3 TPBcdim(threads_perblock_cdim);
+        dim3 NBcdim(num_blocks(cdim, threads_perblock_cdim));
 
-        //DEBUG
-        if (1 == 0){
-            printvec(d_dims, m, "d_dims");
-            printvec(d_dims_order, m, "d_dims_order");
-            printvec(d_dims_order_next, m, "d_dims_order_next");
-            printvec(d_dims_order_start, cdim, "d_dims_order_start");
-            printf("complex_dim = %d\n", complex_dim);
-        }
+        create_dim_start(d_dim, d_dim_order, d_dim_start, cdim, m, NBm, TPBm, NBcdim, TPBcdim);
 
-        // beta
+        // left, beta
         int *d_beta, *d_left;
         cudaMalloc((void**)&d_beta, m * sizeof(int));
         cudaMalloc((void**)&d_left, m * sizeof(int));
-
-        create_beta(d_beta, d_left, h_rows, h_cols, m, nnz);
-
-        //DEBUG
-        if (1 == 0){
-            printvec(d_low, m, "d_low");
-            printvec(d_beta, m, "d_beta");
-            printvec(d_left, m, "d_left");
-            for (int i = 0; i < nnz; i++){
-                printf("(%d, %d) ", h_rows[i], h_cols[i]);
-            }
-        }
+        create_beta(d_beta, d_left, h_rows_in, h_cols_in, m, nnz);
 
         // -------------------------------
         // Algorithms
         // -------------------------------
 
         int iter  = 0;
-        if (strcmp(algstr, "std")==0){
-            standard(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
-        } else if (strcmp(algstr, "twist")==0){
-            twist(d_rows_mp, d_aux_mp, d_low, d_arglow, d_dims, d_dims_order, d_dims_order_next, d_dims_order_start, complex_dim, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
-        } else if (strcmp(algstr, "ph_row")==0){
-            ph_row(d_rows_mp, d_aux_mp, d_low, d_arglow, m, p, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m);
-        } else if (strcmp(algstr, "pms")==0){
-            pms(d_rows_mp, d_aux_mp, d_low, d_arglow, d_dims, d_dims_order, d_dims_order_next, d_dims_order_start, m, p, complex_dim, d_left, d_beta, resRecord, timeRecord, &iter, numBlocks_m, threadsPerBlock_m, numBlocks_cdim, threadsPerBlock_cdim);
-        }else
-            printf("Not recognised");
+        algorithm_factory(algstr, d_low, d_arglow,
+                d_classes, d_ess, d_rows, d_dim,
+                d_dim_order, d_dim_next, d_dim_start, 
+                d_beta, d_left,
+                m, p, complex_dim, d_aux_mp, d_low_true, d_ess_true,
+                error_lone, error_linf, error_redu, error_ess,
+                time_track, &iter, NBm, TPBm, NBcdim,
+                TPBcdim);
 
         // matrix: device to host
-        indexShiftUp<<<numBlocks_m,threadsPerBlock_m>>>(d_low, m); 
-        cudaMemcpy(h_low,  d_low,  sizeof(int)*m, cudaMemcpyDeviceToHost);
+        indexShiftUp<<<NBm, TPBm>>>(d_low, m); 
+        cudaDeviceSynchronize();
+
+        cudaMemcpy(h_low, d_low, sizeof(int)*m, cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_ess, d_ess, sizeof(int)*m, cudaMemcpyDeviceToHost);
+        cudaDeviceSynchronize();
 
         cudaThreadSynchronize();
-        cudaEventRecord(stopIHT,0);
-        cudaEventSynchronize(stopIHT);
-        cudaEventElapsedTime(&timeIHT, startIHT, stopIHT);
-        cudaEventDestroy(startIHT);
-        cudaEventDestroy(stopIHT);
+        cudaEventRecord(stop,0);
+        cudaEventSynchronize(stop);
+        cudaEventElapsedTime(&time, start, stop);
+        cudaEventDestroy(start);
+        cudaEventDestroy(stop);
 
-        // CLEANUP
-        // free up the allocated memory on the device
-
-        // clear beta
+        // cudaFree
 
         cudaFree(d_low);
         cudaFree(d_arglow);
+        cudaFree(d_classes);
+        cudaFree(d_ess);
+
+        cudaFree(d_low_true);
+        cudaFree(d_ess_true);
 
         cudaFree(d_beta);
         cudaFree(d_left);
 
-        cudaFree(d_cols);
         cudaFree(d_rows);
-        cudaFree(d_rows_mp);
         cudaFree(d_aux_mp);
 
-        cudaFree(d_dims);
-        cudaFree(d_dims_order);
-        cudaFree(d_dims_order_next);
-        cudaFree(d_dims_order_start);
+        cudaFree(d_dim);
+        cudaFree(d_dim_order);
+        cudaFree(d_dim_next);
+        cudaFree(d_dim_start);
 
         cudaDeviceSynchronize();
         cublasShutdown();

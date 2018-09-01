@@ -37,7 +37,7 @@ __global__ void create_rows_mp(int *d_rows, int *d_cols, int *d_rows_mp, int m, 
     }
 }
 
- __global__ void compute_low_mp(int *d_rows_mp, int *d_low, int m, int p){
+ __global__ void compute_low(int *d_rows_mp, int *d_low, int m, int p){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     // We assume col major order
     if(tid < m){
@@ -48,6 +48,16 @@ __global__ void create_rows_mp(int *d_rows, int *d_cols, int *d_rows_mp, int m, 
             low = d_rows_mp[idx++];
         }
         d_low[tid] = low;
+    }
+}
+
+__global__ void compute_ess_true(int *d_low_true, int *d_ess_true, int m){
+    int j = threadIdx.x + blockDim.x*blockIdx.x;
+    if(j < m){
+        if (d_low_true[j] > -1){
+            d_ess_true[j] = 0;
+            d_ess_true[d_low_true[j]] = 0;
+        }
     }
 }
 
