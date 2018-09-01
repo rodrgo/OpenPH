@@ -1,7 +1,7 @@
 % cuda_wrapper.M
 % Standard reduction algorithm
 
-function [lows, t] = cuda_wrapper(D, algorithm)
+function [low, t, ess, err_linf, err_lone, err_redu, err_ess, time_track] = cuda_wrapper(D, algorithm)
     % Matrix
     m = D.m;
     [r, c, v] = find(D.matrix);
@@ -13,8 +13,23 @@ function [lows, t] = cuda_wrapper(D, algorithm)
     end
     % Run algorithm
     t0 = tic;
-    [low resRecord timeRecord] = ph(algorithm, int32(r), int32(c), int32(m), int32(5), int32(lows_true));
+    [o1 o2 o3 o4 o5 o6 o7] = ph(algorithm, int32(r), int32(c), int32(m), int32(5), int32(lows_true));
     t = toc(t0);
-    % Double lows
-    lows = double(low);
+    % outputs
+    low         = double(o1);
+    ess         = double(o2);
+    err_linf    = double(o3);
+    err_lone    = double(o4);
+    err_redu    = double(o5);
+    err_ess     = double(o6);
+    time_track  = double(o7);
+    if false
+        display(low)
+        display(ess)
+        display(err_linf)
+        display(err_lone)
+        display(err_redu)
+        display(err_ess)
+        display(time_track)
+    end
 end

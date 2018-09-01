@@ -1,62 +1,93 @@
 
-__device__ int d_int_tracker;
-
-__global__ void compute_norm_linf(int *d_vec_1, int *d_vec_2, int m){
+__global__ void diff(float *d_res, int *d_vec_1, int *d_vec_2, int m){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
-        int diff = abs(d_vec_1[tid] - d_vec_2[tid]);
-        atomicMax(&d_int_tracker, diff);
+        d_res[tid] = ((float) d_vec_1[tid] - d_vec_2[tid]);
     }
 } 
 
-inline int norm_linf(int *d_lows, int *d_lows_baseline, int m, dim3 NBm, dim3 TPBm){
-    int zero = 0;
-    int ninf;
-    cudaMemcpyToSymbol(d_int_tracker, &zero, sizeof(int));
-    compute_norm_linf<<<NBm, TPBm>>>(d_lows, d_lows_baseline, m);
-    cudaDeviceSynchronize();
-    cudaMemcpyFromSymbol(&ninf, d_int_tracker, sizeof(int));
-    return ninf;
-}
-
-/*
-   In our design d_classes[j] != 0 iff "we know j is reduced"
-*/
-__global__ void count_values_equal_to(int value, int *d_vec, int m){
+__global__ void eq_value(float *d_res, int *d_v, int val, int m){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
-        if (d_vec[tid] == value){
-            atomicAdd(&d_int_tracker, 1);
+        if (d_v[tid] == val){
+            d_res[tid] = 1.0f;
+        }else{
+            d_res[tid] = 0.0f;
         }
     }
 } 
 
-inline int get_percentage_unreduced(int *d_classes, int m, dim3 NBm, dim3 TPBm){
-    int zero = 0;
-    int progress;
-    cudaMemcpyToSymbol(d_int_tracker, &zero, sizeof(int));
-    count_values_equal_to<<<NBm, TPBm>>>(0, d_classes, m);
-    cudaDeviceSynchronize();
-    cudaMemcpyFromSymbol(&progress, d_int_tracker, sizeof(int));
-    return progress;
+__global__ void eq_vectors(float *d_res, int *d_v1, int *d_v2, int m){
+    int tid = threadIdx.x + blockDim.x*blockIdx.x;
+    if (tid < m){
+        if (d_v1[tid] == d_v2[tid]){
+            d_res[tid] = 1;
+        }else{
+            d_res[tid] = 0;
+        }
+    }
+} 
+
+__global__ void to_float(float *d_float_m, int *d_v, int m){
+    int tid = threadIdx.x + blockDim.x*blockIdx.x;
+    if (tid < m){
+        float val;
+        val = (float) d_v[tid];
+        d_float_m[tid] = val;
+    }
+} 
+
+inline float norm_1(float *d_float_m, int m){
+    return cublasSasum(m, d_float_m, 1);
+}
+
+inline float norm_inf(float *d_float_m, int m){
+    float ninf;
+    int pos = cublasIsamax(m, d_float_m, 1)-1;
+    cudaMemcpy(&ninf, d_float_m+pos, sizeof(float), cudaMemcpyDeviceToHost);
+    return abs(ninf); 
 }
 
 inline void track(int iter, int m, 
-        int *d_low, int *d_classes, int *d_low_true, 
-        int *d_ess_true, float *error_lone, 
+        int *d_low, int *d_ess, int *d_classes, int *d_low_true, 
+        int *d_ess_true, float *d_float_m, float *error_lone, 
         float *error_linf, float *error_redu, 
         float *error_ess, float *time_track, float time,
         dim3 NBm, dim3 TPBm){
 
-    // Track time
+    // Time
     time_track[iter] = time;
 
-    // Track inf-norm of low estimate against true vector.
-    int ninf = norm_linf(d_low, d_low_true, m, NBm, TPBm);
-    error_linf[iter] = ((float) ninf);
+    // (float) d_low_err = d_low - d_low_true
+    diff<<<NBm, TPBm>>>(d_float_m, d_low, d_low_true, m);
+    cudaDeviceSynchronize();
 
-    // Track percentage of unreduced columns
-    int progress = get_percentage_unreduced(d_classes, m, NBm, TPBm);
-    error_redu[iter] = ((float) progress);
+    // norm_lone(d_low, d_low_true)
+    error_lone[iter] = norm_1(d_float_m, m);
+
+    // norm_linf(d_low, d_low_true)
+    error_linf[iter] = norm_inf(d_float_m, m);
+
+    // |j : d_classes[j] = 0| (number of unreduced columns)
+    eq_value<<<NBm, TPBm>>>(d_float_m, d_classes, 0, m);
+    cudaDeviceSynchronize();
+    error_redu[iter] = cublasSasum(m, d_float_m, 1) / ((float) m);
+    cudaDeviceSynchronize();
+
+    // |j : d_ess[j] = d_ess_true[j]|/sum(d_ess_true)
+    to_float<<<NBm, TPBm>>>(d_float_m, d_ess_true, m);
+    cudaDeviceSynchronize();
+    float num_ess_true = cublasSasum(m, d_float_m, 1);
+
+    to_float<<<NBm, TPBm>>>(d_float_m, d_ess, m);
+    cudaDeviceSynchronize();
+    float num_ess_hat = cublasSasum(m, d_float_m, 1);
+
+    if (num_ess_hat > 0){
+        error_ess[iter] = num_ess_true/num_ess_hat;
+    }else{
+        error_ess[iter] = -1.0;
+    }
+
 }
 

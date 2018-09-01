@@ -33,6 +33,7 @@ using namespace std;
 #include "functions.cu"
 #include "debug_tools.cu"
 #include "dimensions.cu"
+#include "tic_toc.cu"
 
 #include "algorithms/kernels.cu"
 #include "algorithms/tracker.cu"

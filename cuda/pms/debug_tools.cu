@@ -12,6 +12,16 @@ int d2h(int *d_v, int j){
     return v_j;
 }
 
+inline void printvec_float(float *d_v, int m, char* s){
+    float val = 0;
+    printf("%s\n",s);
+    for (int i = 0; i < m; i++){
+        cudaMemcpy(&val, d_v+i, sizeof(float), cudaMemcpyDeviceToHost);
+        printf("[%d: %5.6f], ", i, val);
+    }
+    printf("\n\n");
+}
+
 inline void printvec(int *d_v, int m, char* s){
     int val = 0;
     printf("%s\n",s);

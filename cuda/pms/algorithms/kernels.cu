@@ -78,7 +78,6 @@ __global__ void update_classes(int *d_classes, int *d_low, int *d_arglow, int m)
     }
 }
 
-// TODO: Complete
 __global__ void ess_hat(int *d_essential_hat, int *d_low, int *d_arglow, int m){
     int j = threadIdx.x + blockDim.x*blockIdx.x;
     if(j < m){

@@ -20,7 +20,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         // inputs
         int *h_rows_in, *h_cols_in;
         int m;
-        int col_scale;
+        int col_width;
         int *h_low_true;
 
         // reading in the string to determine the algorithm
@@ -32,7 +32,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         h_rows_in  = (int*)mxGetData(prhs[1]);
         h_cols_in  = (int*)mxGetData(prhs[2]);
         m          = (int)mxGetScalar(prhs[3]);
-        col_scale  = (int)mxGetScalar(prhs[4]);  
+        col_width  = (int)mxGetScalar(prhs[4]);  
         h_low_true = (int*)mxGetData(prhs[5]);  
 
         // -------------------------------
@@ -40,7 +40,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         // -------------------------------
 
         int nnz = mxGetM(prhs[1]);
-        int p   = col_scale * max_nnz(h_cols_in, m, nnz);
+        int p   = col_width * max_nnz(h_cols_in, m, nnz);
         int mp  = m * p;
 
         if (assert_col_order(h_cols_in, nnz) == 0){
@@ -133,12 +133,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         compute_low<<<NBm, TPBm>>>(d_rows, d_low, m, p);
         cudaDeviceSynchronize();
 
+        // d_float_m
+        float *d_float_m;
+        cudaMalloc((void**)&d_float_m, m * sizeof(float));
+
         // d_low_true
         int *d_low_true;
         cudaMalloc((void**)&d_low_true, m * sizeof(int));
         cudaMemcpy(d_low_true, h_low_true, sizeof(int)*m, cudaMemcpyHostToDevice);
         cudaDeviceSynchronize();
 
+        // ... compute norm of d_low_true
+        to_float<<<NBm, TPBm>>>(d_float_m, d_low_true, m);
+        cudaDeviceSynchronize();
+
+        float norm1_low_true = norm_1(d_float_m, m); 
+        float norminf_low_true = norm_inf(d_float_m, m); 
+
+        // ... Now shift index down
         indexShiftDown<<<NBm, TPBm>>>(d_low_true, m);
         cudaDeviceSynchronize();
 
@@ -146,7 +158,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         int *d_ess_true;
         cudaMalloc((void**)&d_ess_true, m * sizeof(int));
 
-        fill<<<NBm, TPBm>>>(d_ess_true, 0, m);
+        fill<<<NBm, TPBm>>>(d_ess_true, 1, m);
         cudaDeviceSynchronize();
 
         compute_ess_true<<<NBm, TPBm>>>(d_low_true, d_ess_true, m);
@@ -204,10 +216,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
                 d_classes, d_ess, d_rows, d_dim,
                 d_dim_order, d_dim_next, d_dim_start, 
                 d_beta, d_left,
-                m, p, complex_dim, d_aux_mp, d_low_true, d_ess_true,
+                m, p, complex_dim, d_aux_mp, d_low_true, d_ess_true, d_float_m,
                 error_lone, error_linf, error_redu, error_ess,
                 time_track, &iter, NBm, TPBm, NBcdim,
                 TPBcdim);
+
+        // scale remaining trackers
+        for(int i=0; i<m+1; i++)
+            error_lone[i] = error_lone[i]/norm1_low_true;
+
+        for(int i=0; i<m+1; i++)
+            error_linf[i] = error_linf[i]/norminf_low_true;
 
         // matrix: device to host
         indexShiftUp<<<NBm, TPBm>>>(d_low, m); 
@@ -239,6 +258,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
 
         cudaFree(d_rows);
         cudaFree(d_aux_mp);
+
+        cudaFree(d_float_m);
 
         cudaFree(d_dim);
         cudaFree(d_dim_order);
