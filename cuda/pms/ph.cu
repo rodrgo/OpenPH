@@ -77,6 +77,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         float *error_linf, *error_lone, *error_redu, *error_ess;
         float *time_track; 
         int *h_ess;
+        int *num_iters;
         
         plhs[0] = mxCreateNumericMatrix(1, m, mxINT32_CLASS, mxREAL);
         plhs[1] = mxCreateNumericMatrix(1, m, mxINT32_CLASS, mxREAL);
@@ -85,6 +86,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         plhs[4] = mxCreateNumericMatrix(1, m+1, mxSINGLE_CLASS, mxREAL);
         plhs[5] = mxCreateNumericMatrix(1, m+1, mxSINGLE_CLASS, mxREAL);
         plhs[6] = mxCreateNumericMatrix(1, m+1, mxSINGLE_CLASS, mxREAL);
+        plhs[7] = mxCreateNumericMatrix(1, 1  , mxINT32_CLASS, mxREAL); 
 
         h_low      = (int*) mxGetData(plhs[0]);  
         h_ess      = (int*) mxGetData(plhs[1]);
@@ -93,6 +95,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         error_redu = (float*) mxGetData(plhs[4]);
         error_ess  = (float*) mxGetData(plhs[5]); 
         time_track = (float*) mxGetData(plhs[6]);
+        num_iters  = (int*) mxGetData(plhs[7]);
 
         // Initialise
 
@@ -220,6 +223,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
                 error_lone, error_linf, error_redu, error_ess,
                 time_track, &iter, NBm, TPBm, NBcdim,
                 TPBcdim);
+
+        // Record iters to output
+        num_iters[0] = iter;
 
         // scale remaining trackers
         for(int i=0; i<m+1; i++)
