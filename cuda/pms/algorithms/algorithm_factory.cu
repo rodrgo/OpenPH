@@ -29,7 +29,13 @@ inline void algorithm_factory(char *algstr,
                 error_lone, error_linf, error_redu, error_ess,
                 time_track, p_iter, NBm, TPBm);
     } else if (strcmp(algstr, "pms")==0){
-        pms(d_rows, d_aux_mp, d_low, d_arglow, d_dim, d_dim_order, d_dim_next, d_dim_start, m, p, complex_dim, d_left, d_beta, error_linf, time_track, p_iter, NBm, TPBm, NBcdim, TPBcdim);
+        pms(d_low, d_arglow, d_classes, d_ess,
+                d_rows, m, p,
+                d_dim, d_dim_order, d_dim_next, d_dim_start,
+                complex_dim, d_left, d_beta, d_aux_mp,
+                d_low_true, d_ess_true, d_float_m,
+                error_lone, error_linf, error_redu, error_ess,
+                time_track, p_iter, NBm, TPBm, NBcdim, TPBcdim);
     }else
         printf("Not recognised");
 
