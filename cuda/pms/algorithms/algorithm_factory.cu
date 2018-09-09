@@ -15,7 +15,13 @@ inline void algorithm_factory(char *algstr,
                 error_ess, time_track, p_iter, NBm, 
                 TPBm); 
     } else if (strcmp(algstr, "twist")==0){
-        twist(d_rows, d_aux_mp, d_low, d_arglow, d_dim, d_dim_order, d_dim_next, d_dim_start, complex_dim, m, p, error_linf, time_track, p_iter, NBm, TPBm);
+        twist(d_low, d_arglow, d_classes, d_ess,
+                d_rows, m, p,
+                d_dim, d_dim_order, d_dim_next, d_dim_start,
+                complex_dim,
+                d_aux_mp, d_low_true, d_ess_true, d_float_m,
+                error_lone, error_linf, error_redu, error_ess,
+                time_track, p_iter, NBm, TPBm);
     } else if (strcmp(algstr, "ph_row")==0){
         ph_row(d_rows, d_aux_mp, d_low, d_arglow, m, p, error_linf, time_track, p_iter, NBm, TPBm);
     } else if (strcmp(algstr, "pms")==0){
