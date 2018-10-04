@@ -10,7 +10,7 @@ __global__ void twist_step(int j, int *d_rows_mp, int *d_low, int m, int p){
     }
 }
 
-inline void twist(int *d_low, int *d_arglow, int *d_classes,
+inline void twist_parallel(int *d_low, int *d_arglow, int *d_classes,
         int *d_ess, int *d_rows_mp, const int m, const int p,
         int *d_dims, int *d_dims_order, int *d_dims_order_next,
         int *d_dims_order_start, int complex_dim,

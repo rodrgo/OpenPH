@@ -39,51 +39,24 @@ vals = ones(size(rows));
 
 % Create matrix
 R = sparse(rows, cols, vals); 
-[rows, cols, vals] = find(R);
+[r, c, v] = find(R);
+
+col_width = 7;
 
 % Solve with standard
-[low_test, t] = std_test(R);
+[low_star, t] = std_test(R);
 
-% Test CUDA solvers
-tic;
-[low resRecord timeRecord] = ph('std', int32(rows), int32(cols), int32(vals), int32(m));
-display(sprintf('STANDARD: The tests completed after %s seconds.',toc));
-std_ok = isequal(low_test-1, low);
-if ~isequal(low_test-1, low)
-    display(low_test-1);
-    display(low);
-end
+algorithms = {'standard_parallel', 'twist_parallel', 'ph_row_parallel', 'pms'};
 
-tic;
-[low resRecord timeRecord] = ph('twist', int32(rows), int32(cols), int32(vals), int32(m));
-display(sprintf('TWIST: The tests completed after %s seconds.',toc));
-twist_ok = isequal(low_test-1, low);
-if ~isequal(low_test-1, low)
-    display(low_test-1);
-    display(low);
-end
-
-tic;
-[low resRecord timeRecord] = ph('ph_row', int32(rows), int32(cols), int32(vals), int32(m));
-display(sprintf('PH_ROW: The tests completed after %s seconds.',toc));
-pms_ok = isequal(low_test-1, low);
-if ~isequal(low_test-1, low)
-    display(low_test-1);
-    display(low);
-end
-
-tic;
-[low resRecord timeRecord] = ph('pms', int32(rows), int32(cols), int32(vals), int32(m));
-display(sprintf('PMS: The tests completed after %s seconds.',toc));
-pms_ok = isequal(low_test-1, low);
-if ~isequal(low_test-1, low)
-    display(low_test-1);
-    display(low);
-end
-
-if std_ok && twist_ok && pms_ok
-    disp(sprintf('All good :)'));
-else
-    disp(sprintf('Mismatch in one of the algos :)'));
+for i = 1:length(algorithms)
+    alg = algorithms{i};
+    % Test CUDA solvers
+    tic;
+    [low o2 o3 o4 o5 o6 o7 o8] = ph(alg, int32(r), int32(c), int32(m), int32(col_width), int32(low_star));
+    display(sprintf('%s: OK  (%s seconds)', alg, toc));
+    alg_ok = isequal(low_star, low);
+    if ~alg_ok
+        disp(sprintf('Mismatch in %s', alg));
+    end
 end
 

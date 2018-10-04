@@ -1,4 +1,4 @@
-inline void standard(int *d_low, int *d_arglow, int *d_classes, 
+inline void standard_parallel(int *d_low, int *d_arglow, int *d_classes, 
         int *d_ess, int *d_rows_mp, const int m, const int p, 
         int *d_aux_mp, int *d_low_true, int *d_ess_true, 
         float *d_float_m, float *error_lone,
