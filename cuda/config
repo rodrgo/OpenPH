@@ -1,7 +1,7 @@
 #If nvcc not found, then add path where nvcc is located
 #export PATH=/usr/local/cuda-9.1/bin:$PATH
 
-export TDA=/home/rodrigo/workspace/persistent_homology/tda/cuda
+export TDA=/home/rodrigo/workspace/persistent_homology/tda-cuda/cuda
 export MATLAB=/usr/local/MATLAB/R2017a
 export CUDAHOME=/usr/local/cuda-9.1
 export GPUARCH=sm_61
