@@ -45,3 +45,7 @@ using namespace std;
 #include "algorithms/pms/pms.cu"
 #include "algorithms/algorithm_factory.cu"
 
+#include "functions_host.cu"
+#include "algorithms/standard/standard.cu"
+#include "algorithms/kernels_host.cu"
+
