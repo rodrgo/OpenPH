@@ -65,6 +65,14 @@ inline void algorithm_factory(char *algstr,
                     h_ess_true, h_float_m,
                     error_lone, error_linf, error_redu,
                     error_ess, time_track, p_iter);
+        }else if(strcmp(algstr, "ph_row")==0){
+            ph_row(h_low, h_arglow, h_classes, h_ess,
+                    h_rows_mp, m, p,
+                    h_dim, h_dim_order, h_dim_next, h_dim_start,
+                    h_aux_mp, h_low_true, h_ess_true, h_float_m,
+                    error_lone, error_linf, error_redu, error_ess,
+                    time_track, p_iter);
+
         }else{
             printf("Not recognised");
         }

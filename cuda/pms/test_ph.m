@@ -47,17 +47,20 @@ col_width = 7;
 [low_star, t] = std_test(R);
 
 algorithms = {'standard_parallel', 'twist_parallel', 'ph_row_parallel', 'pms', ...
-              'standard', 'twist'};
+              'standard', 'twist', 'ph_row'};
 
 for i = 1:length(algorithms)
     alg = algorithms{i};
     % Test CUDA solvers
     tic;
     [low o2 o3 o4 o5 o6 o7 o8] = ph(alg, int32(r), int32(c), int32(m), int32(col_width), int32(low_star));
-    display(sprintf('%s: OK  (%s seconds)', alg, toc));
     alg_ok = isequal(low_star, low);
     if ~alg_ok
         disp(sprintf('Mismatch in %s', alg));
+        display(low_star);
+        display(low);
+    else
+        display(sprintf('%s: OK  (%s seconds)', alg, toc));
     end
 end
 

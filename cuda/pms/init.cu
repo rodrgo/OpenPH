@@ -48,6 +48,7 @@ using namespace std;
 #include "algorithms/kernels_host.cu"
 #include "algorithms/standard/standard.cu"
 #include "algorithms/twist/twist.cu"
+#include "algorithms/ph_row/ph_row.cu"
 
 #include "algorithms/algorithm_factory.cu"
 

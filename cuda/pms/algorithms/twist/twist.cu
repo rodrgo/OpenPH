@@ -36,8 +36,7 @@ inline void twist(int *h_low, int *h_arglow, int *h_classes,
         while (iterate && j > -1){
 
             // TIC
-            cudaEvent_t start, stop;
-            tic(&start, &stop);
+            clock_t tic = clock();
 
             // Work on column "j"
             reduce_col_host(j, h_rows_mp, h_aux_mp, h_low, h_arglow, m, p);
@@ -51,7 +50,7 @@ inline void twist(int *h_low, int *h_arglow, int *h_classes,
             ess_hat_host(h_ess, h_low, h_arglow, m);
 
             // TOC
-            toc(start, stop, &time);
+            clock_t toc = clock();
 
             // meausre progress
             track_host(iter, m, h_low, h_ess, h_classes,
