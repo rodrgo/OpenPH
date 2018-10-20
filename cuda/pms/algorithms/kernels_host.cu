@@ -52,18 +52,16 @@ inline void clear_column_host(int j, int *h_rows_mp, int p){
 }
 
 inline void reduce_col_host(int j, int *h_rows_mp, int *h_aux_mp, int *h_low, int *h_arglow, int m, int p){
-    for (int tid=0; tid<m; tid++){
-        int j0 = -1;
-        int low_j = h_low[j]; // low_j = -1, 0, 1, ..., m-1
-        while (low_j > -1 && h_arglow[low_j] != -1){
-            j0 = h_arglow[low_j];
-            left_to_right_host(j0, j, h_rows_mp, h_aux_mp, h_low, m, p);
-            low_j = h_low[j];
-        }
+    int j0 = -1;
+    int low_j = h_low[j]; // low_j = -1, 0, 1, ..., m-1
+    while (low_j > -1 && h_arglow[low_j] != -1){
+        j0 = h_arglow[low_j];
+        left_to_right_host(j0, j, h_rows_mp, h_aux_mp, h_low, m, p);
         low_j = h_low[j];
-        if (low_j > -1){
-            h_arglow[low_j] = j;
-        }
+    }
+    low_j = h_low[j];
+    if (low_j > -1){
+        h_arglow[low_j] = j;
     }
 }
 

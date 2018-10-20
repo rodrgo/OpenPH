@@ -1,4 +1,11 @@
 
+inline float asum_host(int m, float *h_float_m){
+    float res = 0.0f;
+    for (int i=0; i<m; i++)
+        res+=abs(h_float_m[i]);
+    return res;
+}
+
 __global__ void diff(float *d_res, int *d_vec_1, int *d_vec_2, int m){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
@@ -82,13 +89,6 @@ inline float norm_inf_host(float *h_float_m, int m){
     return abs(ninf);
 }
 
-inline float asum_host(int m, float h_float_m){
-    float res = 0.0f;
-    for (int i=0; i<m; i++)
-        res+=abs(h_float_m[i]);
-    return res;
-}
-
 inline void track(int iter, int m, 
         int *d_low, int *d_ess, int *d_classes, int *d_low_true, 
         int *d_ess_true, float *d_float_m, float *error_lone, 
@@ -156,7 +156,7 @@ inline void track_host(int iter, int m,
 
     // |j : d_ess[j] = d_ess_true[j]|/sum(d_ess_true)
     to_float_host(h_float_m, h_ess_true, m);
-    float num_ess_true = asum_host(m, h_float_m, 1);
+    float num_ess_true = asum_host(m, h_float_m);
 
     to_float_host(h_float_m, h_ess, m);
     float num_ess_hat = asum_host(m, h_float_m);

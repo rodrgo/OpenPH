@@ -43,9 +43,11 @@ using namespace std;
 #include "algorithms/pms/beta.cu"
 #include "algorithms/pms/pms_functions.cu"
 #include "algorithms/pms/pms.cu"
-#include "algorithms/algorithm_factory.cu"
 
 #include "functions_host.cu"
-#include "algorithms/standard/standard.cu"
 #include "algorithms/kernels_host.cu"
+#include "algorithms/standard/standard.cu"
+#include "algorithms/twist/twist.cu"
+
+#include "algorithms/algorithm_factory.cu"
 

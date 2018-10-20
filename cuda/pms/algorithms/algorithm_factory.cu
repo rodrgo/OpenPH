@@ -13,23 +13,38 @@ inline void algorithm_factory(char *algstr,
 
     if (is_serial){
 
+        int mp = m * p;
+        int cdim = complex_dim + 2;
+
         // Copy data from device to host
         int *h_low      = (int*)malloc( sizeof(int)*m );
         int *h_arglow   = (int*)malloc( sizeof(int)*m );
         int *h_classes  = (int*)malloc( sizeof(int)*m );
         int *h_ess      = (int*)malloc( sizeof(int)*m );
-        int *h_rows_mp  = (int*)malloc( sizeof(int)*m );
-        int *h_aux_mp   = (int*)malloc( sizeof(int)*m );
+        int *h_rows_mp  = (int*)malloc( sizeof(int)*mp );
+        int *h_aux_mp   = (int*)malloc( sizeof(int)*mp );
         int *h_low_true = (int*)malloc( sizeof(int)*m );
         int *h_ess_true = (int*)malloc( sizeof(int)*m );
 
-        fill_host(h_low, -1, m);
+        int *h_dim       = (int*)malloc( m * sizeof(int) );
+        int *h_dim_order = (int*)malloc( m * sizeof(int) );
+        int *h_dim_next  = (int*)malloc( m * sizeof(int) );
+        int *h_dim_start = (int*)malloc( cdim * sizeof(int) );
+
+        float *h_float_m = (float*)malloc( sizeof(float)*m );
+
         fill_host(h_arglow, -1, m);
         fill_host(h_classes, 0, m);
         fill_host(h_ess, 1, m);
-        fill_host(h_aux_mp, 1, m);
+        fill_host(h_aux_mp, -1, mp);
 
-        cudaMemcpy(h_rows_mp, d_rows_mp, sizeof(int)*m, cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_dim, d_dim_start, m*sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_dim_order, d_dim_order, m*sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_dim_next, d_dim_next, m*sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_dim_start, d_dim_start, cdim*sizeof(int), cudaMemcpyDeviceToHost);
+
+        cudaMemcpy(h_low, d_low, sizeof(int)*m, cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_rows_mp, d_rows, sizeof(int)*mp, cudaMemcpyDeviceToHost);
         cudaMemcpy(h_low_true, d_low_true, sizeof(int)*m, cudaMemcpyDeviceToHost);
         cudaMemcpy(h_ess_true, d_ess_true, sizeof(int)*m, cudaMemcpyDeviceToHost);
         cudaDeviceSynchronize();
@@ -41,13 +56,23 @@ inline void algorithm_factory(char *algstr,
                     h_rows_mp, m, p, h_aux_mp, h_low_true,
                     h_ess_true, h_float_m,
                     error_lone, error_linf, error_redu, 
-                    error_ess, time_track, p_iter); 
-        }else
+                    error_ess, time_track, p_iter);
+        }else if(strcmp(algstr, "twist")==0){
+            twist(h_low, h_arglow, h_classes, h_ess,
+                    h_rows_mp, m, p, h_dim, h_dim_order,
+                    h_dim_next, h_dim_start,
+                    complex_dim, h_aux_mp, h_low_true,
+                    h_ess_true, h_float_m,
+                    error_lone, error_linf, error_redu,
+                    error_ess, time_track, p_iter);
+        }else{
             printf("Not recognised");
+        }
 
         // Export h_low and h_ess
         cudaMemcpy(d_low, h_low, sizeof(int)*m, cudaMemcpyHostToDevice);
         cudaMemcpy(d_ess, h_ess, sizeof(int)*m, cudaMemcpyHostToDevice);
+        cudaDeviceSynchronize();
 
         // Free pointers
         free(h_low);
@@ -58,6 +83,13 @@ inline void algorithm_factory(char *algstr,
         free(h_aux_mp);
         free(h_low_true);
         free(h_ess_true);
+
+        free(h_dim);
+        free(h_dim_order);
+        free(h_dim_next);
+        free(h_dim_start);
+
+        free(h_float_m);
 
     }else{
         if (strcmp(algstr, "standard_parallel")==0){

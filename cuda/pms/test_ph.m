@@ -47,7 +47,7 @@ col_width = 7;
 [low_star, t] = std_test(R);
 
 algorithms = {'standard_parallel', 'twist_parallel', 'ph_row_parallel', 'pms', ...
-              'standard'};
+              'standard', 'twist'};
 
 for i = 1:length(algorithms)
     alg = algorithms{i};
