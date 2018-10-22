@@ -39,48 +39,54 @@ set(gca, 'Fontname', 'setTimes', 'Fontsize', 18);
 handles = [];
 labels  = {};
 
+% Create shapes
+
+ts = zeros(length(algos), length(num_points));
+
+nps = zeros(1, length(num_points));
+ms = zeros(1, length(num_points));
 colors = create_color_palette(length(algos));
-for l = 1:length(algos)
-    fprintf('\t\t\t%s... ', algos{l});
+for j = 1:length(num_points)
+    np = num_points(j);
+    cparams.num_points = np;
+    [stream, complex_info] = complex_factory(shape, cparams);
+    low_true = reduce_stream(stream, 'testing', as_dense);
+    D = BoundaryMatrix(stream);
 
-    ms = [];
-    ts = [];
-    nps = [];
-    for np = num_points
-        cparams.num_points = np;
+    nps(j) = np;
+    ms(j) = D.m;
 
-        [stream, complex_info] = complex_factory(shape, cparams);
-        low_true = reduce_stream(stream, 'testing', as_dense);
-        D = BoundaryMatrix(stream);
+    for l = 1:length(algos)
+        fprintf('\t\t\t%s... ', algos{l});
+
         [OUT, ~] = cuda_wrapper(D, algos{l}, low_true, 7);
+        assert(all(OUT.low == low_true), 'Output incorrect!');
 
-        t = sum(OUT.time_track(1:OUT.num_iters));
+        t = sum(OUT.time_track(1:OUT.num_iters))/1000;
         if (t ~= sum(OUT.time_track))
             display(t);
             display(sum(OUT.time_track));
         end
+        ts(l, j) = t; 
         
-        nps(end+1) = np;
-        ms(end+1) = D.m;
-        ts(end+1) = t/1000;
-        assert(all(OUT.low == low_true), 'Output incorrect!');
-
         fprintf('\n\t%s: (np, m, t) = (%d, %d, %g)\n',...
             shape, cparams.num_points, D.m, t);
 
     end
 
+end 
+
+for l = 1:length(algos)
     labels{end + 1}  = strrep(algos{l}, '_', '\_');
     hold on;
-    handles(end + 1) = loglog(ms, ts, '--', 'Color', colors{l});
+    handles(end + 1) = loglog(ms, ts(l,:), '--', 'Color', colors{l});
 
     % Arrow
     ll=ceil(length(ms)*l/length(algos));
     txt=['\leftarrow ' strrep(algos{l}, '_', '\_')];
-    h=text(ms(ll), ts(ll), txt, 'HorizontalAlignment', 'left');
+    h=text(ms(ll), ts(l,ll), txt, 'HorizontalAlignment', 'left');
     set(h, 'Color', colors{l});
-
-end % end algorithms
+end
 
 % Add scaling references 
 x = ms(1:end/2);
