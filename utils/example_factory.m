@@ -104,7 +104,7 @@ elseif strcmp(example_name, 'random_gaussian')
     if nargin < 5
         num_points = 10;
     end
-    dimension = 3;
+    dimension = 5;
     point_cloud = examples.PointCloudExamples.getGaussianPoints(num_points, dimension);
 
     name_str = 'Random-Gaussian';

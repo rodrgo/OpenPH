@@ -105,7 +105,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         for (int i=0; i<m+1; i++) error_lone[i] = -1;
         for (int i=0; i<m+1; i++) error_redu[i] = -1;
         for (int i=0; i<m+1; i++) error_ess[i]  = -1;
-        for (int i=0; i<m+1; i++) time_track[i] = -1;
+        for (int i=0; i<m+1; i++) time_track[i] = 0;
 
         // -------------------------------
         // Create data on device

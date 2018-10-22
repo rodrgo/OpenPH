@@ -22,7 +22,7 @@ shapes = {'random_gaussian', ...
 shapes = {'random_gaussian', ...
           'random_figure_8'};
 
-algos = {'standard_parallel', 'twist_parallel', 'ph_row_parallel', 'pms'};
+algos = {'standard', 'twist', 'ph_row', 'standard_parallel', 'twist_parallel', 'ph_row_parallel', 'pms'};
 
 % Matrix dense?
 as_dense  = true;
