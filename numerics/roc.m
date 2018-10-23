@@ -18,7 +18,7 @@ cparams.num_divs      = 10;
 cparams.max_filtr_val = 5;
 cparams.num_points    = 15;
 
-num_points = 10:19;
+num_points = 10:20;
 
 % Explore complexity of Vietoris-Rips complexes
 shape = 'random_gaussian';
@@ -62,12 +62,15 @@ for j = 1:length(num_points)
         [OUT, ~] = cuda_wrapper(D, algos{l}, low_true, 7);
         assert(all(OUT.low == low_true), 'Output incorrect!');
 
-        t = sum(OUT.time_track(1:OUT.num_iters))/1000;
+        t = sum(OUT.time_track(1:OUT.num_iters));
         if (t ~= sum(OUT.time_track))
             display(t);
             display(sum(OUT.time_track));
         end
-        ts(l, j) = t; 
+        if strcmp(algos{l}, 'pms') == 1
+            t = t/1000;
+        end
+        ts(l, j) = t;
         
         fprintf('\n\t%s: (np, m, t) = (%d, %d, %g)\n',...
             shape, cparams.num_points, D.m, t);
@@ -76,10 +79,17 @@ for j = 1:length(num_points)
 
 end 
 
+A = [ts; ms];
+A = A';
+A = sortrows(A, size(A, 2));
+A = A';
+ts = A(1:(end-1),:);
+ms = A(end,:);
+
 for l = 1:length(algos)
     labels{end + 1}  = strrep(algos{l}, '_', '\_');
     hold on;
-    handles(end + 1) = loglog(ms, ts(l,:), '--', 'Color', colors{l});
+    handles(end + 1) = loglog(ms, ts(l,:), '-*', 'Color', colors{l});
 
     % Arrow
     ll=ceil(length(ms)*l/length(algos));
@@ -89,21 +99,22 @@ for l = 1:length(algos)
 end
 
 % Add scaling references 
-x = ms(1:end/2);
 colour = 'black';
 
-y = 1e-7*x.^(3/2);
-labels{end + 1}  = strrep('Superlinear', '_', '\_');
+x = ms(end-2):100:ms(end-1);
+y = 3*(x.^2)/max(x.^2);
+labels{end + 1}  = strrep('Quadratic', '_', '\_');
 hold on;
-handles(end + 1) = loglog(x, y, '--', 'Color', colour);
+handles(end + 1) = loglog(x, y, '-', 'Color', colour);
 ll=ceil(length(x)*3/4);
-h=text(x(ll), y(ll), 'O(m^(3/2))', 'HorizontalAlignment', 'right');
+h=text(x(ll), y(ll), 'O(m^2)', 'HorizontalAlignment', 'right');
 set(h, 'Color', colour);
 
-y = 1e-7*x.^(1);
+x = ms(end-2):100:ms(end);
+y = 1*x/max(x);
 labels{end + 1} = strrep('Linear', '_', '\_');
 hold on;
-handles(end + 1) = loglog(x, y, '--', 'Color', colour);
+handles(end + 1) = loglog(x, y, '-', 'Color', colour);
 ll=ceil(length(x)*3/4);
 h=text(x(ll), y(ll), 'O(m)', 'HorizontalAlignment', 'right');
 set(h, 'Color', 'black');
