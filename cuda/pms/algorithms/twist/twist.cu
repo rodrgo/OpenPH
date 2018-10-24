@@ -51,7 +51,7 @@ inline void twist(int *h_low, int *h_arglow, int *h_classes,
 
             // TOC
             clock_t toc = clock();
-            time = (float)((double)(toc - tic) / CLOCKS_PER_SEC);
+            time = ((float)((double)(toc - tic) / CLOCKS_PER_SEC)) * 1000;
 
             // meausre progress
             track_host(iter, m, h_low, h_ess, h_classes,
