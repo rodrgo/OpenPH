@@ -1,9 +1,6 @@
 % test_speed_standard_reduction.m
 init;
 
-FIGURE_DIR      = '../figures/';
-EXPERIMENT_TAG  = 'benchmark_pms';
-
 % Complex parameters
 cparams               = [];
 cparams.max_dim       = 5;
@@ -12,23 +9,24 @@ cparams.max_filtr_val = 5;
 cparams.num_points    = 15;
 
 num_samples = 3;
-num_samples = 1;
 
-% Explore complexity of Vietoris-Rips complexes
 shapes = {'random_gaussian', ...
           'random_figure_8', ...
           'random_trefoil_knot'};
 
-shapes = {'random_gaussian', ...
-          'random_figure_8'};
+algos  = {'standard', ...
+          'twist', ...
+          'ph_row', ...
+          'standard_parallel', ...
+          'twist_parallel', ...
+          'ph_row_parallel', ...
+          'pms'};
 
-algos = {'standard', 'twist', 'ph_row', 'standard_parallel', 'twist_parallel', 'ph_row_parallel', 'pms'};
+time_init   = tic;
+percentiles = create_percentiles_struct()
+tensors     = create_tensors_struct();
+shapes_map  = containers.Map;
 
-% Matrix dense?
-as_dense  = true;
-time_init = tic;
-
-shapes_map = containers.Map;
 for i = 1:length(shapes)
 
     fprintf('\n\t%s: (max_dim, num_div, mfv) = (%d, %d, %d)\n',...
@@ -38,7 +36,7 @@ for i = 1:length(shapes)
     for k = 1:num_samples
 
         [stream, complex_info] = complex_factory(shapes{i}, cparams);
-        low_true = reduce_stream(stream, 'testing', as_dense);
+        low_true = reduce_stream(stream, 'testing', true);
         m = length(low_true);
 
         fprintf('\t\tSample %d/%d\tm = %d\n', k, num_samples, m);
@@ -50,6 +48,8 @@ for i = 1:length(shapes)
 
             D = BoundaryMatrix(stream);
             [OUT, t] = cuda_wrapper(D, algos{l}, low_true, 7);
+
+            tensor = populate_tensor(OUT, tensor, perc, i, k, l);
             
             OUT.m = m;
             OUT.complex_info = complex_info;
@@ -82,4 +82,57 @@ benchmark_pms_plot(shapes_map, 'iters', 'err_linf');
 benchmark_pms_plot(shapes_map, 'iters', 'err_lone');
 benchmark_pms_plot(shapes_map, 'iters', 'err_redu');
 benchmark_pms_plot(shapes_map, 'iters', 'err_ess');
+
+% ---------------------
+% Create tables
+% ---------------------
+
+create_table(shapes, algos, 'unreduced', perc.unred, tensor.unred);
+create_table(shapes, algos, 'essential', perc.ess, tensor.ess);
+create_table(shapes, algos, 'lone', perc.lone, tensor.lone);
+create_table(shapes, algos, 'linf', perc.linf, tensor.linf);
+
+function tensor = populate_tensor(OUT, tensor, perc, i, k, l)
+    % ess
+    y = OUT.ess(1:OUT.num_iters);
+    for pp = 1:length(perc.ess)
+        tensor.ess(i, k, l, pp) = find(y - perc.ess(pp) >= 0 , 1, 'first');
+    end
+
+    % unred
+    y = OUT.err_redu(1:OUT.num_iters);
+    for pp = 1:length(perc.unred)
+        tensor.unred(i, k, l, pp) = find(y - perc.unred(pp) <= 0 , 1, 'first');
+    end
+
+    % lone
+    y = OUT.err_lone(1:OUT.num_iters);
+    for pp = 1:length(perc.lone)
+        tensor.lone(i, k, l, pp) = find(y - perc.lone(pp) <= 0 , 1, 'first');
+    end
+
+    % linf
+    y = OUT.err_linf(1:OUT.num_iters);
+    for pp = 1:length(perc.linf)
+        tensor.linf(i, k, l, pp) = find(y - perc.linf(pp) <= 0 , 1, 'first');
+    end
+end
+
+function [tensors, perc] = create_tensor_structs(n_shapes, n_samples, n_algos, n_levels)
+
+    tensor          = [];
+    tensor.ess      = zeros(n_shapes, n_samples, n_algos, n_levels);
+    tensor.unred    = zeros(n_shapes, n_samples, n_algos, n_levels);
+    tensor.lone     = zeros(n_shapes, n_samples, n_algos, n_levels);
+    tensor.linf     = zeros(n_shapes, n_samples, n_algos, n_levels);
+
+    perc            = [];
+    perc.ess        = [0.1, 0.5, 0.9, 0.95, 1];
+    perc.unred      = [0.9, 0.5, 0.1, 0.05, 0.01];
+    perc.lone       = [1e-1, 1e-2, 1e-3, 1e-4, 0];
+    perc.linf       = [1e-1, 1e-2, 1e-3, 1e-4, 0];
+
+    % Total column operation difference
+    %tensor_col_ops = zeros(num_complexes, num_samples, num_algos); % last entry stores total number of column operations
+end
 

@@ -1,16 +1,6 @@
 % test_speed_standard_reduction.m
 init;
 
-FIGURE_DIR      = '../figures/';
-EXPERIMENT_TAG  = 'benchmark_pms';
-
-% Font size
-fs          = [];
-fs.title    = 18;
-fs.legend   = 15;
-fs.axis     = 18;
-fs.ticks    = 18;
-
 % Complex parameters
 cparams               = [];
 cparams.max_dim       = 5;

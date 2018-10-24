@@ -1,14 +1,7 @@
 function benchmark_pms_plot(shapes_map, x_unit, y_metric)
+init;
 
-FIGURE_DIR      = '../figures/';
 EXPERIMENT_TAG  = 'benchmark_pms';
-
-% Font size
-fs          = [];
-fs.title    = 20;
-fs.legend   = 17;
-fs.axis     = 20;
-fs.ticks    = 20;
 
 shapes = keys(shapes_map);
 for i = 1:length(shapes)
