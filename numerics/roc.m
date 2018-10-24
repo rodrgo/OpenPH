@@ -6,19 +6,19 @@ EXPERIMENT_TAG  = 'benchmark_pms';
 
 % Font size
 fs          = [];
-fs.title    = 20;
-fs.legend   = 17;
-fs.axis     = 20;
-fs.ticks    = 20;
+fs.title    = 18;
+fs.legend   = 15;
+fs.axis     = 18;
+fs.ticks    = 18;
 
 % Complex parameters
 cparams               = [];
 cparams.max_dim       = 5;
 cparams.num_divs      = 10;
 cparams.max_filtr_val = 5;
-cparams.num_points    = 15;
+cparams.num_points    = 5;
 
-num_points = 10:20;
+num_points = 10:21;
 
 % Explore complexity of Vietoris-Rips complexes
 shape = 'random_gaussian';
@@ -29,8 +29,6 @@ algos = {'standard', 'twist', 'ph_row', 'pms'};
 % Matrix dense?
 as_dense  = true;
 time_init = tic;
-
-algos_map = containers.Map;
 
 % Create figure
 figure(1);
@@ -50,8 +48,11 @@ for j = 1:length(num_points)
     np = num_points(j);
     cparams.num_points = np;
     [stream, complex_info] = complex_factory(shape, cparams);
-    low_true = reduce_stream(stream, 'testing', as_dense);
     D = BoundaryMatrix(stream);
+
+    %low_true = reduce_stream(stream, 'testing', as_dense);
+    OUT = cuda_wrapper(D, 'pms', zeros(1,D.m), 7);
+    low_true = OUT.low;
 
     nps(j) = np;
     ms(j) = D.m;
@@ -67,16 +68,12 @@ for j = 1:length(num_points)
             display(t);
             display(sum(OUT.time_track));
         end
-        if strcmp(algos{l}, 'pms') == 1
-            t = t/1000;
-        end
-        ts(l, j) = t;
+        ts(l, j) = t/1000;
         
         fprintf('\n\t%s: (np, m, t) = (%d, %d, %g)\n',...
             shape, cparams.num_points, D.m, t);
 
     end
-
 end 
 
 A = [ts; ms];
@@ -101,7 +98,7 @@ end
 % Add scaling references 
 colour = 'black';
 
-x = ms(end-2):100:ms(end-1);
+x = ms(end-2):100:ms(end);
 y = 3*(x.^2)/max(x.^2);
 labels{end + 1}  = strrep('Quadratic', '_', '\_');
 hold on;
@@ -126,7 +123,7 @@ ylabel('time (sec)', 'FontSize', fs.axis);
 
 %legend(handles, labels, 'FontSize', fs.legend);
 
-title('Scaling', 'FontSize', fs.title);
+title('Scaling of algorithms', 'FontSize', fs.title);
 filepath = fullfile(FIGURE_DIR, 'scalings.eps');
 print('-depsc', filepath);
 eps_to_pdf(filepath);
