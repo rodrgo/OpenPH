@@ -17,5 +17,5 @@ function [OUT, t] = cuda_wrapper(D, algo, low_true, col_width)
     OUT.err_redu    = double(o5);
     OUT.err_ess     = double(o6);
     OUT.time_track  = double(o7);
-    OUT.num_iters   = double(o8);
+    OUT.num_iters   = double(o8)-1;
 end

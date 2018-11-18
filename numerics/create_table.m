@@ -1,15 +1,15 @@
 
 function create_table(shapes, algos, table_type, levels_x, tensor_x)
-    init;
+    plot_init;
     % table_type:
     %   + 'unreduced'
     %   + 'essential'
     %   + 'l1-error'
     %   + 'linf-error'
 
-    EXPERIMENT_TAG = 'table'
+    EXPERIMENT_TAG = 'table';
     table_tag = strcat(EXPERIMENT_TAG, '_', table_type, '.tex');
-    tablepath = fullfile(FIGURE_DIR, figure_tag);
+    table_path = fullfile(FIGURE_DIR, table_tag);
 
     fileId = fopen(table_path, 'w');
     table_header(fileId);
@@ -41,7 +41,7 @@ function create_table(shapes, algos, table_type, levels_x, tensor_x)
     end
     for j = 1:num_shapes
         for l = 1:num_algos
-            fprintf(fileId,'& {%s} ', algos{l});
+            fprintf(fileId,'& {%s} ', rename_alg(algos{l}));
         end
     end
     fprintf(fileId,'\\\\\n');
@@ -70,6 +70,44 @@ function create_table(shapes, algos, table_type, levels_x, tensor_x)
     fprintf(fileId,'\\end{table*}\n');
     fprintf(fileId,'\\end{small}\n');
 
+end
+
+function name = rename_shape(shape)
+    name = '';
+    if strcmp(alg, 'random_gaussian') == 0
+       name = 'Gaussian';
+    elseif strcmp(alg, 'random_figure_8') == 0
+       name = 'Figure-8';
+    elseif strcmp(alg, 'random_trefoil_know') == 0
+       name = 'Trefoil-Knot';
+    elseif strcmp(alg, 'random_torus') == 0
+       name = 'Random-Torus';
+    elseif strcmp(alg, 'random_sphere_product') == 0
+       name = 'Sphere-Product';
+    else
+       error('In rename_alg, alg not recognised');
+    end
+end
+
+function name = rename_alg(alg)
+    name = '';
+    if strcmp(alg, 'standard') == 0
+       name = 'std';
+    elseif strcmp(alg, 'twist') == 0
+       name = 'twist';
+    elseif strcmp(alg, 'ph_row') == 0
+       name = 'phRow';
+    elseif strcmp(alg, 'standard_parallel') == 0
+       name = 'std-parallel';
+    elseif strcmp(alg, 'twist_parallel') == 0
+       name = 'twist-parallel';
+    elseif strcmp(alg, 'ph_row_parallel') == 0
+       name = 'phRow-parallel';
+    elseif strcmp(alg, 'pms') == 0
+       name = 'pms';
+    else
+       error('In rename_alg, alg not recognised');
+    end
 end
 
 function table_header(fileId)
