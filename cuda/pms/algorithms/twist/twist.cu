@@ -36,7 +36,9 @@ inline void twist(int *h_low, int *h_arglow, int *h_classes,
         while (iterate && j > -1){
 
             // TIC
-            clock_t tic = clock();
+            //clock_t tic = clock();
+            cudaEvent_t start, stop;
+            tic(&start, &stop);
 
             // Work on column "j"
             reduce_col_host(j, h_rows_mp, h_aux_mp, h_low, h_arglow, m, p);
@@ -44,14 +46,23 @@ inline void twist(int *h_low, int *h_arglow, int *h_classes,
             twist_step_host(j, h_rows_mp, h_low, m, p);
 
             // update classes (Not necessary for algo to work)
-            update_classes_host(h_classes, h_low, h_arglow, m);
+            if (h_low[j] > -1){
+                h_classes[j] = -1;
+                h_classes[h_low[j]] = 1;
+            }else{
+                h_classes[j] = 1;
+            }
 
             // Essential estimation
-            ess_hat_host(h_ess, h_low, h_arglow, m);
+            if (h_low[j] > -1){
+                h_ess[j] = 0;
+                h_ess[h_low[j]] = 0;
+            }
 
             // TOC
-            clock_t toc = clock();
-            time = ((float)((double)(toc - tic) / CLOCKS_PER_SEC)) * 1000;
+            //clock_t toc = clock();
+            //time = ((float)((double)(toc - tic) / CLOCKS_PER_SEC)) * 1000;
+            toc(start, stop, &time);
 
             // meausre progress
             track_host(iter, m, h_low, h_ess, h_classes,

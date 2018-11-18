@@ -52,7 +52,9 @@ inline void ph_row(int *h_low, int *h_arglow, int *h_classes,
     for(int i = m-1; i > -1; i--){
 
         // TIC
-        clock_t tic = clock();
+        //clock_t tic = clock();
+        cudaEvent_t start, stop;
+        tic(&start, &stop);
 
         // Mark neighbours
         // Contrary to parallel case, we store indices of neighbours
@@ -75,8 +77,9 @@ inline void ph_row(int *h_low, int *h_arglow, int *h_classes,
         ess_hat_host(h_ess, h_low, h_arglow, m);
 
         // TOC
-        clock_t toc = clock();
-        time = ((float)((double)(toc - tic) / CLOCKS_PER_SEC)) * 1000;
+        //clock_t toc = clock();
+        //time = ((float)((double)(toc - tic) / CLOCKS_PER_SEC)) * 1000;
+        toc(start, stop, &time);
 
         // meausre progress
         track_host(iter, m, h_low, h_ess, h_classes,
