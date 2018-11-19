@@ -1,5 +1,5 @@
 function benchmark_pms_plot(shapes_map, x_unit, y_metric)
-init;
+plot_init;
 
 EXPERIMENT_TAG  = 'benchmark_pms';
 

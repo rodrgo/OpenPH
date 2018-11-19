@@ -1,5 +1,6 @@
 % test_speed_standard_reduction.m
 init;
+plot_init;
 
 % Complex parameters
 cparams               = [];
@@ -8,8 +9,6 @@ cparams.num_divs      = 10;
 cparams.max_filtr_val = 5;
 cparams.num_points    = 15;
 
-num_samples = 3;
-
 shapes = {'random_gaussian', ...
           'random_figure_8', ...
           'random_trefoil_knot'};
@@ -17,14 +16,25 @@ shapes = {'random_gaussian', ...
 algos  = {'standard', ...
           'twist', ...
           'ph_row', ...
-          'standard_parallel', ...
-          'twist_parallel', ...
-          'ph_row_parallel', ...
           'pms'};
 
 time_init   = tic;
-percentiles = create_percentiles_struct()
-tensors     = create_tensors_struct();
+perc        = [];
+perc.ess    = [0.1, 0.5, 0.9, 0.95, 1];
+perc.unred  = [0.9, 0.5, 0.1, 0.05, 0.01];
+perc.lone   = [1e-1, 1e-2, 1e-3, 1e-4, 0];
+perc.linf   = [1e-1, 1e-2, 1e-3, 1e-4, 0];
+
+num_shapes   = length(shapes);
+num_algos    = length(algos);
+num_samples  = 3;
+
+tensor       = [];
+tensor.ess   = zeros(num_shapes, num_samples, num_algos, length(perc.ess));
+tensor.unred = zeros(num_shapes, num_samples, num_algos, length(perc.unred));
+tensor.lone  = zeros(num_shapes, num_samples, num_algos, length(perc.lone));
+tensor.linf  = zeros(num_shapes, num_samples, num_algos, length(perc.linf));
+
 shapes_map  = containers.Map;
 
 for i = 1:length(shapes)
@@ -47,7 +57,7 @@ for i = 1:length(shapes)
             fprintf('\t\t\t%s... ', algos{l});
 
             D = BoundaryMatrix(stream);
-            [OUT, t] = cuda_wrapper(D, algos{l}, low_true, 7);
+            [OUT, t] = cuda_wrapper(D, algos{l}, low_true, 8);
 
             tensor = populate_tensor(OUT, tensor, perc, i, k, l);
             
@@ -91,48 +101,4 @@ create_table(shapes, algos, 'unreduced', perc.unred, tensor.unred);
 create_table(shapes, algos, 'essential', perc.ess, tensor.ess);
 create_table(shapes, algos, 'lone', perc.lone, tensor.lone);
 create_table(shapes, algos, 'linf', perc.linf, tensor.linf);
-
-function tensor = populate_tensor(OUT, tensor, perc, i, k, l)
-    % ess
-    y = OUT.ess(1:OUT.num_iters);
-    for pp = 1:length(perc.ess)
-        tensor.ess(i, k, l, pp) = find(y - perc.ess(pp) >= 0 , 1, 'first');
-    end
-
-    % unred
-    y = OUT.err_redu(1:OUT.num_iters);
-    for pp = 1:length(perc.unred)
-        tensor.unred(i, k, l, pp) = find(y - perc.unred(pp) <= 0 , 1, 'first');
-    end
-
-    % lone
-    y = OUT.err_lone(1:OUT.num_iters);
-    for pp = 1:length(perc.lone)
-        tensor.lone(i, k, l, pp) = find(y - perc.lone(pp) <= 0 , 1, 'first');
-    end
-
-    % linf
-    y = OUT.err_linf(1:OUT.num_iters);
-    for pp = 1:length(perc.linf)
-        tensor.linf(i, k, l, pp) = find(y - perc.linf(pp) <= 0 , 1, 'first');
-    end
-end
-
-function [tensors, perc] = create_tensor_structs(n_shapes, n_samples, n_algos, n_levels)
-
-    tensor          = [];
-    tensor.ess      = zeros(n_shapes, n_samples, n_algos, n_levels);
-    tensor.unred    = zeros(n_shapes, n_samples, n_algos, n_levels);
-    tensor.lone     = zeros(n_shapes, n_samples, n_algos, n_levels);
-    tensor.linf     = zeros(n_shapes, n_samples, n_algos, n_levels);
-
-    perc            = [];
-    perc.ess        = [0.1, 0.5, 0.9, 0.95, 1];
-    perc.unred      = [0.9, 0.5, 0.1, 0.05, 0.01];
-    perc.lone       = [1e-1, 1e-2, 1e-3, 1e-4, 0];
-    perc.linf       = [1e-1, 1e-2, 1e-3, 1e-4, 0];
-
-    % Total column operation difference
-    %tensor_col_ops = zeros(num_complexes, num_samples, num_algos); % last entry stores total number of column operations
-end
 
