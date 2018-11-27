@@ -18,8 +18,10 @@ inline void left_to_right_host(int j0, int j1, int *h_rows_mp, int *h_aux_mp, in
             }else{
                 idx0++;
                 idx1++;
-                if (idx0 == idx0_MAX-1 || idx1 == idx1_MAX-1)
-                    printf("WARNING: Column reaching memalloc limit\n");
+                if (idx0 == idx0_MAX || idx1 == idx1_MAX){
+                    printf("WARNING: Reached memalloc limit\n");
+                    exit(0);
+                }
             }
         }else{
             if (idx0_ok){
@@ -34,11 +36,17 @@ inline void left_to_right_host(int j0, int j1, int *h_rows_mp, int *h_aux_mp, in
     }
     int low_j1 = -1;
     // At least one value was written in d_aux_mp
-    for (idx1 = j1*p; idx1 < idx1_MAX; idx1++){
+    idx1 = j1*p;
+    while(h_aux_mp[idx1] != -1 && idx1 < idx1_MAX){
         h_rows_mp[idx1] = h_aux_mp[idx1];
         h_aux_mp[idx1] = -1;
         if (h_rows_mp[idx1] > -1)
             low_j1 = h_rows_mp[idx1];
+        idx1++;
+    }
+    while(h_rows_mp[idx1] != -1 && idx1 < idx1_MAX){
+        h_rows_mp[idx1] = -1;
+        idx1++;
     }
     h_low[j1] = low_j1;
 }
