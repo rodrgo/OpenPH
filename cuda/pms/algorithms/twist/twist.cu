@@ -2,7 +2,7 @@
 inline void twist_step_host(int j, int *h_rows_mp, int *h_low, int m, int p){
     int low_j = h_low[j];
     if (low_j > -1){
-        clear_column_host(low_j, h_rows_mp, p);
+        //clear_column_host(low_j, h_rows_mp, p);
         h_low[low_j] = -1;
     }
 }

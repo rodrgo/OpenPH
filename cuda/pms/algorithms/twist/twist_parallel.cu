@@ -4,7 +4,7 @@ __global__ void twist_step(int j, int *d_rows_mp, int *d_low, int m, int p){
     if(j == tid && j < m){
         int low_j = d_low[j];
         if (low_j > -1){
-            clear_column(low_j, d_rows_mp, p);
+            //clear_column(low_j, d_rows_mp, p);
             d_low[low_j] = -1;
         }
     }
