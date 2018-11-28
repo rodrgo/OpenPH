@@ -41,7 +41,7 @@ vals = ones(size(rows));
 R = sparse(rows, cols, vals); 
 [r, c, v] = find(R);
 
-col_width = 7;
+col_width = 10;
 
 % Solve with standard
 [low_star, t] = std_test(R);
