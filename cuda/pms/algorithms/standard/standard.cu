@@ -23,7 +23,7 @@ inline void standard(int *h_low, int *h_arglow, int *h_classes,
         tic(&start, &stop);
 
         // Work on column "j"
-        reduce_col_host(j, h_rows_mp, h_aux_mp, h_low, h_arglow, m, p);
+        reduce_col_host(j, h_rows_mp, h_aux_mp, h_low, h_arglow, m, p, h_ess);
 
         // Update classes host
         if (h_low[j] > -1){
@@ -40,8 +40,6 @@ inline void standard(int *h_low, int *h_arglow, int *h_classes,
         }
 
         // TOC
-        //clock_t toc = clock();
-        //time = ((float)((double)(toc - tic) / CLOCKS_PER_SEC)) * 1000;
         toc(start, stop, &time);
 
         // meausre progress

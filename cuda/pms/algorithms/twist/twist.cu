@@ -41,7 +41,7 @@ inline void twist(int *h_low, int *h_arglow, int *h_classes,
             tic(&start, &stop);
 
             // Work on column "j"
-            reduce_col_host(j, h_rows_mp, h_aux_mp, h_low, h_arglow, m, p);
+            reduce_col_host(j, h_rows_mp, h_aux_mp, h_low, h_arglow, m, p, h_ess);
 
             twist_step_host(j, h_rows_mp, h_low, m, p);
 
