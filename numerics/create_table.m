@@ -32,7 +32,7 @@ function create_table(shapes, algos, table_type, levels_x, tensor_x)
     table_multirow(fileId, table_type);
 
     for j = 1:num_shapes
-        fprintf(fileId,'\\multicolumn{%d}{c}{%s}', num_algos, shapes{j});
+        fprintf(fileId,'\\multicolumn{%d}{c}{%s}', num_algos, rename_shape(shapes{j}));
         if j < num_shapes
             fprintf(fileId,'&\n');
         else
@@ -74,36 +74,36 @@ end
 
 function name = rename_shape(shape)
     name = '';
-    if strcmp(alg, 'random_gaussian') == 0
+    if strcmp(shape, 'random_gaussian') == 1
        name = 'Gaussian';
-    elseif strcmp(alg, 'random_figure_8') == 0
+    elseif strcmp(shape, 'random_figure_8') == 1
        name = 'Figure-8';
-    elseif strcmp(alg, 'random_trefoil_know') == 0
+    elseif strcmp(shape, 'random_trefoil_knot') == 1
        name = 'Trefoil-Knot';
-    elseif strcmp(alg, 'random_torus') == 0
+    elseif strcmp(shape, 'random_torus') == 1
        name = 'Random-Torus';
-    elseif strcmp(alg, 'random_sphere_product') == 0
+    elseif strcmp(shape, 'random_sphere_product') == 1
        name = 'Sphere-Product';
     else
-       error('In rename_alg, alg not recognised');
+       error('In rename_shape, shape not recognised');
     end
 end
 
 function name = rename_alg(alg)
     name = '';
-    if strcmp(alg, 'standard') == 0
+    if strcmp(alg, 'standard') == 1
        name = 'std';
-    elseif strcmp(alg, 'twist') == 0
+    elseif strcmp(alg, 'twist') == 1
        name = 'twist';
-    elseif strcmp(alg, 'ph_row') == 0
+    elseif strcmp(alg, 'ph_row') == 1
        name = 'phRow';
-    elseif strcmp(alg, 'standard_parallel') == 0
+    elseif strcmp(alg, 'standard_parallel') == 1
        name = 'std-parallel';
-    elseif strcmp(alg, 'twist_parallel') == 0
+    elseif strcmp(alg, 'twist_parallel') == 1
        name = 'twist-parallel';
-    elseif strcmp(alg, 'ph_row_parallel') == 0
+    elseif strcmp(alg, 'ph_row_parallel') == 1
        name = 'phRow-parallel';
-    elseif strcmp(alg, 'pms') == 0
+    elseif strcmp(alg, 'pms') == 1
        name = 'pms';
     else
        error('In rename_alg, alg not recognised');
