@@ -9,7 +9,7 @@ function [lows, t] = std_red(D)
     % Reduce
     for j = 1:D.m
         D.reduce_col(j);
-	D.record_iteration();
+        D.record_iteration();
     end
     % Extract lows
     lows = D.low;
