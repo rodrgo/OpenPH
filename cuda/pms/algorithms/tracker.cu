@@ -75,14 +75,14 @@ inline float norm_1_host(float *h_float_m, int m){
 }
 
 inline float norm_inf(float *d_float_m, int m){
-    float ninf;
+    float ninf = 0.0f;
     int pos = cublasIsamax(m, d_float_m, 1)-1;
     cudaMemcpy(&ninf, d_float_m+pos, sizeof(float), cudaMemcpyDeviceToHost);
     return abs(ninf); 
 }
 
 inline float norm_inf_host(float *h_float_m, int m){
-    float ninf;
+    float ninf = 0.0f;
     for (int i=0; i<m; i++)
         if (abs(h_float_m[i]) > ninf)
             ninf = abs(h_float_m[i]);
@@ -124,10 +124,11 @@ inline void track(int iter, int m,
     cudaDeviceSynchronize();
     float num_ess_hat = cublasSasum(m, d_float_m, 1);
 
-    if (num_ess_hat > 0){
-        error_ess[iter] = num_ess_true/num_ess_hat;
+    // In estimation num_ess_true <= num_ess_hat <= m
+    if (num_ess_hat == num_ess_true){
+        error_ess[iter] = 1;
     }else{
-        error_ess[iter] = -1.0;
+        error_ess[iter] = num_ess_true/num_ess_hat;
     }
 
 }
@@ -161,10 +162,11 @@ inline void track_host(int iter, int m,
     to_float_host(h_float_m, h_ess, m);
     float num_ess_hat = asum_host(m, h_float_m);
 
-    if (num_ess_hat > 0){
-        error_ess[iter] = num_ess_true/num_ess_hat;
+    // In estimation num_ess_true <= num_ess_hat <= m
+    if (num_ess_hat == num_ess_true){
+        error_ess[iter] = 1;
     }else{
-        error_ess[iter] = -1.0;
+        error_ess[iter] = num_ess_true/num_ess_hat;
     }
 
 }
