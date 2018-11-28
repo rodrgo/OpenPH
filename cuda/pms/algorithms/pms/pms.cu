@@ -3,6 +3,7 @@ inline void pms(int *d_low, int *d_arglow, int *d_classes, int *d_ess,
         int *d_dims, int *d_dims_order, int *d_dims_order_next, int *d_dims_order_start,
         int complex_dimension, int *d_left, int *d_beta, int *d_aux_mp,
         int *d_low_true, int *d_ess_true, float *d_float_m,
+        int *d_aux_m, int *d_is_positive, int *d_aux_cdim,
         float *error_lone, float *error_linf, float *error_redu, float *error_ess,
         float *time_track, int *p_iter,
         dim3 NBm, dim3 TPBm, dim3 NBcdim, dim3 TPBcdim){
@@ -17,12 +18,6 @@ inline void pms(int *d_low, int *d_arglow, int *d_classes, int *d_ess,
             error_lone, error_linf, error_redu,
             error_ess, time_track, time, NBm, TPBm);
 
-    // Auxiliary variables
-    int *d_aux;
-    int *d_is_positive;
-    cudaMalloc((void**)&d_aux, m * sizeof(int));
-    cudaMalloc((void**)&d_is_positive, m * sizeof(int));
-
     // -----------------------
     // Do some pre-processing work
     // -----------------------
@@ -30,8 +25,6 @@ inline void pms(int *d_low, int *d_arglow, int *d_classes, int *d_ess,
     // Compute simplex dimensions (on device)
     // Get maximum dimension 
     int cdim = complex_dimension + 2; // -1, 0, 1, 2, ..., complex_dim
-    int *d_aux_cdim;    // Auxiliary vector of size cdim 
-    cudaMalloc((void**)&d_aux_cdim, cdim * sizeof(int));
 
     // -----------------------
     // Phase 0
@@ -39,10 +32,13 @@ inline void pms(int *d_low, int *d_arglow, int *d_classes, int *d_ess,
 
     // Mark pivots and clear corresponding positives
     mark_pivots_and_clear<<<NBm, TPBm>>>(d_low, d_beta, 
-            d_classes, d_rows_mp, d_arglow, m, p);
+            d_classes, d_rows_mp, d_arglow, d_ess, m, p);
     cudaDeviceSynchronize();
 
-    int converged = is_reduced(d_aux, d_low, m, NBm, TPBm);
+    //int converged = is_reduced(d_aux, d_low, m, NBm, TPBm);
+    int converged = 0;
+    cudaDeviceSynchronize();
+
     int iter = 1;
 
     while (! converged ){
@@ -55,7 +51,7 @@ inline void pms(int *d_low, int *d_arglow, int *d_classes, int *d_ess,
         // Main iteration : Phase I 
         // -----------------------
 
-        fill<<<NBm, TPBm>>>(d_aux, 0, m);
+        fill<<<NBm, TPBm>>>(d_aux_m, 0, m);
         fill<<<NBm, TPBm>>>(d_aux_cdim, -1, cdim); // d_ceil
         fill<<<NBm, TPBm>>>(d_is_positive, 0, m);
         cudaDeviceSynchronize();
@@ -63,11 +59,11 @@ inline void pms(int *d_low, int *d_arglow, int *d_classes, int *d_ess,
         transverse_dimensions<<<NBcdim, TPBcdim>>>(d_dims, 
                 d_dims_order, d_dims_order_next, d_dims_order_start, 
                 d_low, d_arglow, d_classes, d_is_positive,   
-                d_aux, d_aux_cdim, cdim);
+                d_aux_m, d_ess, d_aux_cdim, cdim);
         cudaDeviceSynchronize();
 
         clear_positives<<<NBm, TPBm>>>(d_is_positive, 
-                d_low, d_classes, d_rows_mp, m, p);
+                d_low, d_classes, m);
         cudaDeviceSynchronize();
 
         // -----------------------
@@ -78,23 +74,30 @@ inline void pms(int *d_low, int *d_arglow, int *d_classes, int *d_ess,
         cudaDeviceSynchronize();
 
         phase_ii<<<NBm, TPBm>>>(d_low, d_left, d_classes, 
-                d_is_positive, d_arglow, d_rows_mp, d_aux_mp, m, p);
+                d_is_positive, d_arglow, d_rows_mp, d_aux_mp, d_ess, m, p);
         cudaDeviceSynchronize();
 
         clear_positives<<<NBm, TPBm>>>(d_is_positive, 
-                d_low, d_classes, d_rows_mp, m, p);
-        cudaDeviceSynchronize();
-
-        // Check again if its reduced
-        converged = is_reduced(d_aux, d_low, m, NBm, TPBm);
-
-        // update classes (Not necessary for algo to work)
-        update_classes<<<NBm, TPBm>>>(d_classes, d_low, d_arglow, m);
+                d_low, d_classes, m);
         cudaDeviceSynchronize();
 
         // Essential estimation
         ess_hat<<<NBm, TPBm>>>(d_ess, d_low, d_arglow, m);
         cudaDeviceSynchronize();
+
+        // update classes (Not necessary for algo to work)
+        update_classes<<<NBm, TPBm>>>(d_classes, d_low, d_arglow, m);
+
+        // Check again if its reduced
+        converged = is_reduced(d_aux_m, d_low, m, NBm, TPBm);
+
+        if (converged == 1){
+            ess_hat_final<<<NBm, TPBm>>>(d_ess, d_low, d_arglow, m);
+            cudaDeviceSynchronize();
+
+            update_classes_final<<<NBm, TPBm>>>(d_classes, d_low, d_ess, m);
+            cudaDeviceSynchronize();
+        }
 
         // TOC
         toc(start, stop, &time);
@@ -110,14 +113,7 @@ inline void pms(int *d_low, int *d_arglow, int *d_classes, int *d_ess,
 
     }
 
-    set_unmarked<<<NBm, TPBm>>>(d_classes, d_low, d_arglow, d_rows_mp, m, p);
-    cudaDeviceSynchronize();
-
     p_iter[0] = iter;
-
-    cudaFree(d_aux_cdim);
-    cudaFree(d_aux);
-    cudaFree(d_is_positive);
 
 }
 

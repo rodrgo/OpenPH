@@ -30,7 +30,7 @@ inline int is_reduced(int *d_aux, int *d_lows, int m, dim3 numBlocks_m, dim3 thr
 // Phase 0
 // -----------------------
 
-__global__ void mark_pivots_and_clear(int *d_low, int *d_beta, int *d_classes, int *d_rows_mp, int *d_arglow, int m, int p){
+__global__ void mark_pivots_and_clear(int *d_low, int *d_beta, int *d_classes, int *d_rows_mp, int *d_arglow, int *d_ess, int m, int p){
     int j = threadIdx.x + blockDim.x*blockIdx.x;
     if (j < m){
         int low_j = d_low[j]; 
@@ -40,35 +40,38 @@ __global__ void mark_pivots_and_clear(int *d_low, int *d_beta, int *d_classes, i
             // j is "negative"
             d_classes[j] = -1;
             // low_j is positive
-            clear_column(low_j, d_rows_mp, p);
+            //clear_column(low_j, d_rows_mp, p);
             d_low[low_j] = -1;
             d_classes[low_j] = 1;
             // Record j as pivot
             d_arglow[low_j] = j;
+            // Record essential
+            d_ess[low_j] = 0;
+            d_ess[j] = 0;
         }
     }
 }
 
-__global__ void transverse_dimensions(int *d_dims, int *d_dims_order, int *d_dims_order_next, int *d_dims_order_start, int *d_low, int *d_arglow, int *d_classes, int *d_clear, int *d_visited, int *d_ceil_cdim, int cdim){
+__global__ void transverse_dimensions(int *d_dims, int *d_dims_order, int *d_dims_order_next, int *d_dims_order_start, int *d_low, int *d_arglow, int *d_classes, int *d_clear, int *d_visited, int *d_ess, int *d_ceil_cdim, int cdim){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < cdim){
-        int dim_j; // -1, 0, 1, ..., complex_dim
         int cdim_pos;
         int dim_ceil; // initialized at -1 
         int low_j;
         int j = d_dims_order_start[tid];
-        int iterate = 1;
-        while (iterate && j > -1){
-            dim_j = d_dims[j];
-            cdim_pos = dim_j + 1; 
-            dim_ceil = d_ceil_cdim[cdim_pos];
+        while (j > -1){
             low_j = d_low[j];
             if (low_j > -1){
+                cdim_pos = d_dims[j] + 1; // d_dims[j] : -1, 0, 1, ..., complex_dim
+                dim_ceil = d_ceil_cdim[cdim_pos];
                 if (d_visited[low_j] == 0){
                     if (d_classes[j] == 0 && low_j > dim_ceil){
                         d_arglow[low_j] = j;
                         d_classes[j] = -1;
                         d_clear[low_j] = 1;
+                        // ess estimation
+                        d_ess[low_j] = 0;
+                        d_ess[j] = 0;
                     }
                 }else{
                     d_ceil_cdim[cdim_pos] = low_j > dim_ceil ? low_j : dim_ceil;
@@ -76,21 +79,19 @@ __global__ void transverse_dimensions(int *d_dims, int *d_dims_order, int *d_dim
                 d_visited[low_j] = 1;
             }
             // Iterator
-            if (d_dims_order_next[j] == -1){
-                iterate = 0;
-            }else{
-                j = d_dims_order_next[j];
-            }
+            j = d_dims_order_next[j];
         }
     }
 }
 
-__global__ void phase_ii(int *d_low, int *d_left, int *d_classes, int *d_clear, int *d_arglow, int *d_rows_mp, int *d_aux_mp, int m, int p){
+__global__ void phase_ii(int *d_low, int *d_left, int *d_classes, int *d_clear, int *d_arglow, int *d_rows_mp, int *d_aux_mp, int *d_ess, int m, int p){
     int j = threadIdx.x + blockDim.x*blockIdx.x;
     if (j < m){
         int low_j = d_low[j];
         int pivot = d_arglow[low_j];
-        if (-1 < pivot && pivot < j && d_classes[j] == 0){
+        while (-1 < pivot && pivot < j && d_classes[j] == 0){
+            if (d_low[j] > -1)
+                d_ess[d_low[j]] = 0;
             left_to_right(pivot, j, d_rows_mp, d_aux_mp, d_low, m, p);
             // alpha_beta_check 
             low_j = d_low[j];
@@ -99,23 +100,25 @@ __global__ void phase_ii(int *d_low, int *d_left, int *d_classes, int *d_clear, 
                     // is lowstar, do a twist clearing
                     d_arglow[low_j] = j;
                     d_classes[j] = -1;
-                    d_clear[low_j] = 1;
                 }
+                d_clear[low_j] = 1;
+                pivot = d_arglow[low_j];
             }else{
-                d_classes[j] = 1;
+                //d_classes[j] = 1;
+                pivot = -1;
             }
         }
     }
 }
 
-__global__ void set_unmarked(int *d_classes, int *d_low, int *d_arglow, int *d_rows_mp, int m, int p){
+__global__ void set_unmarked(int *d_ess, int *d_classes, int *d_low, int *d_arglow, int *d_rows_mp, int m, int p){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         if (d_classes[tid] == 0){
             if (d_low[tid] > -1){
                 d_arglow[d_low[tid]] = tid;
                 d_classes[tid] = -1;
-                clear_column(d_low[tid], d_rows_mp, p);
+                //clear_column(d_low[tid], d_rows_mp, p);
                 d_low[d_low[tid]] = -1;
                 d_classes[d_low[tid]] = 1;
             }else{
@@ -125,11 +128,11 @@ __global__ void set_unmarked(int *d_classes, int *d_low, int *d_arglow, int *d_r
     }
 }
 
-__global__ void clear_positives(int *d_clear, int *d_low, int *d_classes, int *d_rows_mp, int m, int p){
+__global__ void clear_positives(int *d_clear, int *d_low, int *d_classes, int m){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     if (tid < m){
         if (d_clear[tid] == 1){
-            clear_column(tid, d_rows_mp, p);
+            //clear_column(tid, d_rows_mp, p);
             d_low[tid] = -1;
             d_classes[tid] = 1;
         }

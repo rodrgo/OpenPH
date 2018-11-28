@@ -122,13 +122,28 @@ inline void algorithm_factory(char *algstr,
                     error_lone, error_linf, error_redu, error_ess,
                     time_track, p_iter, NBm, TPBm);
         } else if (strcmp(algstr, "pms")==0){
+            int *d_aux_m;
+            int *d_is_positive;
+            int *d_aux_cdim;    // Auxiliary vector of size cdim
+            int cdim = complex_dim + 2; // -1, 0, 1, 2, ..., complex_dim
+
+            cudaMalloc((void**)&d_aux_m, m * sizeof(int));
+            cudaMalloc((void**)&d_is_positive, m * sizeof(int));
+            cudaMalloc((void**)&d_aux_cdim, cdim * sizeof(int));
+
             pms(d_low, d_arglow, d_classes, d_ess,
                     d_rows, m, p,
                     d_dim, d_dim_order, d_dim_next, d_dim_start,
                     complex_dim, d_left, d_beta, d_aux_mp,
                     d_low_true, d_ess_true, d_float_m,
+                    d_aux_m, d_is_positive, d_aux_cdim,
                     error_lone, error_linf, error_redu, error_ess,
                     time_track, p_iter, NBm, TPBm, NBcdim, TPBcdim);
+
+            cudaFree(d_aux_m);
+            cudaFree(d_is_positive);
+            cudaFree(d_aux_cdim);
+
         }else
             printf("Not recognised");
     }
