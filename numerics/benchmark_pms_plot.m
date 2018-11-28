@@ -67,7 +67,7 @@ for i = 1:length(shapes)
 
             figure(1)
             labels{end + 1}  = strrep(algo, '_', '\_');
-            handles(end + 1) = loglog(x, y, style, 'Color', colors{l});
+            handles(end + 1) = semilogy(x, y, style, 'Color', colors{l});
             hold on;
 
             % Arrow
