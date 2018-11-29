@@ -1,14 +1,16 @@
 % test_speed_standard_reduction.m
 init;
+plot_init;
 
 % Complex parameters
+MAX_DIM = 20;
+num_points = 5:16
+
 cparams               = [];
-cparams.max_dim       = 5;
+cparams.max_dim       = MAX_DIM;
 cparams.num_divs      = 10;
 cparams.max_filtr_val = 5;
 cparams.num_points    = 5;
-
-num_points = 10:21;
 
 % Explore complexity of Vietoris-Rips complexes
 shape = 'random_gaussian';
@@ -27,43 +29,42 @@ set(gca, 'Fontname', 'setTimes', 'Fontsize', 18);
 handles = [];
 labels  = {};
 
+COL_WIDTH = 8;
+
 % Create shapes
-
-ts = zeros(length(algos), length(num_points));
-
+ts  = zeros(length(algos), length(num_points));
 nps = zeros(1, length(num_points));
-ms = zeros(1, length(num_points));
+ms  = zeros(1, length(num_points));
 colors = create_color_palette(length(algos));
+
 for j = 1:length(num_points)
     np = num_points(j);
     cparams.num_points = np;
     [stream, complex_info] = complex_factory(shape, cparams);
-    D = BoundaryMatrix(stream);
+    [r, c, m] = stream2cmo(stream);
+    low_true = get_true_low(r, c, m, COL_WIDTH);
 
-    %low_true = reduce_stream(stream, 'testing', as_dense);
-    OUT = cuda_wrapper(D, 'pms', zeros(1,D.m), 7);
-    low_true = OUT.low;
+    if false
+        D = BoundaryMatrix(stream);
+        [r_verify, c_verify] = find(D.matrix);
+        assert(all(r == r_verify));
+        assert(all(c == c_verify));
+    end
 
     nps(j) = np;
-    ms(j) = D.m;
+    ms(j) = m;
 
     for l = 1:length(algos)
-        fprintf('\t\t\t%s... ', algos{l});
 
-        [OUT, ~] = cuda_wrapper(D, algos{l}, low_true, 7);
-        assert(all(OUT.low == low_true), 'Output incorrect!');
-
-        t = sum(OUT.time_track(1:OUT.num_iters));
-        if (t ~= sum(OUT.time_track))
-            display(t);
-            display(sum(OUT.time_track));
-        end
-        ts(l, j) = t/1000;
+        [OUT, ~] = openph(r, c, m, algos{l}, COL_WIDTH, low_true);
+        t = sum(OUT.time_track(1:(OUT.num_iters)));
+        ts(l, j) = t;
         
-        fprintf('\n\t%s: (np, m, t) = (%d, %d, %g)\n',...
-            shape, cparams.num_points, D.m, t);
+        fprintf('%s\t%s: (np, m, t) = (%d, %d, %g)\n',...
+            shape, algos{l}, cparams.num_points, m, t);
 
     end
+    fprintf('\n');
 end 
 
 A = [ts; ms];
@@ -88,33 +89,54 @@ end
 % Add scaling references 
 colour = 'black';
 
-x = ms(end-2):100:ms(end);
-y = 3*(x.^2)/max(x.^2);
-labels{end + 1}  = strrep('Quadratic', '_', '\_');
-hold on;
-handles(end + 1) = loglog(x, y, '-', 'Color', colour);
-ll=ceil(length(x)*3/4);
-h=text(x(ll), y(ll), 'O(m^2)', 'HorizontalAlignment', 'right');
-set(h, 'Color', colour);
+if true
+    slope = 2;
+    ordinate = 0;
+    x = [ms(end-2), ms(end)];
+    y = exp(ordinate)*x.^(slope);
+    y = y/(y(end))*max(max(ts))*1.1;
+    labels{end + 1}  = strrep('Quadratic', '_', '\_');
+    hold on;
+    handles(end + 1) = loglog(x, y, '-', 'Color', colour);
+    h=text(x(end), y(end), 'O(m^2)', 'HorizontalAlignment', 'right');
+    set(h, 'Color', colour);
+end
 
-x = ms(end-2):100:ms(end);
-y = 1*x/max(x);
-labels{end + 1} = strrep('Linear', '_', '\_');
-hold on;
-handles(end + 1) = loglog(x, y, '-', 'Color', colour);
-ll=ceil(length(x)*3/4);
-h=text(x(ll), y(ll), 'O(m)', 'HorizontalAlignment', 'right');
-set(h, 'Color', 'black');
+if true
+    slope = 1;
+    ordinate = 0;
+    x = [ms(end-3), ms(end-2)];
+    y = exp(ordinate)*x.^(slope);
+    y = y/(y(end))*max(max(ts))*0.5;
+    labels{end + 1} = strrep('Linear', '_', '\_');
+    hold on;
+    handles(end + 1) = loglog(x, y, '-', 'Color', colour);
+    h=text(x(end), y(end), 'O(m)', 'HorizontalAlignment', 'right');
+    set(h, 'Color', colour);
+end
+
+if true
+    slope = 1;
+    ordinate = 0;
+    x = [ms(end-1), ms(end)];
+    y = x;
+    labels{end + 1} = strrep('Logarithmic', '_', '\_');
+    hold on;
+    handles(end + 1) = loglog(x, y, '-', 'Color', colour);
+    h=text(x(end), y(end), 'O(log(m))', 'HorizontalAlignment', 'right');
+    set(h, 'Color', colour);
+end
 
 % Cosmetics
 
 xlabel('m', 'FontSize', fs.axis);
-ylabel('time (sec)', 'FontSize', fs.axis);
+ylabel('time (ms)', 'FontSize', fs.axis);
 
 %legend(handles, labels, 'FontSize', fs.legend);
 
-title('Scaling of algorithms', 'FontSize', fs.title);
+title('Scaling of algorithms.', 'FontSize', fs.title);
 filepath = fullfile(FIGURE_DIR, 'scalings.eps');
 print('-depsc', filepath);
 eps_to_pdf(filepath);
+
 

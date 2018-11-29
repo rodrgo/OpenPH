@@ -29,6 +29,8 @@ num_shapes   = length(shapes);
 num_algos    = length(algos);
 num_samples  = 3;
 
+COL_WIDTH    = 8;
+
 tensor       = [];
 tensor.ess   = zeros(num_shapes, num_samples, num_algos, length(perc.ess));
 tensor.unred = zeros(num_shapes, num_samples, num_algos, length(perc.unred));
@@ -46,28 +48,19 @@ for i = 1:length(shapes)
     for k = 1:num_samples
 
         [stream, complex_info] = complex_factory(shapes{i}, cparams);
-        low_true = reduce_stream(stream, 'testing', true);
-        m = length(low_true);
+        [r, c, m] = stream2cmo(stream);
+        m = stream.getSize();
+        low_true = get_true_low(r, c, m, COL_WIDTH);
 
         fprintf('\t\tSample %d/%d\tm = %d\n', k, num_samples, m);
-
         algos_map = containers.Map;
         for l = 1:length(algos)
 
             fprintf('\t\t\t%s... ', algos{l});
-
-            D = BoundaryMatrix(stream);
-            [OUT, t] = cuda_wrapper(D, algos{l}, low_true, 8);
-
-            tensor = populate_tensor(OUT, tensor, perc, i, k, l);
-            
-            OUT.m = m;
-            OUT.complex_info = complex_info;
-
-            algos_map(algos{l}) = OUT;
-
-            assert(all(OUT.low == low_true), 'Output incorrect!');
+            [OUT, t] = openph(r, c, m, algos{l}, COL_WIDTH, low_true);
             fprintf('\t\tsuccess in %g secs!\n', t);
+            tensor = populate_tensor(OUT, tensor, perc, i, k, l);
+            algos_map(algos{l}) = OUT;
 
         end % end algorithms
 
