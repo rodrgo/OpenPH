@@ -89,12 +89,12 @@ end
 % Add scaling references 
 colour = 'black';
 
-if true
+if false
     slope = 2;
     ordinate = 0;
     x = [ms(end-2), ms(end)];
     y = exp(ordinate)*x.^(slope);
-    y = y/(y(end))*max(max(ts))*1.1;
+    y = y/(y(end))*max(max(ts))*0.9;
     labels{end + 1}  = strrep('Quadratic', '_', '\_');
     hold on;
     handles(end + 1) = loglog(x, y, '-', 'Color', colour);
@@ -102,7 +102,7 @@ if true
     set(h, 'Color', colour);
 end
 
-if true
+if false
     slope = 1;
     ordinate = 0;
     x = [ms(end-3), ms(end-2)];

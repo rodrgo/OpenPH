@@ -65,11 +65,6 @@ function create_table(shapes, algos, table_type, levels_x, tensor_x)
     fprintf(fileId,'\\bottomrule\n');
     fprintf(fileId,'\\end{tabular}\n');
 
-    table_caption(fileId, table_type);
-
-    fprintf(fileId,'\\end{table*}\n');
-    fprintf(fileId,'\\end{small}\n');
-
 end
 
 function name = rename_shape(shape)
@@ -111,10 +106,6 @@ function name = rename_alg(alg)
 end
 
 function table_header(fileId)
-    fprintf(fileId,'\n\n\n\n');
-    fprintf(fileId,'\\begin{small}\n');
-    fprintf(fileId,'\\begin{table*}\n');
-    fprintf(fileId,'\\centering\n');
     fprintf(fileId,'\\begin{tabular}{l');
     fprintf(fileId,'||');
 end
