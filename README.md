@@ -56,6 +56,14 @@ Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c6
 * **Rodrigo Mendoza-Smith** - [personal webpage](http://people.maths.ox.ac.uk/mendozasmith/)
 * **Jared Tanner** - [personal webpage](http://people.maths.ox.ac.uk/tanner/)
 
+## TODO
+
+* Matrix representation by dimension
+* Identify pivots when reading the matrix
+* Compress matrix
+* Omit zero columns from matrix representation (at the beginning and during the algorithm)
+* Python interface 
+
 ## Citing
 
 TBD
@@ -67,5 +75,4 @@ TBD  - see the [LICENSE.md](LICENSE.md) file for details
 ## Acknowledgments
 
 * Javaplex library
-* Vidit Nanda
 
