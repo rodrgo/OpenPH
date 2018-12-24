@@ -115,7 +115,7 @@ if false
     set(h, 'Color', colour);
 end
 
-if true
+if false
     slope = 1;
     ordinate = 0;
     x = [ms(end-1), ms(end)];
@@ -133,8 +133,14 @@ xlabel('m', 'FontSize', fs.axis);
 ylabel('time (ms)', 'FontSize', fs.axis);
 
 %legend(handles, labels, 'FontSize', fs.legend);
+% Tick size
+xt = get(gca, 'XTick');
+set(gca, 'FontSize', fs.ticks);
 
-title('Scaling of algorithms.', 'FontSize', fs.title);
+xt = get(gca, 'YTick');
+set(gca, 'FontSize', fs.ticks);
+
+title('Time scaling of algorithms', 'FontSize', fs.title);
 filepath = fullfile(FIGURE_DIR, 'scalings.eps');
 print('-depsc', filepath);
 eps_to_pdf(filepath);

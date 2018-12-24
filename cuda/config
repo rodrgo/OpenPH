@@ -3,7 +3,7 @@
 
 export TDA=/home/rodrigo/workspace/persistent_homology/tda-cuda/cuda
 export MATLAB=/usr/local/MATLAB/R2017a
-export CUDAHOME=/usr/local/cuda-9.1
+export CUDAHOME=/usr/local/cuda-9.2
 export GPUARCH=sm_61
 
 CUDAMATLAB=$(TDA)/CudaMATLAB
