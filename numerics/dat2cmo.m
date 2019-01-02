@@ -1,6 +1,9 @@
 
 function [r, c, m] = dat2cmo(fname)
-    % DAT file indexing starts at 0
+    % DAT file
+    %   Hashes (#) indicate comments
+    %   Emtpy lines are not read
+    %   Each line is a column
     batch = 100;
     r = zeros(batch, 1);
     c = zeros(batch, 1);
@@ -12,8 +15,15 @@ function [r, c, m] = dat2cmo(fname)
     while ischar(tline)
         s = strsplit(tline, ' ');
         if strcmp(s{1}, '#') == 0 & length(s{1}) > 0
+            % If line is not a comment nor empty
             m = m + 1;
-            if strcmp(s{1}, '0') == 0
+            if strcmp(s{1}, '0') == 1
+                % If simplex is of dimension == 0
+                idx = idx + 1;
+                r(idx) = -1;
+                c(idx) = m-1;
+            else
+                % If simplex is of dimension > 0
                 for i = 2:length(s)
                     idx = idx + 1;
                     r(idx) = str2num(s{i});
@@ -23,11 +33,6 @@ function [r, c, m] = dat2cmo(fname)
                     r = [r; zeros(batch, 1)];
                     c = [c; zeros(batch, 1)];
                 end
-            else
-                m = m + 1;
-                idx = idx + 1;
-                r(idx) = m-1;
-                c(idx) = m-1;
             end
         end
         tline = fgetl(fid);
