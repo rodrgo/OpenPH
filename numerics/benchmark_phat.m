@@ -37,6 +37,8 @@ nps = zeros(1, length(num_points));
 ms  = zeros(1, length(num_points));
 colors = create_color_palette(num_algos);
 
+phat_algos = {'standard', 'twist', 'chunk', 'chunk_sequential', 'spectral_sequence', 'row'};
+
 for j = 1:length(num_points)
     np = num_points(j);
     cparams.num_points = np;
@@ -48,15 +50,18 @@ for j = 1:length(num_points)
 
     test_tic = tic;
     [OUT, t] = openph(r, c, m, 'pms', COL_WIDTH, zeros(1,m));
-    %[lows, t] = std_red_testing(full(sparse(r, c, ones(size(r)), m, m)));
     ts(1, j) = toc(test_tic)
     lows = OUT.low;
 
-    [lows_phat, t] = phat(r, c, m, PHAT_DIR);
-    ts(2, j) = t
+    for k = 1:length(phat_algos)
+        % Without dualization
+        [lows_phat, t] = phat(r, c, m, PHAT_DIR, phat_algos{k}, false);
+        ts(1+k, j) = t;
 
-    %[OUT, t] = openph(r, c, m, algos{l}, COL_WIDTH, low_true);
-    % t = sum(OUT.time_track(1:(OUT.num_iters)));
+        % With dualization
+        [lows_phat, t] = phat(r, c, m, PHAT_DIR, phat_algos{k}, true);
+        ts(1+length(phat_algos)+k, j) = t;
+    end
 
     assert(sum(lows ~= lows_phat) == 0);
 end 
@@ -69,56 +74,44 @@ end
 table_tag = strcat('phat_benchmark.tex');
 table_path = fullfile(FIGURE_DIR, table_tag);
 
+% fopen
 fileId = fopen(table_path, 'w');
 
-fprintf(fileId,'\\begin{tabular}{l l || c | c}\n');
+fprintf(fileId,'\\begin{tabular}{l l ||');
+for k = 1:length(phat_algos)
+    fprintf(fileId,'SS');
+end
+fprintf(fileId, '}\n');
 fprintf(fileId,'\\toprule\n');
-fprintf(fileId,'{$N$} & {$m$} & {pms} & {phat}\n');
+
+fprintf(fileId,'\\multirow{2}{*}{$N$} & \n');
+fprintf(fileId,'\\multirow{2}{*}{$m$} & \n');
+for k = 1:length(phat_algos)
+    fprintf(fileId,'\\multicolumn{2}{c}{A (\%)}');
+    if k < length(phat_algos)
+        fprintf(fileId,'& \n');
+    else
+        fprintf(fileId,'\\\\\n');
+    end
+end
+
+fprintf(fileId,'& \n');
+for k = 1:length(phat_algos)
+    fprintf(fileId,' & p & d ');
+end
+fprintf(fileId,'\\\\\n');
 fprintf(fileId,'\\midrule\n');
+
 for j = 1:length(nps)
-    fprintf(fileId,'%d & %d & %3.6f & %3.6f\\\\\n', ...
-        nps(j), ms(j), ts(1,j), ts(2,j));
+    fprintf(fileId,'%d & %d', nps(j), ms(j));
+    for k = 1:length(phat_algos)
+        fprintf(fileId, '& %3.6f & %3.6f', ts(1+k,j), ts(1+length(phat_algos)+k,j));
+    end
+    fprintf(fileId, '\\\\\n');
 end 
 fprintf(fileId,'\\bottomrule\n');
 fprintf(fileId,'\\{tabular}');
 
+% fclose
 fclose(fileId);
 
-
-%
-%figure(1);
-%set(gcf, 'color', [1 1 1]);
-%set(gca, 'Fontname', 'setTimes', 'Fontsize', 18);
-%handles = [];
-%labels  = {};
-%
-%algos = {'pms', 'phat'};
-%for l = 1:length(algos)
-%    labels{end + 1}  = strrep(algos{l}, '_', '\_');
-%    hold on;
-%    handles(end + 1) = loglog(ms, ts(l,:), '-*', 'Color', colors{l});
-%
-%    % Arrow
-%    ll=ceil(length(ms)*l/length(algos));
-%    txt=['\leftarrow ' strrep(algos{l}, '_', '\_')];
-%    h=text(ms(ll), ts(l,ll), txt, 'HorizontalAlignment', 'left');
-%    set(h, 'Color', colors{l});
-%end
-%
-%% Cosmetics
-%xlabel('m', 'FontSize', fs.axis);
-%ylabel('time (ms)', 'FontSize', fs.axis);
-%
-%%legend(handles, labels, 'FontSize', fs.legend);
-%% Tick size
-%xt = get(gca, 'XTick');
-%set(gca, 'FontSize', fs.ticks);
-%
-%xt = get(gca, 'YTick');
-%set(gca, 'FontSize', fs.ticks);
-%
-%title('PMS VS PHAT', 'FontSize', fs.title);
-%filepath = fullfile(FIGURE_DIR, 'phat.eps');
-%print('-depsc', filepath);
-%eps_to_pdf(filepath);
-%
