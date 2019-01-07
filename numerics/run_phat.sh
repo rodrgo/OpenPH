@@ -1,4 +1,4 @@
 #!/bin/bash
 
-cat /Users/rodrigo/src/ph/tda-cuda/tda-cuda/numerics/benchmark_phat.m | matlab -nodesktop -nosplash
+cat benchmark_phat.m | LD_PRELOAD="/usr/lib/x86_64-linux-gnu/libstdc++.so.6" matlab -nodesktop -nosplash
 
