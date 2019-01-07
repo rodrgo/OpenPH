@@ -15,7 +15,7 @@ plot_init;
 
 % Complex parameters
 MAX_DIM = 20;
-num_points = 5:16;
+num_points = 5:19;
 
 % Complex parameters
 cparams               = [];
@@ -42,17 +42,18 @@ for j = 1:length(num_points)
     cparams.num_points = np;
     [stream, complex_info] = complex_factory(shape, cparams);
     [r, c, m] = stream2cmo(stream);
-    %low_true = get_true_low(r, c, m, COL_WIDTH);
 
     nps(j) = np;
     ms(j) = m;
 
     test_tic = tic;
-    [lows, t] = std_red_testing(full(sparse(r, c, ones(size(r)), m, m)));
-    ts(1, j) = toc(test_tic);
+    [OUT, t] = openph(r, c, m, 'pms', COL_WIDTH, zeros(1,m));
+    %[lows, t] = std_red_testing(full(sparse(r, c, ones(size(r)), m, m)));
+    ts(1, j) = toc(test_tic)
+    lows = OUT.low;
 
     [lows_phat, t] = phat(r, c, m, PHAT_DIR);
-    ts(2, j) = t;
+    ts(2, j) = t
 
     %[OUT, t] = openph(r, c, m, algos{l}, COL_WIDTH, low_true);
     % t = sum(OUT.time_track(1:(OUT.num_iters)));
@@ -60,43 +61,64 @@ for j = 1:length(num_points)
     assert(sum(lows ~= lows_phat) == 0);
 end 
 
+
 % =============
 % Create figure
 % =============
 
-figure(1);
-set(gcf, 'color', [1 1 1]);
-set(gca, 'Fontname', 'setTimes', 'Fontsize', 18);
-handles = [];
-labels  = {};
+table_tag = strcat('phat_benchmark.tex');
+table_path = fullfile(FIGURE_DIR, table_tag);
 
-algos = {'test', 'phat'};
-for l = 1:length(algos)
-    labels{end + 1}  = strrep(algos{l}, '_', '\_');
-    hold on;
-    handles(end + 1) = loglog(ms, ts(l,:), '-*', 'Color', colors{l});
+fileId = fopen(table_path, 'w');
 
-    % Arrow
-    ll=ceil(length(ms)*l/length(algos));
-    txt=['\leftarrow ' strrep(algos{l}, '_', '\_')];
-    h=text(ms(ll), ts(l,ll), txt, 'HorizontalAlignment', 'left');
-    set(h, 'Color', colors{l});
-end
+fprintf(fileId,'\\begin{tabular}{l l || c | c}\n');
+fprintf(fileId,'\\toprule\n');
+fprintf(fileId,'{$N$} & {$m$} & {pms} & {phat}\n');
+fprintf(fileId,'\\midrule\n');
+for j = 1:length(nps)
+    fprintf(fileId,'%d & %d & %3.6f & %3.6f\\\\\n', ...
+        nps(j), ms(j), ts(1,j), ts(2,j));
+end 
+fprintf(fileId,'\\bottomrule\n');
+fprintf(fileId,'\\{tabular}');
 
-% Cosmetics
-xlabel('m', 'FontSize', fs.axis);
-ylabel('time (ms)', 'FontSize', fs.axis);
+fclose(fileId);
 
-%legend(handles, labels, 'FontSize', fs.legend);
-% Tick size
-xt = get(gca, 'XTick');
-set(gca, 'FontSize', fs.ticks);
 
-xt = get(gca, 'YTick');
-set(gca, 'FontSize', fs.ticks);
-
-title('Time scaling of algorithms', 'FontSize', fs.title);
-filepath = fullfile(FIGURE_DIR, 'scalings.eps');
-print('-depsc', filepath);
-eps_to_pdf(filepath);
-
+%
+%figure(1);
+%set(gcf, 'color', [1 1 1]);
+%set(gca, 'Fontname', 'setTimes', 'Fontsize', 18);
+%handles = [];
+%labels  = {};
+%
+%algos = {'pms', 'phat'};
+%for l = 1:length(algos)
+%    labels{end + 1}  = strrep(algos{l}, '_', '\_');
+%    hold on;
+%    handles(end + 1) = loglog(ms, ts(l,:), '-*', 'Color', colors{l});
+%
+%    % Arrow
+%    ll=ceil(length(ms)*l/length(algos));
+%    txt=['\leftarrow ' strrep(algos{l}, '_', '\_')];
+%    h=text(ms(ll), ts(l,ll), txt, 'HorizontalAlignment', 'left');
+%    set(h, 'Color', colors{l});
+%end
+%
+%% Cosmetics
+%xlabel('m', 'FontSize', fs.axis);
+%ylabel('time (ms)', 'FontSize', fs.axis);
+%
+%%legend(handles, labels, 'FontSize', fs.legend);
+%% Tick size
+%xt = get(gca, 'XTick');
+%set(gca, 'FontSize', fs.ticks);
+%
+%xt = get(gca, 'YTick');
+%set(gca, 'FontSize', fs.ticks);
+%
+%title('PMS VS PHAT', 'FontSize', fs.title);
+%filepath = fullfile(FIGURE_DIR, 'phat.eps');
+%print('-depsc', filepath);
+%eps_to_pdf(filepath);
+%

@@ -2,8 +2,8 @@
 
 clc; clear all; close all;
 
-JAVAPLEX_DIR = '/Users/rodrigo/src/ph/javaplex';
-PHAT_DIR = '/Users/rodrigo/src/ph/phat';
+JAVAPLEX_DIR = '/home/rodrigo/workspace/persistent_homology/javaplex';
+PHAT_DIR = '/home/rodrigo/workspace/persistent_homology/phat';
 
 % -----------
 % Javaplex

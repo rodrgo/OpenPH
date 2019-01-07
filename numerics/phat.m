@@ -1,12 +1,18 @@
 % PHAT.M
 %   A wrapper for PHAT
 
-function [low, t] = phat(r, c, m, PHAT_DIR)
+function [low, t] = phat(r, c, m, PHAT_DIR, algorithm)
+    algos = {'standard', 'twist', 'chunk', 'chunk_sequential', 'spectral_sequence', 'row'};
+    if nargin < 5
+        algorithm = 'twist';
+    end
+    assert(any(strcmp(algos, algorithm)));
+    %"--standard, --twist, --chunk, --chunk_sequential, --spectral_sequence, --row 
     dat = cmo2dat(r, c, m);
     input_fname = print_dat(dat);
     %print_cmo(r, c, m);  % for debugging
     output_fname = generate_tempname();
-    command = [PHAT_DIR '/phat --ascii ' input_fname ' ' output_fname];
+    command = [PHAT_DIR '/phat ' '--' algorithm ' --ascii ' input_fname ' ' output_fname];
     t0 = tic;
     status = system(command);
     t = toc(t0);
