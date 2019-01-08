@@ -1,6 +1,5 @@
 % test_speed_standard_reduction.m
 init;
-plot_init;
 
 % Complex parameters
 cparams               = [];
@@ -130,7 +129,6 @@ end
 % ---------------------
 
 function benchmark_pms_plot(shapes_map, x_unit, y_metric)
-    plot_init;
 
     EXPERIMENT_TAG  = 'benchmark_pms';
 
@@ -273,7 +271,6 @@ end
 % ---------------------
 
 function create_table(shapes, algos, table_type, levels_x, tensor_x)
-    plot_init;
     % table_type:
     %   + 'unreduced'
     %   + 'essential'

@@ -1,6 +1,5 @@
 % test_speed_standard_reduction.m
 init;
-plot_init;
 
 % Complex parameters
 MAX_DIM = 20;
