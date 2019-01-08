@@ -1,5 +1,5 @@
 
-FIGURE_DIR  = '../figures/';
+FIGURE_DIR  = './figures/';
 
 % Font size
 fs          = [];
