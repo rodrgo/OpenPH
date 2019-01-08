@@ -1,6 +1,6 @@
 
 init;
-listing = dir('../datasets/pointclouds');
+listing = dir('./datasets/pointclouds');
 
 COL_WIDTH = 5;
 

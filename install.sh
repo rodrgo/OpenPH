@@ -15,6 +15,6 @@ make
 git reset --hard e9800d103fcdd19f0417e89781761f7f85d8ec9b 
 
 # Large benchmarking datasets
-sh datasets/wget_pointcloud_datasets.sh
+sh ./numerics/datasets/wget_pointcloud_datasets.sh
 
 
