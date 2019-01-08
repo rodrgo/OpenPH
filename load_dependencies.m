@@ -2,8 +2,9 @@
 
 clc; clear all; close all;
 
-JAVAPLEX_DIR = getenv('JAVAPLEX_DIR');
-PHAT_DIR = getenv('PHAT_DIR');
+[dependency_dir, ~, ~] = fileparts(mfilename('fullpath'));
+JAVAPLEX_DIR = fullfile(dependency_dir, 'dependencies', 'javaplex');
+PHAT_DIR = fullfile(dependency_dir, 'dependencies', 'phat');
 
 % -----------
 % Javaplex

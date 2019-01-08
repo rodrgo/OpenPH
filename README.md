@@ -10,6 +10,8 @@ See below for prerequisites and installation instructions.
 
 This library requires [MATLAB](http://www.mathworks.com/products/matlab.html) and a particular fork of the [javaplex](https://github.com/appliedtopology/javaplex) library.
 
+The benchmarking experiments need [PHAT](https://bitbucket.org/phat-code/phat) and some large datasets hosted [here](https://github.com/n-otter/PH-roadmap).
+
 This fork can be cloned by
 
 ```
