@@ -38,10 +38,10 @@ for j = 1:length(num_points)
     ms(j) = m;
 
     test_tic = tic;
-    %[OUT, t] = openph(r, c, m, 'pms', COL_WIDTH, zeros(1,m));
-    [lows, t] =  std_red_testing(full(sparse(r, c, ones(size(r)), m, m)));
+    %[lows, t] =  std_red_testing(full(sparse(r, c, ones(size(r)), m, m)));
+    [OUT, t] = openph(r, c, m, 'pms', COL_WIDTH, zeros(1,m));
     ts(1, j) = toc(test_tic)
-    %lows = OUT.low;
+    lows = OUT.low;
 
     for k = 1:length(phat_algos)
         % Without dualization
@@ -58,49 +58,49 @@ for j = 1:length(num_points)
 end 
 
 % =============
-% Create figure
+% Create table
 % =============
 
 table_tag = strcat('table_phat.tex');
 table_path = fullfile(FIGURE_DIR, table_tag);
 
-fileId = fopen(table_path, 'w');
+fid = fopen(table_path, 'w');
 
-fprintf(fileId,'\\begin{tabular}{l l ||');
+fprintf(fid,'\\begin{tabular}{l l ||');
 for k = 1:length(phat_algos)
-    fprintf(fileId,'SS');
+    fprintf(fid,'SS');
 end
-fprintf(fileId, '}\n');
-fprintf(fileId,'\\toprule\n');
+fprintf(fid, '}\n');
+fprintf(fid,'\\toprule\n');
 
-fprintf(fileId,'\\multirow{2}{*}{$N$} & \n');
-fprintf(fileId,'\\multirow{2}{*}{$m$} & \n');
+fprintf(fid,'\\multirow{2}{*}{$N$} & \n');
+fprintf(fid,'\\multirow{2}{*}{$m$} & \n');
 for k = 1:length(phat_algos)
-    fprintf(fileId,'\\multicolumn{2}{c}{%s}', strrep(phat_algos{k}, '_', '-'));
+    fprintf(fid,'\\multicolumn{2}{c}{%s}', strrep(phat_algos{k}, '_', '-'));
     if k < length(phat_algos)
-        fprintf(fileId,'& \n');
+        fprintf(fid,'& \n');
     else
-        fprintf(fileId,'\\\\\n');
+        fprintf(fid,'\\\\\n');
     end
 end
 
-fprintf(fileId,'& ');
+fprintf(fid,'& ');
 for k = 1:length(phat_algos)
-    fprintf(fileId,' & {P} & {D} ');
+    fprintf(fid,' & {P} & {D} ');
 end
-fprintf(fileId,'\\\\\n');
-fprintf(fileId,'\\midrule\n');
+fprintf(fid,'\\\\\n');
+fprintf(fid,'\\midrule\n');
 
 for j = 1:length(nps)
-    fprintf(fileId,'%d & %d', nps(j), ms(j));
+    fprintf(fid,'%d & %d', nps(j), ms(j));
     for k = 1:length(phat_algos)
-        fprintf(fileId, '& %d & %d', round(ts(1+k,j)*1000, 0), round(ts(1+length(phat_algos)+k,j)*1000, 0));
+        fprintf(fid, '& %d & %d', round(ts(1+k,j)*1000, 0), round(ts(1+length(phat_algos)+k,j)*1000, 0));
     end
-    fprintf(fileId, '\\\\\n');
+    fprintf(fid, '\\\\\n');
 end 
-fprintf(fileId,'\\bottomrule\n');
-fprintf(fileId,'\\end{tabular}');
+fprintf(fid,'\\bottomrule\n');
+fprintf(fid,'\\end{tabular}');
 
 % fclose
-fclose(fileId);
+fclose(fid);
 
