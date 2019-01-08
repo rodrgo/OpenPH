@@ -37,10 +37,9 @@ for j = 1:length(num_points)
     nps(j) = np;
     ms(j) = m;
 
-    test_tic = tic;
     %[lows, t] =  std_red_testing(full(sparse(r, c, ones(size(r)), m, m)));
-    [OUT, t] = openph(r, c, m, 'pms', COL_WIDTH, zeros(1,m));
-    ts(1, j) = toc(test_tic)
+    [OUT, time_pms] = openph(r, c, m, 'pms', COL_WIDTH, zeros(1,m));
+    ts(1, j) = time_pms;
     lows = OUT.low;
 
     for k = 1:length(phat_algos)

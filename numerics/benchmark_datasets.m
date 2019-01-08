@@ -23,15 +23,11 @@ for i = 1:length(listing)
             display(sprintf('Conversion successful. m=%d', m));
 
             % PMS
-            tic_pms = tic;
-            [OUT, t] = openph(r, c, m, 'pms', COL_WIDTH, zeros(1,m));
-            toc_pms = toc(tic_pms)
+            [OUT, toc_pms] = openph(r, c, m, 'pms', COL_WIDTH, zeros(1,m));
             display(sprintf('PMS success in %g', toc_pms));
 
             % PHAT
-            tic_phat = tic;
-            [lows_phat, t] = phat(r, c, m, PHAT_DIR, 'twist', false);
-            toc_phat = toc(tic_phat)
+            [lows_phat, toc_phat] = phat(r, c, m, PHAT_DIR, 'twist', false);
             display(sprintf('PHAT success in %g', toc_phat));
 
             assert(sum(OUT.low ~= lows_phat) == 0);
