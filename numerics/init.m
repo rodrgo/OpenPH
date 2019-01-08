@@ -1,9 +1,7 @@
 
 addpath('..');
 load_dependencies;
-addpath('../boundary_matrix');
-addpath('../algorithms');
-addpath('../utils');
-
-addpath('../cuda/pms');
+addpath('../src/');
+addpath('../src/utils');
+addpath('../src/cuda/pms');
 

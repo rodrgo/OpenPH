@@ -44,13 +44,6 @@ for j = 1:length(num_points)
     [r, c, m] = stream2cmo(stream);
     low_true = get_true_low(r, c, m, COL_WIDTH);
 
-    if false
-        D = BoundaryMatrix(stream);
-        [r_verify, c_verify] = find(D.matrix);
-        assert(all(r == r_verify));
-        assert(all(c == c_verify));
-    end
-
     nps(j) = np;
     ms(j) = m;
 
