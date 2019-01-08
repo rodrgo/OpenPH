@@ -1,4 +1,4 @@
 #!/bin/bash
 
-cat roc.m | matlab -nodesktop -nosplash
+cat benchmark_roc.m | matlab -nodesktop -nosplash
 
