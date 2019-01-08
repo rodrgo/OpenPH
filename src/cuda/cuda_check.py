@@ -19,7 +19,6 @@ Author: Jan Schlüter
 import sys
 import ctypes
 
-
 # Some constants taken from cuda.h
 CUDA_SUCCESS = 0
 CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT = 16
@@ -27,21 +26,7 @@ CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR = 39
 CU_DEVICE_ATTRIBUTE_CLOCK_RATE = 13
 CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE = 36
 
-
-def ConvertSMVer2Cores(major, minor):
-    # Returns the number of CUDA cores per multiprocessor for a given
-    # Compute Capability version. There is no way to retrieve that via
-    # the API, so it needs to be hard-coded.
-    return {(1, 0): 8,
-            (1, 1): 8,
-            (1, 2): 8,
-            (1, 3): 8,
-            (2, 0): 32,
-            (2, 1): 48,
-            }.get((major, minor), 192)  # 3.0 and above
-
-
-def main():
+def get_sm():
     libnames = ('libcuda.so', 'libcuda.dylib', 'cuda.dll')
     for libname in libnames:
         try:
@@ -52,16 +37,12 @@ def main():
             break
     else:
         raise OSError("could not load any of: " + ' '.join(libnames))
+    sms = {}
 
     nGpus = ctypes.c_int()
     name = b' ' * 100
     cc_major = ctypes.c_int()
     cc_minor = ctypes.c_int()
-    cores = ctypes.c_int()
-    threads_per_core = ctypes.c_int()
-    clockrate = ctypes.c_int()
-    freeMem = ctypes.c_size_t()
-    totalMem = ctypes.c_size_t()
 
     result = ctypes.c_int()
     device = ctypes.c_int()
@@ -85,9 +66,14 @@ def main():
             print("cuDeviceGet failed with error code %d: %s" % (result, error_str.value.decode()))
             return 1
         if cuda.cuDeviceComputeCapability(ctypes.byref(cc_major), ctypes.byref(cc_minor), device) == CUDA_SUCCESS:
-            print("sm_%d%d" % (cc_major.value, cc_minor.value))
-    return 0
+            sms[i] = "sm_%d%d" % (cc_major.value, cc_minor.value)
+    return sms 
 
+def main():
+    sms = get_sms()
+    print(sms)
+
+    return 0
 
 if __name__=="__main__":
     sys.exit(main())
