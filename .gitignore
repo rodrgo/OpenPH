@@ -10,3 +10,5 @@
 *.tar
 .DS_Store
 
+dependencies/javaplex
+dependencies/phat
