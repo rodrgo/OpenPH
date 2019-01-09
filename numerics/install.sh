@@ -1,7 +1,29 @@
 #!/usr/bin/env bash
 
+# --------
+# Javaplex
+# --------
+
+git clone --depth=1 https://github.com/rodrgo/javaplex dependencies/javaplex
+ant -buildfile dependencies/javaplex/build.xml
+
+# --------
+# PHAT 
+# --------
+
+git clone https://bitbucket.org/phat-code/phat.git dependencies/phat
+cd dependencies/phat
+cmake .
+make
+git reset --hard e9800d103fcdd19f0417e89781761f7f85d8ec9b 
+cd ../..
+
+# --------
+# Datasets
+# --------
+
 DIR=$(dirname "${BASH_SOURCE[0]}")
-mkdir "${DIR}/pointclouds"
+mkdir "${DIR}/datasets/pointclouds"
 
 arr=("celegans_weighted_undirected_reindexed_for_matlab.txt_maxdist_2.6429_SP_distmat.txt_point_cloud.txt" 
         "dragon_vrip.ply.txt_1000_.txt" 
@@ -30,6 +52,6 @@ arr=("celegans_weighted_undirected_reindexed_for_matlab.txt_maxdist_2.6429_SP_di
 for p in "${arr[@]}"
 do
         echo "$p"
-        wget "https://github.com/n-otter/PH-roadmap/raw/master/data_sets/roadmap_datasets_point_cloud/$p" -O "${DIR}/pointclouds/$p"
+        wget "https://github.com/n-otter/PH-roadmap/raw/master/data_sets/roadmap_datasets_point_cloud/$p" -O "${DIR}/datasets/pointclouds/$p"
 done
 
