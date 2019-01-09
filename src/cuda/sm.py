@@ -63,9 +63,12 @@ def main():
 
     # Get sm_code and print
     sm_code = ''
-    if len(list(set(sm_codes.values()))) > 1:
-        print("More than one SM found. Using GPU-0", file=sys.stderr)
+    if sm_codes:
+        if len(list(set(sm_codes.values()))) > 1:
+            print("More than one SM found. Using GPU-0", file=sys.stderr)
         sm_code = sm_codes[0]
+    else:
+        sm_code = ''
     print(sm_code)
     return 0
 
