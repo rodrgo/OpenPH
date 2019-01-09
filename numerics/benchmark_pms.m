@@ -75,24 +75,24 @@ for i = 1:length(shapes)
 
 end % end shapes
 
-benchmark_pms_plot(shapes_map, 'time', 'err_linf');
-benchmark_pms_plot(shapes_map, 'time', 'err_lone');
-benchmark_pms_plot(shapes_map, 'time', 'err_redu');
-benchmark_pms_plot(shapes_map, 'time', 'err_ess');
+benchmark_pms_plot(shapes_map, 'time', 'err_linf', FIGURE_DIR, fs);
+benchmark_pms_plot(shapes_map, 'time', 'err_lone', FIGURE_DIR, fs);
+benchmark_pms_plot(shapes_map, 'time', 'err_redu', FIGURE_DIR, fs);
+benchmark_pms_plot(shapes_map, 'time', 'err_ess', FIGURE_DIR, fs);
 
-benchmark_pms_plot(shapes_map, 'iters', 'err_linf');
-benchmark_pms_plot(shapes_map, 'iters', 'err_lone');
-benchmark_pms_plot(shapes_map, 'iters', 'err_redu');
-benchmark_pms_plot(shapes_map, 'iters', 'err_ess');
+benchmark_pms_plot(shapes_map, 'iters', 'err_linf', FIGURE_DIR, fs);
+benchmark_pms_plot(shapes_map, 'iters', 'err_lone', FIGURE_DIR, fs);
+benchmark_pms_plot(shapes_map, 'iters', 'err_redu', FIGURE_DIR, fs);
+benchmark_pms_plot(shapes_map, 'iters', 'err_ess', FIGURE_DIR, fs);
 
 % ---------------------
 % Create tables
 % ---------------------
 
-create_table(shapes, algos, 'unreduced', perc.unred, tensor.unred);
-create_table(shapes, algos, 'essential', perc.ess, tensor.ess);
-create_table(shapes, algos, 'lone', perc.lone, tensor.lone);
-create_table(shapes, algos, 'linf', perc.linf, tensor.linf);
+create_table(shapes, algos, 'unreduced', perc.unred, tensor.unred, FIGURE_DIR, fs);
+create_table(shapes, algos, 'essential', perc.ess, tensor.ess, FIGURE_DIR, fs);
+create_table(shapes, algos, 'lone', perc.lone, tensor.lone, FIGURE_DIR, fs);
+create_table(shapes, algos, 'linf', perc.linf, tensor.linf, FIGURE_DIR, fs);
 
 % ---------------------
 % Function definitions: populate_tensor
@@ -128,7 +128,7 @@ end
 % Function definitions: benchmark_pms_plot
 % ---------------------
 
-function benchmark_pms_plot(shapes_map, x_unit, y_metric)
+function benchmark_pms_plot(shapes_map, x_unit, y_metric, FIGURE_DIR, fs)
 
     EXPERIMENT_TAG  = 'benchmark_pms';
 
@@ -212,7 +212,7 @@ function benchmark_pms_plot(shapes_map, x_unit, y_metric)
 
         complex_str = complex_info{1};
         params_str = complex_info{2}; 
-        if length(params_str) == 0;
+        if length(params_str) == 0
             second_line_str = [complex_str];
         else
             second_line_str = [complex_str, ': ', params_str];
@@ -270,7 +270,7 @@ end
 % Function definitions: create_table
 % ---------------------
 
-function create_table(shapes, algos, table_type, levels_x, tensor_x)
+function create_table(shapes, algos, table_type, levels_x, tensor_x, FIGURE_DIR, fs)
     % table_type:
     %   + 'unreduced'
     %   + 'essential'

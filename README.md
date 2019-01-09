@@ -18,7 +18,7 @@ The script will do its best to automatically populate `src/cuda/config` with you
 
 ### Numerics
 
-The following programs are required to build the dependencies and run the numerics: `cmake`, `ant`. 
+The following programs are required to build the dependencies and run the numerics: `cmake`, `ant`, `java`, `epstopdf`. 
 
 To install the dependencies and run the numerics, please do
 
