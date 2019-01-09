@@ -14,6 +14,6 @@ nvmex
 nvopts.sh
 config
 
-dependencies/javaplex
-dependencies/phat
-datasets/pointclouds
+numerics/dependencies/javaplex
+numerics/dependencies/phat
+numerics/datasets/pointclouds
