@@ -22,8 +22,9 @@ cd ../..
 # Datasets
 # --------
 
-DIR=$(dirname "${BASH_SOURCE[0]}")
-mkdir "${DIR}/datasets/pointclouds"
+DIR="$(cd "$(dirname "$1")"; pwd -P)/$(basename "$1")"
+POINTCLOUDS="${DIR}datasets/pointclouds"
+mkdir "${POINTCLOUDS}"
 
 arr=("celegans_weighted_undirected_reindexed_for_matlab.txt_maxdist_2.6429_SP_distmat.txt_point_cloud.txt" 
         "dragon_vrip.ply.txt_1000_.txt" 
@@ -52,6 +53,6 @@ arr=("celegans_weighted_undirected_reindexed_for_matlab.txt_maxdist_2.6429_SP_di
 for p in "${arr[@]}"
 do
         echo "$p"
-        wget "https://github.com/n-otter/PH-roadmap/raw/master/data_sets/roadmap_datasets_point_cloud/$p" -O "${DIR}/datasets/pointclouds/$p"
+        wget -q --show-progress "https://github.com/n-otter/PH-roadmap/raw/master/data_sets/roadmap_datasets_point_cloud/$p" -O "${POINTCLOUDS}/$p"
 done
 
