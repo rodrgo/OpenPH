@@ -13,7 +13,7 @@ cparams.num_points    = 5;
 
 shape = 'random_gaussian';
 
-phat_algos = {'twist', 'chunk', 'spectral_sequence', 'row'};
+phat_algos = {'twist', 'spectral_sequence', 'row'};
 
 num_algos   = 1+2*length(phat_algos);
 num_shapes  = 1;
@@ -64,6 +64,7 @@ table_path = fullfile(FIGURE_DIR, table_tag);
 fid = fopen(table_path, 'w');
 
 fprintf(fid,'\\begin{tabular}{l l ||');
+fprintf(fid,'S'); % pms
 for k = 1:length(phat_algos)
     fprintf(fid,'SS');
 end
@@ -72,6 +73,7 @@ fprintf(fid,'\\toprule\n');
 
 fprintf(fid,'\\multirow{2}{*}{$N$} & \n');
 fprintf(fid,'\\multirow{2}{*}{$m$} & \n');
+fprintf(fid,'\\multirow{2}{*}{pms} & \n');
 for k = 1:length(phat_algos)
     fprintf(fid,'\\multicolumn{2}{c}{%s}', strrep(phat_algos{k}, '_', '-'));
     if k < length(phat_algos)
@@ -81,7 +83,7 @@ for k = 1:length(phat_algos)
     end
 end
 
-fprintf(fid,'& ');
+fprintf(fid,'& & '); % n & m & pms
 for k = 1:length(phat_algos)
     fprintf(fid,' & {P} & {D} ');
 end
@@ -90,6 +92,7 @@ fprintf(fid,'\\midrule\n');
 
 for j = 1:length(nps)
     fprintf(fid,'%d & %d', nps(j), ms(j));
+    fprintf(fid,'& %d', round(ts(1,j)*1000, 0));
     for k = 1:length(phat_algos)
         fprintf(fid, '& %d & %d', round(ts(1+k,j)*1000, 0), round(ts(1+length(phat_algos)+k,j)*1000, 0));
     end

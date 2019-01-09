@@ -1,4 +1,4 @@
 #!/bin/bash
 
-cat benchmark_roc.m | matlab -nodesktop -nosplash
+matlab -nodesktop -nosplash -nodisplay -r "benchmark_roc;quit;"
 
