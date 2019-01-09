@@ -73,7 +73,7 @@ fprintf(fid,'\\toprule\n');
 
 fprintf(fid,'\\multirow{2}{*}{$N$} & \n');
 fprintf(fid,'\\multirow{2}{*}{$m$} & \n');
-fprintf(fid,'\\multirow{2}{*}{pms} & \n');
+fprintf(fid,'\\multicolumn{1}{c}{pms} & \n');
 for k = 1:length(phat_algos)
     fprintf(fid,'\\multicolumn{2}{c}{%s}', strrep(phat_algos{k}, '_', '-'));
     if k < length(phat_algos)
