@@ -1,80 +1,49 @@
-# Parallel reduction for persistent homology
+# OpenPH: Persistent Homology computation on GPUs
 
-This library implements a proof of concept for a parallel algorithm for persistent homology.
+OpenPH is a library for fast persistent homology computation on GPUs. OpenPH provides a `CUDA-C` implementation of `pms`, which is a super-fast parallel algorithm for reduction of boundary matrices designed for GPUs. Additionally, it includes vanilla implementations of other classical reduction algorithms like `standard`, `twist` and `ph-row`. Please, see the paper on [Arxiv](https://arxiv.org/abs/1708.04710). 
 
-## Getting Started
+## Installation
 
-See below for prerequisites and installation instructions.
+### OpenPH
 
-### Prerequisites
+The following programs are required to build OpenPH: `make`, `python`, `nvcc`, `wget`, `matlab`. Unfortunately, `matlab` is currently the only interface for OpenPH (this is due to inherited practices in numerical computing groups). However, future versions will include `python` and `julia` interfaces. Maybe you can help writing them :)
 
-This library requires [MATLAB](http://www.mathworks.com/products/matlab.html) and a particular fork of the [javaplex](https://github.com/appliedtopology/javaplex) library.
+To setup the project and build OpenPH, please run:
 
-The benchmarking experiments need [PHAT](https://bitbucket.org/phat-code/phat) and some large datasets hosted [here](https://github.com/n-otter/PH-roadmap).
-
-This fork can be cloned by
-
-```
-git clone https://github.com/rodrgo/javaplex.git
+```bash
+sh install.sh
 ```
 
-### Installing
+The script will do its best to automatically populate `src/cuda/config` with your system parameters (like location of `CUDA` and `MATLAB` installation, for example). If this fails, please look at `src/config` and fill in the blanks. 
 
-To install, go to the `javaplex` project folder and compile.
+### Numerics
 
-```
-cd PATH_TO_JAVAPLEX
-ant compile jar run 
-```
+The following programs are required to build the dependencies and run the numerics: `cmake`, `ant`. 
 
-Then, go to the `tda` project folder and edit the `JAVAPLEX_DIR` variable in the `load_javaplex.m`
+To install the dependencies and run the numerics, please do
 
-```
-JAVAPLEX_DIR = 'PATH_TO_JAVAPLEX_DIRECTORY'
-```
-
-You are good to go!
-
-## Running the tests
-
-To check that everything is running correctly,
-
-```
-cd tests
-matlab -nodisplay -nodesktop -r "run tests.m"
+```bash
+cd numerics
+sh install.sh
+sh run.sh
 ```
 
-## Built With
+The following libraries are needed to run the numerical experiments:
 
-* [Matlab](http://www.mathworks.com/products/matlab.html) - The language used 
-* [Javaplex](https://github.com/appliedtopology/javaplex) - To generate of boundary boundary matrices
+* [Javaplex](https://github.com/appliedtopology/javaplex) - To generate pointclouds, simplicial complexes and boundary matrices.
+* [Phat](https://bitbucket.org/phat-code/phat) - To provide a baseline.
+
+Additionally, some experiments use the datasets in [PH-roadmap](https://github.com/n-otter/PH-roadmap).
 
 ## Contributing
 
 Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
 
-## Authors
-
-* **Rodrigo Mendoza-Smith** - [personal webpage](http://people.maths.ox.ac.uk/mendozasmith/)
-* **Jared Tanner** - [personal webpage](http://people.maths.ox.ac.uk/tanner/)
-
-## TODO
-
-* Matrix representation by dimension
-* Identify pivots when reading the matrix
-* Compress matrix
-* Omit zero columns from matrix representation (at the beginning and during the algorithm)
-* Python interface 
-
 ## Citing
 
-TBD
+If you would like to cite this software, please cite this [Arxiv paper](https://arxiv.org/abs/1708.04710). 
 
 ## License
 
-TBD  - see the [LICENSE.md](LICENSE.md) file for details
-
-## Acknowledgments
-
-* Javaplex library
+[MIT License](https://github.com/rodrgo/openph/blob/master/LICENSE)
 
