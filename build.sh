@@ -29,7 +29,10 @@ mv Matlab_Cuda_1.1/nvopts.sh ${CUDAMATLAB}
 rm -rf Matlab_Cuda_1.1
 rm Matlab_Cuda_1.1.tgz
 
-cat ${CUDAMATLAB}/nvmex | sed -i '1447,1454 s/^/#/' > ${CUDAMATLAB}/nvmex
+cat ${CUDAMATLAB}/nvmex | sed '1447,1454 s/^/#/' > ${CUDAMATLAB}/nvmex_tmp
+mv ${CUDAMATLAB}/nvmex_tmp ${CUDAMATLAB}/nvmex 
+rm ${CUDAMATLAB}/nvmex_tmp
+chmod +x ${CUDAMATLAB}/nvmex
 
 # Build openph :)
 cd src/cuda/pms
