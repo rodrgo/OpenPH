@@ -16,6 +16,7 @@ function [OUT, t] = openph(r, c, m, algo, col_width, low_true)
     OUT.err_ess     = double(o6);
     OUT.time_track  = double(o7);
     OUT.num_iters   = double(o8);
+    OUT.time_inner  = sum(OUT.time_track(1:OUT.num_iters));
     OUT.m           = double(m);
 end
 

@@ -26,6 +26,7 @@ nps = zeros(1, length(num_points));
 ms  = zeros(1, length(num_points));
 colors = create_color_palette(num_algos);
 
+
 for j = 1:length(num_points)
     np = num_points(j);
     cparams.num_points = np;
@@ -36,6 +37,11 @@ for j = 1:length(num_points)
     ms(j) = m;
 
     %[lows, t] =  std_red_testing(full(sparse(r, c, ones(size(r)), m, m)));
+    % Warmup
+    if j == 1
+        [OUT, time_pms] = openph(r, c, m, 'pms', COL_WIDTH, zeros(1,m));
+    end
+    % Continue
     [OUT, time_pms] = openph(r, c, m, 'pms', COL_WIDTH, zeros(1,m));
     ts(1, j) = time_pms;
     lows = OUT.low;

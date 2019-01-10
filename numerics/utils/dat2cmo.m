@@ -38,8 +38,8 @@ function [r, c, m] = dat2cmo(fname)
         tline = fgetl(fid);
     end
     if idx > 0
-        r = r(1:idx);
-        c = c(1:idx);
+        r = r(1:idx)+1;
+        c = c(1:idx)+1;
     else
         r = [];
         c = [];
