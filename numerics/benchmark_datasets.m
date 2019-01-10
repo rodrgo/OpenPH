@@ -2,7 +2,7 @@
 init;
 listing = dir('./datasets');
 
-COL_WIDTH = 5;
+COL_WIDTH = 8;
 
 ts_phat = [];
 ts_pms = [];
@@ -13,38 +13,26 @@ for i = 1:length(listing)
     if endsWith(listing(i).name, '.dat')
         fpath = [listing(i).folder '/' listing(i).name];
         display(listing(i).name);
-        d = 5; % max_dimension 
-        n = 5; % num_steps
-        p = 3; % max_filtration_value
-        try
-            % Convert to CMO 
-            % Read pointcloud
-            [r, c, m] = dat2cmo(fpath);
 
-            % PMS
-            [OUT, toc_pms] = openph(r, c, m, 'pms', COL_WIDTH, zeros(1,m));
-            display(sprintf('PMS success in %g', toc_pms));
+        % Convert to CMO 
+        % Read pointcloud
+        [r, c, m] = dat2cmo(fpath);
 
-            % PHAT
-            [lows_phat, toc_phat] = phat(r, c, m, PHAT_DIR, 'twist', false);
-            display(sprintf('PHAT success in %g', toc_phat));
+        % PMS
+        [OUT, toc_pms] = openph(r, c, m, 'pms', COL_WIDTH, zeros(1,m));
+        display(sprintf('PMS success in %g', toc_pms));
 
-            assert(sum(OUT.low ~= lows_phat) == 0);
+        % PHAT
+        [lows_phat, toc_phat] = phat(r, c, m, PHAT_DIR, 'twist', false);
+        display(sprintf('PHAT success in %g', toc_phat));
 
-            ts_pms(end+1) = toc_pms;
-            ts_phat(end+1) = toc_phat;
-            ms(end+1) = m;
-            datasets{end+1} = listing(i).name;
+        assert(sum(OUT.low ~= lows_phat) == 0);
 
-        catch e
-            display('Error');
-            %e.message
-            if(isa(e,'java.lang.OutOfMemoryError'))
-                ex = e.ExceptionObject;
-                assert(isjava(ex));
-                ex.printStackTrace;
-            end
-        end
+        ts_pms(end+1) = toc_pms;
+        ts_phat(end+1) = toc_phat;
+        ms(end+1) = m;
+        datasets{end+1} = listing(i).name;
+
     end
 end
 
