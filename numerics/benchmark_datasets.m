@@ -1,6 +1,6 @@
 
 init;
-listing = dir('./datasets/pointclouds');
+listing = dir('./datasets');
 
 COL_WIDTH = 5;
 
@@ -10,17 +10,16 @@ ms = [];
 datasets = {};
 
 for i = 1:length(listing)
-    if endsWith(listing(i).name, '.txt')
+    if endsWith(listing(i).name, '.dat')
         fpath = [listing(i).folder '/' listing(i).name];
         display(listing(i).name);
         d = 5; % max_dimension 
         n = 5; % num_steps
         p = 3; % max_filtration_value
         try
+            % Convert to CMO 
             % Read pointcloud
-            [r, c, m] = pointcloud_to_boundary_matrix(fpath, d, n, p);
-            fprintf(fid, [listing(i).name '\n']);
-            display(sprintf('Conversion successful. m=%d', m));
+            [r, c, m] = dat2cmo(fpath);
 
             % PMS
             [OUT, toc_pms] = openph(r, c, m, 'pms', COL_WIDTH, zeros(1,m));
