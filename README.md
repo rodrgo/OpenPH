@@ -18,22 +18,24 @@ The script will do its best to automatically populate `src/cuda/config` with you
 
 ### Numerics
 
-The following programs are required to build the dependencies and run the numerics: `cmake`, `ant`, `java`, `epstopdf`. 
+The following programs are required to build the dependencies and run the numerics: `cmake`, `make`, `ant`, `java`, `openmp`, `epstopdf`. 
 
 To install the dependencies and run the numerics, please do
 
 ```bash
 cd numerics
-sh install.sh
-sh run.sh
+bash install.sh
+bash run.sh
 ```
 
-The following libraries are needed to run the numerical experiments:
+The following libraries are needed to run the numerical experiments. Their dependencies are listed below each library.
 
 * [Javaplex](https://github.com/appliedtopology/javaplex) - To generate pointclouds, simplicial complexes and boundary matrices.
-* [Phat](https://bitbucket.org/phat-code/phat) - To provide a baseline.
-
-Additionally, some experiments use the datasets in [PH-roadmap](https://github.com/n-otter/PH-roadmap).
+    * `java`, `ant`
+* [Phat](https://bitbucket.org/phat-code/phat) - Benchmarking baseline.
+    * `cmake`, `make`
+* [DIPHA](https://github.com/DIPHA/dipha) - Benchmarking datasets.
+    * `cmake`, `make`, `openmp`
 
 ## Contributing
 
