@@ -34,7 +34,7 @@ for i = 1:length(listing)
             case [listing(i).folder '/noise_3_16.complex.dat']
                 COL_WIDTH = 30;
             case [listing(i).folder '/smooth_16.complex.dat']
-                COL_WIDTH = 30;
+                COL_WIDTH = 35;
             case [listing(i).folder '/ramp_3_16.complex.dat']
                 COL_WIDTH = 10;
             case [listing(i).folder '/ramp_4_8.complex.dat']
@@ -80,15 +80,15 @@ table_path = fullfile(FIGURE_DIR, results_tag);
 
 fid = fopen(table_path, 'w');
 
-fprintf(fid,'\\begin{tabular}{l l || c | c c c }\n');
+fprintf(fid,'\\begin{tabular}{l l || c c | c c c }\n');
 fprintf(fid,'\\toprule\n');
 
-fprintf(fid,'Dataset & $m$ & PMS (width) & PMS (total) & PMS (inner) & PHAT \\\\ \n');
+fprintf(fid,'Dataset & $m$ & $w$ & $mw$ & PMS (total) & PMS (inner) & PHAT \\\\ \n');
 fprintf(fid,'\\midrule\n');
 
 for j = 1:length(datasets)
-    fprintf(fid,'%s & %d & %d & %d & %d & %d \\\\ \n', ...
-        strrep(strrep(datasets{j}, '_', '-'), '.complex.dat', ''), ms(j), col_widths(j), ...
+    fprintf(fid,'%s & %d & %d & %d & %d & %d & %d \\\\ \n', ...
+        strrep(strrep(datasets{j}, '_', '-'), '.complex.dat', ''), ms(j), col_widths(j), ms(j)*col_widths(j), ...
         round(ts_pms(j)*1000, 0), ...
         round(ts_pms_inner(j), 0), ...
         round(ts_phat(j)*1000, 0));
