@@ -1,5 +1,6 @@
 
-#include "init.cu"
+#include <mex.h>
+#include "../../cuda/openph.cu"
 
 // PMS
 // Pass boundary matrix in row-column format 
@@ -79,8 +80,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         // -------------------------------
 
         openph(algstr, h_rows_in, h_cols_in, m, col_width,
-                h_low_true, nnz, h_low, h_ess, err_linf,
-                err_lone, err_redu, err_ess, time_track,
+                h_low_true, nnz, h_low, h_ess, error_linf,
+                error_lone, error_redu, error_ess, time_track,
                 num_iters);
 
     }  //closes the else ensuring a correct number of input and output arguments

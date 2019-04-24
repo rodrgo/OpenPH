@@ -1,8 +1,11 @@
 
+#include "init.cu"
+
 /*
 
 Inputs:
 
+    algstr      (char*)
     h_rows_in   (int, nnz)
     h_cols_in   (int, nnz)
     m           (int, 1)
@@ -23,7 +26,7 @@ Outputs:
 
 */
 
-void openph(char algstr, 
+void openph(char *algstr, 
         int *h_rows_in, int *h_cols_in, int m, 
         int col_width, int *h_low_true, int nnz,
         int *h_low, int *h_ess, float *err_linf, 
@@ -61,7 +64,6 @@ void openph(char algstr,
 
     dim3 TPBmp(tpb_mp);
     dim3 NBmp(num_blocks(mp, tpb_mp));
-
 
     // -------------------------------
     // Create data on device

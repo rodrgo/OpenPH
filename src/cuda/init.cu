@@ -18,17 +18,18 @@ using namespace std;
 #include <string.h>
 #include <cuda.h>
 #include <curand.h>
-#include <mex.h>
-#include <thrust/sort.h>
-#include <thrust/count.h>
-#include <thrust/device_vector.h>
-#include <thrust/extrema.h>
-#include <thrust/generate.h>
-#include <thrust/reduce.h>
-#include <thrust/functional.h>
+//#include <thrust/sort.h>
+//#include <thrust/count.h>
+//#include <thrust/device_vector.h>
+//#include <thrust/extrema.h>
+//#include <thrust/generate.h>
+//#include <thrust/reduce.h>
+//#include <thrust/functional.h>
 #include "cublas.h"
 
 #include <math.h>
+
+
 #include "kernels.cu"
 #include "functions.cu"
 #include "debug_tools.cu"

@@ -19,8 +19,8 @@ __device__ void left_to_right(int j0, int j1, int *d_rows_mp, int *d_aux_mp, int
                 idx0++;
                 idx1++;
                 if (idx0 == idx0_MAX || idx1 == idx1_MAX){
-                    printf("WARNING: Reached memalloc limit\n");
-                    asm("trap;");
+                    //printf("WARNING: Reached memalloc limit\n"); // needs thurst import
+                    //asm("trap;");
                 }
             }
         }else{
