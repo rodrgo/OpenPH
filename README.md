@@ -53,7 +53,9 @@ Fixing memory slots uniformly is not only sub-optimal from the storage complexit
 
 Please contribute to the project! :) Read above for an overview of the code and short-term goals or just add something different!
 
-Detailed contributing guidelines will be established in release `1.0.0`. If in the meantime, you wish to contribute, please feel free to do so by following the standard [fork & pull request workflow](https://gist.github.com/Chaser324/ce0505fbed06b947d962). If you intend to submit a contribution, it might be a good idea to open a [draft pull-request](https://github.blog/2019-02-14-introducing-draft-pull-requests/) and [write us an email](mailto:r.mendozasmith@gmail.com) to discuss.
+Detailed contributing guidelines will be established in release `1.0.0`. If in the meantime, you wish to contribute, please feel free to do so by following the standard [fork & pull request workflow](https://gist.github.com/Chaser324/ce0505fbed06b947d962). If you intend to submit a contribution, it might be a good idea to open a [draft pull-request](https://github.blog/2019-02-14-introducing-draft-pull-requests/) and [write us an email](mailto:r.mendozasmith@gmail.com) to discuss. 
+
+Also, feel free to write us an email if you want to contribute, but are not quite sure how to!
 
 ## Citing
 
