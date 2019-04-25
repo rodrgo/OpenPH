@@ -6,7 +6,7 @@
 clc; clear all; close all;
 
 % Set javaplex directory
-JAVAPLEX_DIR = '/home/rodrigo/workspace/persistent_homology/javaplex';
+JAVAPLEX_DIR = fullfile(pwd, '..', '..', 'numerics', 'dependencies', 'javaplex');
 MATLAB_JAVAPLEX_DIR = fullfile(JAVAPLEX_DIR, 'src/matlab/for_distribution');
 
 javaaddpath([MATLAB_JAVAPLEX_DIR '/lib/javaplex.jar']);
@@ -16,6 +16,8 @@ javaaddpath([MATLAB_JAVAPLEX_DIR '/lib/plex-viewer.jar']);
 import edu.stanford.math.plex_viewer.*;
 
 addpath([MATLAB_JAVAPLEX_DIR '/utility']);
+
+addpath(fullfile(pwd, '..', 'matlab', 'ph'));
 
 % =============
 % Import Javaplex

@@ -16,6 +16,8 @@ sh build.sh
 
 The script will do its best to automatically generate a `config` file (in the `src/matlab` folder) with your system and GPU parameters. If this fails, please look at `src/matlab` and fill in the blanks. 
 
+By default, OpenPH uses GPU `0`. An option to choose the GPU will be added in subsequent releases.
+
 ### Numerics
 
 The following programs are required to build the dependencies and run the numerics: `cmake`, `make`, `ant`, `java`, `openmp`, `epstopdf`.
@@ -37,6 +39,17 @@ The following libraries will be installed as the are needed to run the numerical
 * [DIPHA](https://github.com/DIPHA/dipha) - Benchmarking datasets.
     * `cmake`, `make`, `openmp`
 
+### Install all in one go and run experiments
+
+Run
+
+```bash
+sh build.sh
+cd numerics
+bash install.sh
+bash run.sh
+```
+
 ## Overview
 
 The current (vanilla) version of OpenPH uses a sparse representation of the boundary matrix (of dimension `m x m` that allocates a fixed number of memory slots per column. This induces a segmentation of the data that can be naturally split across `m` processors (one column per GPU thread) which permits a fast routine for column addition. Parallelisation is achieved by identifying a set of `pivots` (columns in the matrix that are already reduced) at the start of the algorithm and using them to apply a left-to-right column operation wherever possible. After each left-to-right column operation the algorithm checks whether the column can be added to the set of `pivots`. 
@@ -48,6 +61,7 @@ Fixing memory slots uniformly is not only sub-optimal from the storage complexit
 1. To improve storge complexity by reassigning memory adaptively.
 2. To remove the need to supply `p`.
 3. To provide `python` and `julia` APIs to the low-level `C` code.
+4. Improve user experience (smarter installation, ability to choose GPU number, etc.)
 
 ## Contributing
 
