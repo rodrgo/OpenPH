@@ -70,7 +70,7 @@ Also, feel free to write us an email if you want to contribute, but are not quit
 
 ## License
 
-We want everyone to use this code and to contribute to this project, but we also want to keep patent trolls away. This is why we picked an Apache license rather than an MIT license. If you have a strong point of view about licensing of numerical computing libraries, please [write us an email](mailto:r.mendozasmith@gmail.com). We would be happy to hear your thoughts! 
-
 [Apache License 2.0](https://github.com/rodrgo/openph/blob/master/LICENSE)
+
+We want everyone to use this code and to contribute to this project, but we also want to keep patent trolls away. This is why we picked an [Apache License 2.0](https://github.com/rodrgo/openph/blob/master/LICENSE) rather than a MIT license. If you have any questions or concerns about this license please [write us an email](mailto:r.mendozasmith@gmail.com).
 
