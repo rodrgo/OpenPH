@@ -23,6 +23,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         int col_width;
         int *h_low_true;
 
+        int gpu_number = 0; // To be added as an input
+
         // reading in the string to determine the algorithm
         int strlen = mxGetN(prhs[0])+1;
         char algstr[strlen+100];
@@ -82,7 +84,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]){
         openph(algstr, h_rows_in, h_cols_in, m, col_width,
                 h_low_true, nnz, h_low, h_ess, error_linf,
                 error_lone, error_redu, error_ess, time_track,
-                num_iters);
+                num_iters, gpu_number);
 
     }  //closes the else ensuring a correct number of input and output arguments
 

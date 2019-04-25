@@ -31,7 +31,8 @@ void openph(char *algstr,
         int col_width, int *h_low_true, int nnz,
         int *h_low, int *h_ess, float *err_linf, 
         float *err_lone, float *err_redu, float *err_ess, 
-        float *time_track, int *num_iters){
+        float *time_track, int *num_iters, 
+        int gpu_number){
 
     // -------------------------------
     // Get p
@@ -47,8 +48,6 @@ void openph(char *algstr,
     // -------------------------------
     // GPU
     // -------------------------------
-
-    int gpu_number = 3;
 
     int tpb_m   = 0; // threads per block (m)
     int tpb_nnz = 0; // threads per block (nnz)
