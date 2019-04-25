@@ -1,4 +1,4 @@
-![image](https://drive.google.com/uc?export=view&id=1k1yv6CKptpkbCZlXVWj9rYal7KyaM3NL)
+![image](https://drive.google.com/uc?export=view&id=1_CLDwYxbgP3BpcfoSaa5ZypOHD37tRwz)
 
 # OpenPH: Persistent Homology computation on GPUs
 
