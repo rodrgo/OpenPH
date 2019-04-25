@@ -35,5 +35,5 @@ rm ${CUDAMATLAB}/nvmex_tmp
 chmod +x ${CUDAMATLAB}/nvmex
 
 # Build openph :)
-cd src/matlab/pms
+cd src/matlab/ph
 make
