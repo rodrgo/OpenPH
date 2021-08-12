@@ -1,5 +1,7 @@
 ![image](https://drive.google.com/uc?export=view&id=1_CLDwYxbgP3BpcfoSaa5ZypOHD37tRwz)
 
+[![GitNFT](https://img.shields.io/badge/%F0%9F%94%AE-Open%20in%20GitNFT-darkviolet?style=social)](https://gitnft.quine.sh/app/commits/list/repo/OpenPH)
+
 # OpenPH: Persistent Homology computation on GPUs
 
 OpenPH is a library for fast persistent homology computation on GPUs. OpenPH provides a `CUDA-C` implementation of `pms`, which is a provably convergent parallel algorithm for boundary matrix reduction tailored for GPUs, see the [Arxiv paper](https://arxiv.org/abs/1708.04710). Additionally, it includes vanilla implementations of other classical reduction algorithms like `standard`, `twist` and `ph-row`.
